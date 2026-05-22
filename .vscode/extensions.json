@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-vscode.powershell",
+    "tamasfe.even-better-toml",
+    "eamodio.gitlens",
+    "usernamehw.errorlens",
+    "davidanson.vscode-markdownlint"
+  ]
+}

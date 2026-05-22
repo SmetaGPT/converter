@@ -4,13 +4,13 @@ import json
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Union
 
 from . import __version__
 from .config import ConverterConfig
-from .converters.docx import convert_docx
-from .converters.pdf_scan import convert_pdf_scan
-from .converters.pdf_text import convert_pdf_text
+from .converters.docx import ConversionResult, convert_docx
+from .converters.pdf_scan import PdfScanConversionResult, convert_pdf_scan
+from .converters.pdf_text import PdfTextConversionResult, convert_pdf_text
 from .inventory import build_inventory
 
 
@@ -62,6 +62,7 @@ def run_convert_folder(config: ConverterConfig) -> RunResult:
         if record.route in {"docx_native", "pdf_text", "pdf_scan"}:
             try:
                 document_dir = _document_output_dir(documents_dir, record.sha256)
+                result: Union[ConversionResult, PdfTextConversionResult, PdfScanConversionResult]
                 if record.route == "docx_native":
                     result = convert_docx(input_dir / record.relative_path, document_dir, record.sha256)
                     manifest_record["assets_count"] = result.assets_count

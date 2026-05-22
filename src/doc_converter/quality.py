@@ -20,7 +20,7 @@ def review_required(flags: list[str]) -> bool:
     return any(flag in severe for flag in flags)
 
 
-def quality_payload(flags: list[str], warnings: list[str] | None = None) -> dict[str, object]:
+def quality_payload(flags: list[str], warnings: list[str] | None = None) -> dict[str, list[str]]:
     normalized_flags = list(dict.fromkeys(flags))
     if review_required(normalized_flags) and "review_required" not in normalized_flags:
         normalized_flags.append("review_required")

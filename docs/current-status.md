@@ -50,6 +50,7 @@
 27. Создан project-local `.venv`, OCR runtime установлен и проверен: `ocrmypdf` в `.venv`, Tesseract/Ghostscript через `scoop`, `rus/eng/osd` traineddata доступны.
 28. OCR executable discovery исправлен: converter и `check-ocr` находят локальный `ocrmypdf` рядом с активным `python.exe` без ручного PATH prepend.
 29. Full representative pilot в новой среде дал 21 success, 0 partial_success, 0 failed.
+30. Добавлены workspace-рекомендации VS Code и project-local настройки для `.venv`, unittest discovery, `src` extra path и исключения build artifacts из поиска.
 
 ### Готовые артефакты
 
@@ -79,6 +80,8 @@
 - docs/build-and-run.md
 - docs/ocr-runtime-windows.md
 - docs/downstream-handoff.md
+- .vscode/extensions.json
+- .vscode/settings.json
 - samples/manifest.sample.jsonl
 - samples/pdf-text-layer-check.sample.json
 - samples/expected/README.md

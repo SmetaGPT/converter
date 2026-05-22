@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from typing import cast
 
 from doc_converter.quality import quality_payload, review_required, text_quality_flags
 
@@ -9,8 +10,9 @@ class QualityTests(unittest.TestCase):
     def test_empty_text_sets_review_required(self) -> None:
         flags = text_quality_flags("", size_bytes=10000, route="pdf_text")
         payload = quality_payload(flags)
-        self.assertIn("empty_text", payload["flags"])
-        self.assertIn("review_required", payload["flags"])
+        payload_flags = cast(list[str], payload["flags"])
+        self.assertIn("empty_text", payload_flags)
+        self.assertIn("review_required", payload_flags)
 
     def test_short_extraction_for_large_text_source(self) -> None:
         flags = text_quality_flags("tiny", size_bytes=90000, route="docx_native")

@@ -1,3 +1,5 @@
+# pyright: reportMissingTypeStubs=false
+
 from doc_converter.gui import main
 
 

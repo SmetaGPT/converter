@@ -18,6 +18,7 @@
 - docs/build-and-run.md
 - docs/ocr-runtime-windows.md
 - docs/downstream-handoff.md
+- .vscode/
 - samples/manifest.sample.jsonl
 - samples/expected/
 - pyproject.toml
@@ -51,6 +52,7 @@
 | Добавить OCR runtime preflight | Готово |
 | Добавить OCR runtime install helper | Готово |
 | Установить и проверить OCR runtime | Готово |
+| Добавить VS Code workspace recommendations и settings | Готово |
 
 ## 4. Validation targets спринта
 

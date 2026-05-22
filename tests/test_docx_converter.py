@@ -21,7 +21,7 @@ class DocxConverterTests(unittest.TestCase):
             table = document.add_table(rows=1, cols=2)
             table.rows[0].cells[0].text = "A"
             table.rows[0].cells[1].text = "B"
-            document.save(source_path)
+            document.save(str(source_path))
 
             result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
 
