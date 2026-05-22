@@ -53,6 +53,7 @@
 | Добавить OCR runtime install helper | Готово |
 | Установить и проверить OCR runtime | Готово |
 | Добавить VS Code workspace recommendations и settings | Готово |
+| Подключить и запустить Context7 MCP в workspace | Готово |
 
 ## 4. Validation targets спринта
 

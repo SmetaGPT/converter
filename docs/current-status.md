@@ -51,6 +51,7 @@
 28. OCR executable discovery исправлен: converter и `check-ocr` находят локальный `ocrmypdf` рядом с активным `python.exe` без ручного PATH prepend.
 29. Full representative pilot в новой среде дал 21 success, 0 partial_success, 0 failed.
 30. Добавлены workspace-рекомендации VS Code и project-local настройки для `.venv`, unittest discovery, `src` extra path и исключения build artifacts из поиска.
+31. Context7 подключён и запущен в workspace через `.vscode/mcp.json` как локальный stdio MCP сервер `npx -y @upstash/context7-mcp@latest`.
 
 ### Готовые артефакты
 
@@ -81,6 +82,7 @@
 - docs/ocr-runtime-windows.md
 - docs/downstream-handoff.md
 - .vscode/extensions.json
+- .vscode/mcp.json
 - .vscode/settings.json
 - samples/manifest.sample.jsonl
 - samples/pdf-text-layer-check.sample.json
