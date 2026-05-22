@@ -38,6 +38,7 @@ jobs:
           $exitCode = $LASTEXITCODE
           $ocrJson | ConvertFrom-Json | Out-Null
           if ($exitCode -notin @(0, 1)) { exit $exitCode }
+          exit 0
 
       - name: Run synthetic e2e
         shell: pwsh
