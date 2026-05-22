@@ -9,10 +9,18 @@ from typing import Any
 
 from pypdf import PdfReader
 
-from doc_converter.canonical import SourceRef, StructuralUnit, document_id_from_sha256, minimal_document, unit_id
+from doc_converter.canonical import (
+    SourceRef,
+    StructuralUnit,
+    build_asset_record,
+    document_id_from_sha256,
+    minimal_document,
+    unit_id,
+)
 from doc_converter.converters.pdf_text import _split_pdf_text
 from doc_converter.ocr_runtime import find_ocrmypdf_executable
 from doc_converter.quality import quality_payload
+from doc_converter.schema_validation import validate_payload
 
 
 @dataclass(frozen=True)
@@ -29,6 +37,8 @@ def convert_pdf_scan(
     output_dir: Path,
     sha256: str,
     ocr_languages: tuple[str, ...],
+    *,
+    relative_source_path: str | None = None,
 ) -> PdfScanConversionResult:
     output_dir.mkdir(parents=True, exist_ok=True)
     ocr_dir = output_dir / "ocr"
@@ -39,7 +49,7 @@ def convert_pdf_scan(
 
     ocrmypdf = find_ocrmypdf_executable()
     if ocrmypdf is None:
-        return _write_unavailable_result(source_path, output_dir, status_path, sha256)
+        return _write_unavailable_result(source_path, output_dir, status_path, sha256, relative_source_path=relative_source_path)
 
     command = [
         ocrmypdf,
@@ -63,9 +73,23 @@ def convert_pdf_scan(
     }
     _write_json(status_path, status_payload)
     if completed.returncode != 0:
-        return _write_ocr_failed_result(source_path, output_dir, status_path, sha256, completed.stderr)
+        return _write_ocr_failed_result(
+            source_path,
+            output_dir,
+            status_path,
+            sha256,
+            completed.stderr,
+            relative_source_path=relative_source_path,
+        )
 
-    return _write_ocr_success_result(source_path, searchable_pdf, sidecar_text, output_dir, sha256)
+    return _write_ocr_success_result(
+        source_path,
+        searchable_pdf,
+        sidecar_text,
+        output_dir,
+        sha256,
+        relative_source_path=relative_source_path,
+    )
 
 
 def _write_unavailable_result(
@@ -73,6 +97,8 @@ def _write_unavailable_result(
     output_dir: Path,
     status_path: Path,
     sha256: str,
+    *,
+    relative_source_path: str | None = None,
 ) -> PdfScanConversionResult:
     reader = PdfReader(str(source_path))
     pages = len(reader.pages)
@@ -94,7 +120,16 @@ def _write_unavailable_result(
         flags=["ocr_required", "ocr_unavailable", "empty_text", "review_required"],
         warnings=["OCRmyPDF is not available in the current runtime."],
         ocr_applied=False,
-        assets=[{"asset_id": "ocr_status", "type": "other", "path": "ocr/ocr-status.json", "unit_id": None, "sha256": None}],
+        assets=[
+            build_asset_record(
+                asset_id="ocr_status",
+                asset_type="other",
+                asset_path=status_path,
+                output_dir=output_dir,
+                unit_id=None,
+            )
+        ],
+        relative_source_path=relative_source_path,
     )
 
 
@@ -104,6 +139,8 @@ def _write_ocr_failed_result(
     status_path: Path,
     sha256: str,
     stderr: str,
+    *,
+    relative_source_path: str | None = None,
 ) -> PdfScanConversionResult:
     reader = PdfReader(str(source_path))
     pages = len(reader.pages)
@@ -117,7 +154,16 @@ def _write_ocr_failed_result(
         flags=["ocr_required", "ocr_failed", "empty_text", "review_required"],
         warnings=[stderr.strip()[:1000] or "OCRmyPDF failed."],
         ocr_applied=False,
-        assets=[{"asset_id": "ocr_status", "type": "other", "path": "ocr/ocr-status.json", "unit_id": None, "sha256": None}],
+        assets=[
+            build_asset_record(
+                asset_id="ocr_status",
+                asset_type="other",
+                asset_path=status_path,
+                output_dir=output_dir,
+                unit_id=None,
+            )
+        ],
+        relative_source_path=relative_source_path,
     )
 
 
@@ -127,16 +173,31 @@ def _write_ocr_success_result(
     sidecar_text: Path,
     output_dir: Path,
     sha256: str,
+    *,
+    relative_source_path: str | None = None,
 ) -> PdfScanConversionResult:
     reader = PdfReader(str(searchable_pdf))
     page_texts = [(page.extract_text() or "").strip() for page in reader.pages]
-    search_text = "\n\n".join(text for text in page_texts if text)
+    search_text = "\f".join(page_texts)
+    has_text = any(page_texts)
     flags = ["ocr_required", "ocr_applied"]
-    if not search_text:
+    if not has_text:
         flags.extend(["empty_text", "review_required"])
     assets = [
-        {"asset_id": "ocr_pdf", "type": "ocr_pdf", "path": "ocr/searchable.pdf", "unit_id": None, "sha256": None},
-        {"asset_id": "ocr_sidecar", "type": "ocr_sidecar", "path": "ocr/sidecar.txt", "unit_id": None, "sha256": None},
+        build_asset_record(
+            asset_id="ocr_pdf",
+            asset_type="ocr_pdf",
+            asset_path=searchable_pdf,
+            output_dir=output_dir,
+            unit_id=None,
+        ),
+        build_asset_record(
+            asset_id="ocr_sidecar",
+            asset_type="ocr_sidecar",
+            asset_path=sidecar_text,
+            output_dir=output_dir,
+            unit_id=None,
+        ),
     ]
     return _write_scan_payload(
         source_path=source_path,
@@ -144,11 +205,12 @@ def _write_ocr_success_result(
         sha256=sha256,
         pages=len(reader.pages),
         search_text=search_text,
-        status="success" if search_text else "partial_success",
+        status="success" if has_text else "partial_success",
         flags=flags,
         warnings=[],
         ocr_applied=True,
         assets=assets,
+        relative_source_path=relative_source_path,
     )
 
 
@@ -164,6 +226,7 @@ def _write_scan_payload(
     warnings: list[str],
     ocr_applied: bool,
     assets: list[dict[str, Any]],
+    relative_source_path: str | None = None,
 ) -> PdfScanConversionResult:
     doc_id = document_id_from_sha256(sha256)
     units: list[StructuralUnit] = [
@@ -206,10 +269,11 @@ def _write_scan_payload(
         units=units,
         assets=assets,
         quality=quality_payload(flags, warnings),
+        relative_source_path=relative_source_path,
     )
     payload["processing"]["ocr_applied"] = ocr_applied
     payload["processing"]["warnings"] = warnings
-    _write_json(output_dir / "document.v1.json", payload)
+    _write_validated_json(output_dir / "document.v1.json", payload, "document.v1.schema.json")
     _write_json(
         output_dir / "extractor_raw.json",
         {
@@ -231,3 +295,8 @@ def _write_scan_payload(
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _write_validated_json(path: Path, payload: dict[str, Any], schema_filename: str) -> None:
+    validate_payload(payload, schema_filename)
+    _write_json(path, payload)

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/SmetaGPT/converter/schemas/chunks.v1.schema.json",
+  "title": "Chunks V1 JSONL Record",
+  "type": "object",
+  "required": ["schema_version", "chunk_id", "document_id", "unit_refs", "text", "section_path", "pages", "asset_refs"],
+  "properties": {
+    "schema_version": { "const": "chunks.v1" },
+    "chunk_id": { "type": "string", "pattern": "^c_[0-9]{6}$" },
+    "document_id": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "unit_refs": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^u_[0-9]{6}$" },
+      "minItems": 1
+    },
+    "section_path": { "type": "array", "items": { "type": "string" } },
+    "pages": { "type": "array", "items": { "type": "integer", "minimum": 1 } },
+    "text": { "type": "string" },
+    "asset_refs": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}

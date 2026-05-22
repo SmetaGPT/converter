@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "windows-document-converter"
-version = "0.1.0"
+version = "0.2.0"
 description = "Local Windows document converter for portable machine-readable outputs."
 readme = "docs/document-converter-roadmap.md"
 requires-python = ">=3.11"
@@ -12,6 +12,7 @@ dependencies = [
 	"pypdf>=5.0",
 	"python-docx>=1.1",
 	"ocrmypdf>=17.4",
+	"jsonschema>=4.23",
 ]
 
 [project.optional-dependencies]

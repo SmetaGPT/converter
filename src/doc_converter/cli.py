@@ -21,8 +21,7 @@ def build_parser() -> argparse.ArgumentParser:
     convert.add_argument("input_dir", type=Path, help="Folder with source DOCX/PDF files.")
     convert.add_argument("output_dir", type=Path, help="Folder where run output will be created.")
     convert.add_argument("--ocr-languages", default="rus,eng", help="Comma-separated OCR language codes.")
-    convert.add_argument("--workers", type=int, default=1, help="Maximum worker count for later processing stages.")
-    convert.add_argument("--include-originals", action="store_true", help="Copy originals into run package when implemented.")
+    convert.add_argument("--include-originals", action="store_true", help="Copy source files into each canonical document package.")
     convert.set_defaults(func=_handle_convert_folder)
 
     check_ocr = subparsers.add_parser("check-ocr", help="Check OCRmyPDF/Tesseract/Ghostscript runtime availability.")
@@ -45,7 +44,7 @@ def main(argv: list[str] | None = None) -> int:
 def _handle_convert_folder(args: argparse.Namespace) -> int:
     options = ConverterOptions(
         ocr_languages=_parse_ocr_languages(args.ocr_languages),
-        workers=args.workers,
+        workers=1,
         include_originals=args.include_originals,
     )
     result = run_convert_folder(

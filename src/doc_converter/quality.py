@@ -16,7 +16,7 @@ def text_quality_flags(text: str, *, size_bytes: int, route: str) -> list[str]:
 
 
 def review_required(flags: list[str]) -> bool:
-    severe = {"empty_text", "ocr_failed", "ocr_unavailable", "asset_extraction_warning"}
+    severe = {"empty_text", "ocr_failed", "ocr_unavailable", "asset_extraction_warning", "rotated_text"}
     return any(flag in severe for flag in flags)
 
 

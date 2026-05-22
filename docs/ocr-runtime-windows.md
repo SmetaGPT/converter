@@ -57,3 +57,12 @@ Helper выполняет следующие шаги:
 - `jbig2` не установлен, поэтому OCRmyPDF пропускает часть image optimizations.
 - `pngquant` не установлен, поэтому OCRmyPDF пропускает часть PNG optimizations.
 - `verapdf` не установлен, поэтому OCRmyPDF пишет `Auto mode: no verapdf available`; OCR работает, но строгая PDF/A-проверка не выполняется.
+
+## 6. Release profile
+
+Текущий release profile разделён на два уровня:
+
+- core required: `ocrmypdf`, `tesseract`, `ghostscript`; без них `pdf_scan` не считается fully ready;
+- optional helpers: `jbig2`, `pngquant`, `verapdf`; они не блокируют OCR route, но влияют на оптимизации и PDF/A checks.
+
+Итог на этой машине: core profile закрыт полностью, optional profile остаётся добровольным post-release enhancement.

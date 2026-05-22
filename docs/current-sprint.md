@@ -1,15 +1,15 @@
 # Current Sprint
 
 Последнее обновление: 2026-05-22
-Активный спринт: Sprint 12 — Pilot and Release Hardening
-Статус: in-progress
+Активный спринт: Release Closure — Production readiness v0.2.0
+Статус: completed
 
-Последний завершённый спринт: Sprint 10 — Windows Packaging MVP
+Последний завершённый спринт: Release Closure — Production readiness v0.2.0
 Статус wave 1: completed
 
 ## 1. Цель спринта
 
-Проверить Windows Document Converter MVP на representative ФСНБ samples, зафиксировать ограничения и подготовить следующий hardening backlog.
+Закрыть production gates поверх Sprint 13-16: runtime schema validation, resume/idempotency, honest CLI/GUI contract, quality reporting, downstream chunks, Windows CI и portable release packaging.
 
 ## 2. Артефакты спринта
 
@@ -17,80 +17,75 @@
 - docs/document-converter-acceptance.md
 - docs/build-and-run.md
 - docs/ocr-runtime-windows.md
-- docs/downstream-handoff.md
-- .vscode/
-- samples/manifest.sample.jsonl
-- samples/expected/
-- pyproject.toml
+- docs/current-status.md
+- docs/release-status.md
+- .github/prompts/production-readiness-hardening.prompt.md
 - src/doc_converter/
 - tests/
 - schemas/
 - scripts/
+- dist/
 
 ## 3. Задачи спринта
 
 | Задача | Статус |
 | --- | --- |
-| Создать roadmap Windows Document Converter | Готово |
-| Выбрать representative DOCX/PDF | Готово |
-| Описать acceptance criteria для DOCX/PDF/PDF-scan | Готово |
-| Зафиксировать обязательные поля `document.v1.json` | Готово |
-| Зафиксировать quality flags первой версии | Готово |
-| Классифицировать PDF samples на `pdf_text` и `pdf_scan` | Готово |
-| Подготовить expected structural units для 3-5 документов | Готово |
-| Реализовать CLI core и run directory layout | Готово |
-| Реализовать canonical schemas и stable IDs | Готово |
-| Реализовать inventory, hashing, dedup и route detection | Готово |
-| Реализовать DOCX route | Готово |
-| Реализовать PDF-text route | Готово |
-| Реализовать PDF-scan degraded route | Готово |
-| Добавить quality gates | Готово |
-| Добавить GUI MVP | Готово |
-| Собрать Windows package | Готово |
-| Провести representative pilot-run | Готово |
-| Провести full 21-sample pilot-run | Готово |
-| Добавить OCR runtime preflight | Готово |
-| Добавить OCR runtime install helper | Готово |
-| Установить и проверить OCR runtime | Готово |
-| Добавить VS Code workspace recommendations и settings | Готово |
-| Подключить и запустить Context7 MCP в workspace | Готово |
+| Исправить OCR page mapping и сохранить OCR page boundaries | Готово |
+| Добавить `relative_input_path` и asset fingerprints/file metadata | Готово |
+| Перевести DOCX converter на реальный body order | Готово |
+| Выделить `section`, `list_item`, `caption` в DOCX | Готово |
+| Включить layout-first extraction для PDF-text | Готово |
+| Добавить `bbox`, `coordinate_system`, `page_width`, `page_height` в page provenance | Готово |
+| Выделить repeated edge blocks как `header`/`footer` | Готово |
+| Нормализовать `quality` на document и unit level | Готово |
+| Ужесточить `document.v1` schema под фактический payload | Готово |
+| Синхронизировать roadmap, acceptance, build и OCR docs | Готово |
+| Подтвердить full test suite, representative pilot, OCR preflight и build | Готово |
+| Провести automated GUI startup smoke для Python GUI и собранного EXE | Готово |
+| Создать и ужесточить автономный prompt для полного production hardening без остановок | Готово |
+| Валидировать `run/document/manifest/summary/queue/ocr-runtime/chunks` по JSON Schema | Готово |
+| Реализовать resume reuse, duplicate skip и `include_originals` | Готово |
+| Удалить ложный `workers` из public contract и добавить progress/cancel/open output в GUI | Готово |
+| Добавить `review-required.jsonl`, richer summary reasons и `rotated_text` flags | Готово |
+| Добавить reference chunk builder и portability-safe `chunks.v1.jsonl` contract | Готово |
+| Добавить synthetic e2e, Windows CI и portable release packaging | Готово |
 
 ## 4. Validation targets спринта
 
-1. Full test suite проходит: `python -m unittest discover -v`.
+1. Full test suite проходит.
 2. Representative pilot-run создаёт output package без failed documents.
 3. Windows package собирается через `scripts/build-windows.ps1`.
-4. Ограничения OCR и advanced PDF extraction зафиксированы явно.
-5. Full representative pilot проходит через `scripts/run_sample_pilot.py` без failed documents и route mismatches.
-6. OCR runtime preflight возвращает машинно-читаемый статус готовности OCR dependencies.
-7. `pdf_scan` representative samples проходят с `ocr_applied: true` в project venv.
+4. OCR runtime preflight возвращает `status: ready`.
+5. Собранный EXE проходит automated launch smoke без мгновенного падения.
+6. Synthetic e2e создаёт schema-valid run package и `chunks.v1.jsonl`.
+7. Portable release package создаётся с checksum и release notes.
+8. Ограничения advanced semantic extraction и optional OCR helpers зафиксированы явно.
 
 ## 5. Риски спринта
 
-- PDF tables, formulas и figures пока не имеют advanced extraction;
-- GUI MVP не проходил ручной визуальный smoke после сборки EXE;
-- PyInstaller build package собран, но installer ещё не оформлен.
+- Advanced semantic extraction PDF tables/figures/formulas остаётся post-release enhancement;
+- DOCX footnotes/header/footer semantic pass остаётся post-release enhancement;
 - Optional OCR helpers `jbig2`, `pngquant`, `verapdf` не установлены; это не блокирует OCR, но ограничивает оптимизацию и PDF/A checks.
 
 ## 6. Критерий выхода
 
-Спринт считается завершённым, когда delivery loop гарантирует:
+Спринт закрыт, потому что delivery loop подтвердил:
 
 - representative pilot-run на расширенном sample set выполнен;
-- OCR runtime либо установлен и проверен, либо ограничение сохранено как release blocker;
-- GUI EXE вручную открыт и проходит basic operator flow;
-- hardening backlog оформлен.
+- OCR runtime установлен и проверен;
+- Python GUI и собранный EXE проходят automated startup smoke;
+- runtime schema validation, resume/idempotency, quality reporting, downstream chunks, CI и portable release packaging подтверждены.
 
 ## 7. Следующий operational focus
 
-1. Расширить PDF extraction для tables/figures/formulas.
-2. Провести ручной GUI EXE smoke на small batch.
-3. Решить, нужны ли optional OCR helpers `jbig2`, `pngquant`, `verapdf` в release package.
+1. Расширить advanced semantic extraction для PDF tables/figures/formulas.
+2. Добавить DOCX footnotes/header/footer semantic pass при наличии product need.
+3. Решить, нужны ли optional OCR helpers `jbig2`, `pngquant`, `verapdf` по эксплуатационным метрикам.
 
 ## 8. Последняя representative проверка
 
 - Команда: `python scripts\run_sample_pilot.py --clean`.
-- Run dir: `runs\sample-pilot\runs\20260522T162409Z` и повторная проверка `runs\sample-pilot\runs\20260522T162602Z`.
+- Run dir: `runs\sample-pilot\runs\20260522T180732Z`.
 - Результат: 21 processed, 21 success, 0 partial_success, 0 failed.
 - Routes: `docx_native: 8`, `pdf_text: 10`, `pdf_scan: 3`.
 - Route mismatches: 0.
@@ -102,8 +97,11 @@
 - Tools: локальный `ocrmypdf` в `.venv\Scripts`, `tesseract` и `gswin64c` через `scoop`.
 - Languages: `eng`, `rus`, `osd` доступны.
 
-## 10. OCR runtime install helper
+## 10. Build и GUI smoke
 
-- Check-only команда: `powershell -ExecutionPolicy Bypass -File scripts\install-ocr-runtime.ps1 -CheckOnly`.
-- Предпочтительный path: `.venv + scoop`, без elevated PowerShell, если `scoop` доступен.
-- Fallback path: `winget + choco`, если `scoop` отсутствует.
+- Build команда: `powershell -ExecutionPolicy Bypass -File scripts\build-windows.ps1 -Name DocumentConverter`.
+- Результат: `dist\DocumentConverter\DocumentConverter.exe` собран успешно.
+- Portable release: `powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 -Name DocumentConverter -Version 0.2.0 -SkipBuild`.
+- Synthetic e2e: `.\.venv\Scripts\python.exe scripts\run_synthetic_e2e.py --clean`.
+- Python GUI smoke: `.\.venv\Scripts\python.exe -m unittest tests.test_gui_import -v`.
+- EXE smoke: `dist\DocumentConverter\DocumentConverter.exe` стартует как процесс и не завершается мгновенно.

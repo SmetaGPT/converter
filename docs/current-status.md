@@ -52,6 +52,23 @@
 29. Full representative pilot в новой среде дал 21 success, 0 partial_success, 0 failed.
 30. Добавлены workspace-рекомендации VS Code и project-local настройки для `.venv`, unittest discovery, `src` extra path и исключения build artifacts из поиска.
 31. Context7 подключён и запущен в workspace через `.vscode/mcp.json` как локальный stdio MCP сервер `npx -y @upstash/context7-mcp@latest`.
+32. Дорожная карта `docs/document-converter-roadmap.md` синхронизирована с фактическим исполнением Sprint 0-12 и расширена hardening backlog Sprint 13-16 по OCR, DOCX, PDF provenance и schema contract.
+33. Sprint 13 выполнен: `pdf_scan` сохраняет OCR page boundaries, assets получают fingerprints и file metadata, в `source` добавлен `relative_input_path`.
+34. Sprint 14 выполнен: DOCX converter переведён на реальный body order, headings/lists/captions выделяются как semantic units.
+35. Sprint 15 выполнен в текущем scope: `pypdf` переведён на layout-first extraction, page provenance расширен до `bbox + coordinate_system + page size`, repeated edge blocks выделяются как `header`/`footer`.
+36. Sprint 16 выполнен: schema contract ужесточён, `quality` нормализован на document и unit level, acceptance/build/OCR docs синхронизированы с emitters.
+37. Добавлен GUI startup smoke test через инициализацию `ConverterApp`, а собранный `dist\DocumentConverter\DocumentConverter.exe` проходит automated launch smoke без мгновенного падения.
+38. Повторная широкая validation после hardening прошла: full unittest suite даёт 23 passed.
+39. Representative pilot после hardening остаётся зелёным: `runs\sample-pilot\runs\20260522T180732Z`, 21 success, 0 partial_success, 0 failed.
+40. OCR runtime и build контур подтверждены после hardening: `check-ocr` возвращает `ready`, а `scripts\build-windows.ps1` успешно пересобирает Windows package.
+41. Добавлен и ужесточён автономный workspace prompt `.github/prompts/production-readiness-hardening.prompt.md` для uninterrupted доведения проекта до production readiness по gates G1-G12 без остановок на approval/планировании.
+42. Добавлена runtime schema validation для `run.v1`, `summary.v1`, `queue-state.v1`, `manifest.v1`, `document.v1`, `ocr-runtime.v1` и `chunks.v1`.
+43. Runner теперь делает reuse предыдущего output для неизменённых файлов, не допускает перезаписи duplicate canonical package и реализует `include_originals`.
+44. GUI доведён до operator-grade v0.2 surface: progress, current file, cancel, open output и summary counts.
+45. Добавлены `review-required.jsonl`, richer summary reasons и `rotated_text` quality flag для PDF pages с rotation.
+46. Добавлены `src/doc_converter/chunking.py`, `scripts/build_sample_chunks.py` и portability-safe `chunks.v1.jsonl` contract.
+47. Добавлены `scripts/validate_run_package.py`, `scripts/run_synthetic_e2e.py`, `.github/workflows/windows-ci.yml` и `scripts/package-release.ps1`.
+48. Сформирован portable release package v0.2.0 с checksum/release notes; production scope сужен и зафиксирован в release docs честно.
 
 ### Готовые артефакты
 
@@ -81,6 +98,7 @@
 - docs/build-and-run.md
 - docs/ocr-runtime-windows.md
 - docs/downstream-handoff.md
+- .github/prompts/production-readiness-hardening.prompt.md
 - .vscode/extensions.json
 - .vscode/mcp.json
 - .vscode/settings.json
@@ -102,23 +120,22 @@
 
 ## 3. Что делается сейчас
 
-Текущий фокус: эксплуатация контура на реальных задачах и weekly eval cycle.
+Текущий фокус: эксплуатация production-ready v0.2.0 scope, weekly eval cycle и post-release semantic enhancements.
 
 В работе:
 
 - перевод scorecard с экспертной оценки на фактические weekly scores;
-- hardening Windows Document Converter MVP;
-- расширение PDF/table/figure extraction beyond baseline text route;
-- GUI EXE manual smoke и installer polish.
+- post-release enhancement для advanced PDF tables/figures/formulas и DOCX footnotes/header/footer;
+- optional OCR helper profile `jbig2`, `pngquant`, `verapdf` по мере необходимости.
 
 ## 4. Что идёт дальше
 
 Следующая последовательность после закрытия Sprint 1:
 
-1. Регулярный weekly eval loop.
-2. Реальные full-cycle пилоты на прикладных задачах.
-3. Hardening MVP на расширенном наборе ФСНБ.
-4. Уточнение repo-memory по мере появления кода и окружения.
+1. Регулярный weekly eval loop на реальных пакетах v0.2.0.
+2. Post-release semantic enrichment для PDF tables/figures/formulas и DOCX footnotes/header/footer.
+3. Optional OCR helpers и installer polish только если это потребуется по эксплуатации.
+4. Уточнение repo-memory по мере появления нового production learning.
 
 ## 5. Открытые gaps
 

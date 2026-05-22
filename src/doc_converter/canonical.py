@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import mimetypes
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -27,12 +28,36 @@ def unit_id(order: int) -> str:
     return f"u_{order:06d}"
 
 
+def build_asset_record(
+    *,
+    asset_id: str,
+    asset_type: str,
+    asset_path: Path,
+    output_dir: Path,
+    unit_id: str | None,
+) -> dict[str, Any]:
+    media_type, _ = mimetypes.guess_type(asset_path.name)
+    return {
+        "asset_id": asset_id,
+        "type": asset_type,
+        "path": asset_path.relative_to(output_dir).as_posix(),
+        "unit_id": unit_id,
+        "sha256": sha256_file(asset_path),
+        "filename": asset_path.name,
+        "size_bytes": asset_path.stat().st_size,
+        "media_type": media_type,
+    }
+
+
 @dataclass(frozen=True)
 class SourceRef:
     document_id: str
     page: int | None = None
     bbox: tuple[float, float, float, float] | None = None
     docx_path: str | None = None
+    coordinate_system: str | None = None
+    page_width: float | None = None
+    page_height: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -40,6 +65,9 @@ class SourceRef:
             "page": self.page,
             "bbox": list(self.bbox) if self.bbox is not None else None,
             "docx_path": self.docx_path,
+            "coordinate_system": self.coordinate_system,
+            "page_width": self.page_width,
+            "page_height": self.page_height,
         }
 
 
@@ -52,7 +80,7 @@ class StructuralUnit:
     parent_id: str | None = None
     text: str | None = None
     asset_ref: str | None = None
-    quality: dict[str, Any] = field(default_factory=dict)
+    quality: dict[str, Any] = field(default_factory=lambda: {"flags": [], "warnings": []})
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -77,6 +105,7 @@ def minimal_document(
     units: list[StructuralUnit],
     assets: list[dict[str, Any]] | None = None,
     quality: dict[str, Any] | None = None,
+    relative_source_path: str | None = None,
 ) -> dict[str, Any]:
     document_id = document_id_from_sha256(sha256)
     return {
@@ -84,6 +113,7 @@ def minimal_document(
         "document_id": document_id,
         "source": {
             "original_path": str(source_path),
+            "relative_input_path": relative_source_path,
             "filename": source_path.name,
             "format": source_format,
             "sha256": sha256,

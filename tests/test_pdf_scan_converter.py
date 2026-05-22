@@ -4,12 +4,58 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 from doc_converter.config import ConverterConfig
+from doc_converter.converters.pdf_scan import _write_ocr_success_result
 from doc_converter.runner import run_convert_folder
+from doc_converter.schema_validation import validate_payload
 
 
 class PdfScanConverterTests(unittest.TestCase):
+    def test_ocr_success_preserves_page_boundaries_for_paragraph_units(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            source_path = temp_path / "scan.pdf"
+            output_dir = temp_path / "out"
+            ocr_dir = output_dir / "ocr"
+            searchable_pdf = ocr_dir / "searchable.pdf"
+            sidecar_text = ocr_dir / "sidecar.txt"
+
+            source_path.write_bytes(b"%PDF-1.4\n%stub\n")
+            ocr_dir.mkdir(parents=True)
+            searchable_pdf.write_bytes(b"%PDF-1.4\n%ocr\n")
+            sidecar_text.write_text("page 1\fpage 2\n", encoding="utf-8")
+
+            fake_pages = [Mock(extract_text=Mock(return_value="Первая страница\n\nАбзац 1")), Mock(extract_text=Mock(return_value="Вторая страница"))]
+            fake_reader = Mock(pages=fake_pages)
+
+            with patch("doc_converter.converters.pdf_scan.PdfReader", return_value=fake_reader):
+                result = _write_ocr_success_result(
+                    source_path=source_path,
+                    searchable_pdf=searchable_pdf,
+                    sidecar_text=sidecar_text,
+                    output_dir=output_dir,
+                    sha256="0" * 64,
+                )
+
+            payload = json.loads((output_dir / "document.v1.json").read_text(encoding="utf-8"))
+            validate_payload(payload, "document.v1.schema.json")
+            page_units = [unit for unit in payload["units"] if unit["type"] == "page"]
+            paragraph_units = [unit for unit in payload["units"] if unit["type"] == "paragraph"]
+
+            self.assertEqual(result.status, "success")
+            self.assertEqual(len(page_units), 2)
+            self.assertEqual(len(paragraph_units), 3)
+            self.assertEqual(paragraph_units[0]["source_ref"]["page"], 1)
+            self.assertEqual(paragraph_units[1]["source_ref"]["page"], 1)
+            self.assertEqual(paragraph_units[2]["source_ref"]["page"], 2)
+            self.assertEqual(paragraph_units[2]["parent_id"], page_units[1]["unit_id"])
+            self.assertIn("\f", (output_dir / "search_text.txt").read_text(encoding="utf-8"))
+            self.assertEqual(payload["assets"][0]["filename"], "searchable.pdf")
+            self.assertIsNotNone(payload["assets"][0]["sha256"])
+            self.assertGreater(payload["assets"][1]["size_bytes"], 0)
+
     def test_runner_handles_real_pdf_scan_sample_when_available(self) -> None:
         sample = Path(r"D:\ФСНБ\Документы\Загрузка НПА\sub_law\PPRF_680.pdf")
         if not sample.exists():
@@ -28,8 +74,10 @@ class PdfScanConverterTests(unittest.TestCase):
                 if line.strip()
             ]
             self.assertEqual(manifest_records[0]["route"], "pdf_scan")
+            validate_payload(manifest_records[0], "manifest.v1.schema.json")
             document_dir = result.run_dir / manifest_records[0]["output_dir"]
             payload = json.loads((document_dir / "document.v1.json").read_text(encoding="utf-8"))
+            validate_payload(payload, "document.v1.schema.json")
 
             self.assertEqual(payload["processing"]["route"], "pdf_scan")
             self.assertTrue((document_dir / "ocr" / "ocr-status.json").exists())

@@ -12,6 +12,7 @@
       "required": ["original_path", "filename", "format", "sha256", "size_bytes"],
       "properties": {
         "original_path": { "type": "string" },
+        "relative_input_path": { "type": ["string", "null"] },
         "filename": { "type": "string" },
         "format": { "enum": ["docx", "pdf"] },
         "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
@@ -39,16 +40,20 @@
       "items": { "$ref": "#/$defs/asset" }
     },
     "quality": {
+      "$ref": "#/$defs/quality"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "quality": {
       "type": "object",
       "properties": {
         "flags": { "type": "array", "items": { "type": "string" } },
         "warnings": { "type": "array", "items": { "type": "string" } }
       },
-      "additionalProperties": true
-    }
-  },
-  "additionalProperties": true,
-  "$defs": {
+      "required": ["flags", "warnings"],
+      "additionalProperties": false
+    },
     "structural_unit": {
       "type": "object",
       "required": ["unit_id", "type", "order", "source_ref"],
@@ -90,13 +95,16 @@
               "minItems": 4,
               "maxItems": 4
             },
-            "docx_path": { "type": ["string", "null"] }
+            "docx_path": { "type": ["string", "null"] },
+            "coordinate_system": { "type": ["string", "null"] },
+            "page_width": { "type": ["number", "null"] },
+            "page_height": { "type": ["number", "null"] }
           },
-          "additionalProperties": true
+          "additionalProperties": false
         },
-        "quality": { "type": "object", "additionalProperties": true }
+        "quality": { "$ref": "#/$defs/quality" }
       },
-      "additionalProperties": true
+      "additionalProperties": false
     },
     "asset": {
       "type": "object",
@@ -106,9 +114,12 @@
         "type": { "enum": ["page_image", "figure", "formula_image", "ocr_pdf", "ocr_sidecar", "other"] },
         "path": { "type": "string" },
         "unit_id": { "type": ["string", "null"] },
-        "sha256": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" }
+        "sha256": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+        "filename": { "type": ["string", "null"] },
+        "size_bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "media_type": { "type": ["string", "null"] }
       },
-      "additionalProperties": true
+      "additionalProperties": false
     }
   }
 }

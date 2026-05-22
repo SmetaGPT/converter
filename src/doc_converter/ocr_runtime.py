@@ -7,6 +7,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from .schema_validation import validate_payload
+
 
 def detect_ocr_runtime(ocr_languages: tuple[str, ...] = ("rus", "eng")) -> dict[str, Any]:
     ocrmypdf_path = find_ocrmypdf_executable()
@@ -29,7 +31,7 @@ def detect_ocr_runtime(ocr_languages: tuple[str, ...] = ("rus", "eng")) -> dict[
         warnings.append(f"Missing Tesseract languages: {', '.join(missing_languages)}.")
 
     ready = ocrmypdf_path is not None and tesseract_path is not None and ghostscript_path is not None and not missing_languages
-    return {
+    payload = {
         "schema_version": "ocr-runtime.v1",
         "status": "ready" if ready else "missing",
         "tools": {
@@ -44,6 +46,8 @@ def detect_ocr_runtime(ocr_languages: tuple[str, ...] = ("rus", "eng")) -> dict[
         },
         "warnings": warnings,
     }
+    validate_payload(payload, "ocr-runtime.v1.schema.json")
+    return payload
 
 
 def find_ocrmypdf_executable() -> str | None:

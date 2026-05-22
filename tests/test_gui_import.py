@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import tkinter as tk
 import unittest
+from types import SimpleNamespace
 
 
 class GuiImportTests(unittest.TestCase):
@@ -8,6 +10,68 @@ class GuiImportTests(unittest.TestCase):
         import doc_converter.gui as gui
 
         self.assertTrue(hasattr(gui, "ConverterApp"))
+
+    def test_converter_app_initializes(self) -> None:
+        import doc_converter.gui as gui
+
+        try:
+            app = gui.ConverterApp()
+        except tk.TclError as exc:
+            self.skipTest(f"Tk is not available: {exc}")
+
+        try:
+            app.update_idletasks()
+            self.assertEqual(app.title(), "Windows Document Converter")
+            self.assertTrue(app.start_button.winfo_exists())
+            self.assertTrue(app.cancel_button.winfo_exists())
+            self.assertTrue(app.open_output_button.winfo_exists())
+            self.assertTrue(app.progress_bar.winfo_exists())
+        finally:
+            app.destroy()
+
+    def test_progress_events_update_gui_state(self) -> None:
+        import doc_converter.gui as gui
+
+        try:
+            app = gui.ConverterApp()
+        except tk.TclError as exc:
+            self.skipTest(f"Tk is not available: {exc}")
+
+        try:
+            app.events.put({"type": "progress", "event": "inventory_built", "total_files": 3, "processed_files": 0})
+            app.events.put(
+                {
+                    "type": "progress",
+                    "event": "document_finished",
+                    "relative_path": "sample.docx",
+                    "status": "success",
+                    "total_files": 3,
+                    "processed_files": 1,
+                }
+            )
+            app._drain_events()
+
+            self.assertEqual(app.current_file_var.get(), "sample.docx")
+            self.assertEqual(app.progress_label_var.get(), "1 / 3")
+            self.assertGreater(app.progress_var.get(), 0.0)
+        finally:
+            app.destroy()
+
+    def test_cancel_sets_flag_for_running_worker(self) -> None:
+        import doc_converter.gui as gui
+
+        try:
+            app = gui.ConverterApp()
+        except tk.TclError as exc:
+            self.skipTest(f"Tk is not available: {exc}")
+
+        try:
+            app.worker = SimpleNamespace(is_alive=lambda: True)
+            app._cancel()
+            self.assertTrue(app.cancel_requested.is_set())
+            self.assertEqual(app.status_var.get(), "Отмена после текущего файла...")
+        finally:
+            app.destroy()
 
 
 if __name__ == "__main__":

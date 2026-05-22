@@ -1,7 +1,7 @@
 # Downstream Handoff
 
 Дата: 2026-05-22
-Статус: initial contract
+Статус: validated reference contract
 
 ## 1. Назначение
 
@@ -16,6 +16,8 @@ Source layer для downstream-проекта:
 - `run.json`;
 - `manifest.jsonl`;
 - `summary.json`;
+- `review-required.jsonl`;
+- `chunks.v1.jsonl`, если он был построен downstream builder-ом;
 - `documents/*/document.v1.json`;
 - `documents/*/search_text.txt`;
 - `documents/*/assets/`;
@@ -78,6 +80,17 @@ document_id + unit_id
 - `asset_ref`;
 - `unit_json`.
 
+Reference mapping для текущего релиза:
+
+- `documents.document_id` <- `document.v1.json.document_id`
+- `documents.source_sha256` <- `document.v1.json.source.sha256`
+- `documents.processing_route` <- `document.v1.json.processing.route`
+- `documents.processing_status` <- `document.v1.json.processing.status`
+- `document_units.page` <- `unit.source_ref.page`
+- `document_units.bbox` <- `unit.source_ref.bbox`
+- `document_units.asset_ref` <- `unit.asset_ref`
+- `document_assets.path` <- `asset.path`
+
 ## 5. Chunking rules
 
 Chunker должен работать от structural units, а не от сырой строки `search_text.txt`.
@@ -104,6 +117,9 @@ Chunker должен работать от structural units, а не от сыр
   "asset_refs": []
 }
 ```
+
+Reference builder для текущего релиза: `scripts/build_sample_chunks.py`.
+Reference validator для output package: `scripts/validate_run_package.py`.
 
 ## 6. Векторный и семантический поиск
 

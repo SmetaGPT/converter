@@ -1,7 +1,7 @@
 # Windows Document Converter Acceptance
 
 Дата: 2026-05-22
-Статус: Sprint 0 draft
+Статус: v0.2.0 release scope
 
 ## 1. Назначение
 
@@ -60,11 +60,11 @@
 
 - `schema_version` равен `document.v1`;
 - `document_id` стабилен и строится от SHA-256 исходного файла;
-- `source` содержит исходный путь, имя, формат, размер и SHA-256;
+- `source` содержит исходный путь, `relative_input_path`, имя, формат, размер и SHA-256;
 - `processing.route` содержит один из маршрутов `docx_native`, `pdf_text`, `pdf_scan`;
 - `processing.status` содержит `success`, `partial_success`, `failed` или `skipped_duplicate`;
 - `units` содержит structural units с `unit_id`, `type`, `order`, `parent_id`, `source_ref`;
-- `assets` содержит ссылки на выделенные изображения, страницы, формулы и графику;
+- `assets` содержит ссылки на выделенные изображения, страницы, формулы и графику, а также `sha256`, `size_bytes`, `filename`, `media_type`, где asset физически сохранён;
 - `quality` содержит flags и warnings;
 - все ссылки на assets являются относительными к папке документа.
 
@@ -78,11 +78,13 @@
 - `order` сохраняет порядок чтения;
 - `parent_id` сохраняет иерархию документа;
 - заголовки не сливаются с абзацами;
+- `section`, `list_item`, `caption`, `header`, `footer` не теряются в plain `paragraph`, если их можно вывести из route semantics;
 - таблицы не превращаются только в plain text;
 - подписи к таблицам и рисункам сохраняются как отдельные units;
 - изображения, графики и формулы получают собственные units;
-- для PDF units по возможности имеют `page` и `bbox`;
+- для PDF units по возможности имеют `page`, `bbox`, `coordinate_system`, `page_width`, `page_height`;
 - для DOCX units по возможности имеют ссылку на OOXML-позицию или порядковый индекс исходного элемента.
+- `quality` доступен на уровне документа и отдельных units в формате `flags` + `warnings`.
 
 ## 6. DOCX route acceptance
 
@@ -90,6 +92,7 @@
 
 - извлечены заголовки, абзацы, списки и таблицы;
 - порядок чтения соответствует документу;
+- `section`, `list_item`, `caption` выделяются как отдельные unit types там, где это доступно по style/structure mapping;
 - таблицы имеют units `table`, `table_row`, `table_cell`;
 - embedded images сохранены в `assets/`;
 - формулы и картинки не пропадают, даже если пока не распознаны семантически;
@@ -110,10 +113,12 @@ PDF route делится на два подмаршрута после пров�
 Для `pdf_text` требуется:
 
 - OCR не запускается;
-- текст извлекается из существующего text layer;
+- текст извлекается layout-first из существующего text layer с fallback на plain mode;
 - units привязаны к страницам;
-- где возможно, сохраняется `bbox`;
-- таблицы и рисунки представлены отдельно;
+- где возможно, сохраняется `bbox`, `coordinate_system`, `page_width`, `page_height`;
+- повторяющиеся верхние и нижние edge-блоки не попадают в body paragraphs и могут быть выделены как `header`/`footer`;
+- повёрнутые PDF pages помечаются `rotated_text` и `review_required`;
+- advanced semantic extraction отдельных PDF tables/figures/formulas не входит в обещанный release scope v0.2.0 и остаётся post-release enhancement;
 - создан `search_text.txt`.
 
 Для `pdf_scan` требуется:
@@ -137,15 +142,13 @@ PDF route делится на два подмаршрута после пров�
 
 ## 8. Таблицы, формулы и рисунки
 
-Критерии приёмки:
+Критерии приёмки для release scope v0.2.0:
 
-- таблица сохраняется как структура строк и ячеек;
-- текстовая проекция таблицы может быть создана, но не заменяет структуру;
-- формула в тексте сохраняется как `formula`, если распознана;
-- формула-картинка сохраняется как `formula_image` с `asset_ref`;
-- график, схема или рисунок сохраняются как `figure` с `asset_ref`;
-- подпись рисунка сохраняется как `caption` и связывается с `figure`;
-- если семантическое распознавание формулы или графика ненадёжно, unit получает `review_required`.
+- DOCX tables сохраняются как `table`/`table_row`/`table_cell`;
+- embedded DOCX media сохраняется как assets и `figure` units;
+- PDF route гарантирует переносимый text-first contract, а не отдельное устойчивое semantic extraction для standalone tables/formulas/figures;
+- если семантическое распознавание графики или формулы ненадёжно либо недоступно в текущем route, это считается post-release enhancement, а не release blocker;
+- quality contract обязан помечать сомнительные случаи через `review_required`.
 
 ## 9. Quality flags первой версии
 
@@ -160,7 +163,10 @@ PDF route делится на два подмаршрута после пров�
 | `ocr_failed` | OCR завершился ошибкой |
 | `table_structure_warning` | Таблица извлечена неполно или сомнительно |
 | `asset_extraction_warning` | Изображение или формула не были корректно сохранены |
+| `rotated_text` | Страница PDF имеет rotation и требует ручной проверки результата text extraction |
 | `review_required` | Документ или unit требует ручной проверки |
+| `semantic_style_inferred` | Unit type для DOCX выведен из style или numbering mapping |
+| `repeated_edge_block` | PDF header/footer выделен эвристикой повторяющегося edge-блока |
 
 ## 10. Representative pilot validation
 
@@ -171,9 +177,9 @@ $env:PYTHONPATH = "src"
 python scripts\run_sample_pilot.py --clean
 ```
 
-Последний результат: 21 processed, 18 success, 3 partial_success, 0 failed. Route counts совпали с baseline manifest: `docx_native: 8`, `pdf_text: 10`, `pdf_scan: 3`. Route mismatches не обнаружены.
+Последний результат: 21 processed, 21 success, 0 partial_success, 0 failed. Route counts совпали с baseline manifest: `docx_native: 8`, `pdf_text: 10`, `pdf_scan: 3`. Route mismatches не обнаружены.
 
-Три `partial_success` относятся к `pdf_scan` и ожидаемы для текущего runtime без OCRmyPDF/Tesseract/Ghostscript.
+OCR runtime установлен и активен, поэтому representative pilot больше не содержит ожидаемых `partial_success` по `pdf_scan`.
 
 ## 11. Sprint 0 exit criteria
 

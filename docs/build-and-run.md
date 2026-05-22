@@ -20,7 +20,15 @@ D:\converter-output\runs\<run_id>\
 .\.venv\Scripts\python.exe scripts\gui_entry.py
 ```
 
-GUI позволяет выбрать входную и выходную папки, OCR languages, число потоков и запустить обработку.
+GUI позволяет выбрать входную и выходную папки, OCR languages и запустить обработку.
+
+Текущий GUI v0.2.0 показывает текущий файл, progress, summary counts, позволяет отменить обработку после текущего файла и открыть папку результата. Отдельная кнопка pause/resume не заявляется; вместо этого поддерживается безопасный повторный запуск с reuse предыдущего output для неизменённых файлов.
+
+Базовый automated smoke для GUI:
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest tests.test_gui_import -v
+```
 
 ## 3. Проверка OCR runtime
 
@@ -40,7 +48,16 @@ GUI позволяет выбрать входную и выходную пап�
 .\.venv\Scripts\python.exe -m unittest discover -v
 ```
 
-## 5. Сборка Windows package
+## 5. Synthetic E2E и schema validation
+
+```powershell
+.\.venv\Scripts\python.exe scripts\run_synthetic_e2e.py --clean
+.\.venv\Scripts\python.exe scripts\validate_run_package.py runs\synthetic-e2e-output\runs\<run_id>
+```
+
+Synthetic e2e создаёт локальный DOCX, прогоняет converter end-to-end, строит `chunks.v1.jsonl` и валидирует `run.json`, `summary.json`, `queue-state.json`, `manifest.jsonl`, `review-required.jsonl`, `document.v1.json` и `chunks.v1.jsonl`.
+
+## 6. Сборка Windows package
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\build-windows.ps1 -Name DocumentConverter
@@ -52,7 +69,17 @@ powershell -ExecutionPolicy Bypass -File scripts\build-windows.ps1 -Name Documen
 dist\DocumentConverter\DocumentConverter.exe
 ```
 
-## 6. Representative pilot
+Последняя автоматическая проверка запуска EXE: process стартует и не завершается мгновенно, после чего корректно останавливается как launch-smoke без ручного UI walkthrough.
+
+## 7. Portable release package
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 -Name DocumentConverter -Version 0.2.0
+```
+
+Portable release формируется в `dist\release\DocumentConverter-0.2.0\` и содержит zip, SHA-256 checksum и release notes.
+
+## 8. Representative pilot
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\run_sample_pilot.py --clean
@@ -60,11 +87,21 @@ dist\DocumentConverter\DocumentConverter.exe
 
 Команда читает `samples/manifest.sample.jsonl`, копирует 21 representative sample во временную input-папку `runs\sample-pilot-input`, запускает тот же batch core и сохраняет сводку в `pilot-summary.json` внутри run directory.
 
-Последняя проверка: 21 processed, 21 success, 0 partial_success, 0 failed; route counts `docx_native: 8`, `pdf_text: 10`, `pdf_scan: 3`.
+Последняя проверка: 21 processed, 21 success, 0 partial_success, 0 failed; route counts `docx_native: 8`, `pdf_text: 10`, `pdf_scan: 3`; run dir `runs\sample-pilot\runs\20260522T180732Z`.
 
-## 7. Текущие ограничения
+## 9. Reference chunks
+
+```powershell
+.\.venv\Scripts\python.exe scripts\build_sample_chunks.py runs\sample-pilot\runs\<run_id>
+```
+
+Скрипт строит reference `chunks.v1.jsonl` из `document.v1.json` и валидирует каждую запись по `schemas/chunks.v1.schema.json`.
+
+## 10. Текущие ограничения
 
 - Если OCRmyPDF недоступен, `pdf_scan` документы получают `partial_success`, flags `ocr_required`, `ocr_unavailable`, `review_required` и не теряются.
+- Release profile сейчас делится на core и optional: core = `ocrmypdf`, `tesseract`, `ghostscript`; optional = `jbig2`, `pngquant`, `verapdf`.
 - Опциональные OCRmyPDF helpers `jbig2`, `pngquant` и `verapdf` не установлены; OCR работает, но часть оптимизаций и PDF/A-проверок пропускается.
-- Текущий GUI является MVP-оболочкой над тем же batch core, что и CLI.
+- PDF route в release scope v0.2.0 гарантирует pages/paragraphs/header/footer, OCR text и review-required flags, но не обещает отдельное устойчивое semantic extraction для PDF tables/figures/formulas.
+- DOCX route в release scope v0.2.0 гарантирует body order, headings/lists/tables/media, но не обещает отдельный semantic pass для footnotes/header/footer.
 - Embeddings и загрузка в БД не входят в converter runtime; для них используется output package и `docs/downstream-handoff.md`.

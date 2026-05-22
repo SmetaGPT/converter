@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/SmetaGPT/converter/schemas/run.v1.schema.json",
+  "title": "Run V1",
+  "type": "object",
+  "required": ["schema_version", "run_id", "converter_version", "created_at", "input_dir", "output_dir", "options"],
+  "properties": {
+    "schema_version": { "const": "run.v1" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "converter_version": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "minLength": 1 },
+    "input_dir": { "type": "string", "minLength": 1 },
+    "output_dir": { "type": "string", "minLength": 1 },
+    "options": {
+      "type": "object",
+      "required": ["ocr_languages", "workers", "include_originals", "duplicate_policy"],
+      "properties": {
+        "ocr_languages": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1
+        },
+        "workers": { "type": "integer", "minimum": 1 },
+        "include_originals": { "type": "boolean" },
+        "duplicate_policy": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/SmetaGPT/converter/schemas/queue-state.v1.schema.json",
+  "title": "Queue State V1",
+  "type": "object",
+  "required": ["schema_version", "run_id", "status", "queued", "completed", "partial", "failed"],
+  "properties": {
+    "schema_version": { "const": "queue-state.v1" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["queued", "running", "completed", "partial_success", "failed", "cancelled"] },
+    "queued": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "completed": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "partial": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "failed": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  },
+  "additionalProperties": false
+}

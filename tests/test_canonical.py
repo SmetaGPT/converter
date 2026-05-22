@@ -55,11 +55,14 @@ class CanonicalTests(unittest.TestCase):
                 route="docx_native",
                 status="success",
                 units=[unit],
+                relative_source_path="nested/sample.docx",
             )
 
             self.assertEqual(payload["schema_version"], "document.v1")
             self.assertEqual(payload["document_id"], doc_id)
+            self.assertEqual(payload["source"]["relative_input_path"], "nested/sample.docx")
             self.assertEqual(payload["units"][0]["unit_id"], "u_000001")
+            self.assertEqual(payload["units"][0]["quality"], {"flags": [], "warnings": []})
             json.dumps(payload, ensure_ascii=False)
 
 

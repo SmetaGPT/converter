@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/SmetaGPT/converter/schemas/summary.v1.schema.json",
+  "title": "Summary V1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "status",
+    "input_dir",
+    "output_dir",
+    "run_dir",
+    "discovered_files",
+    "supported_files",
+    "unsupported_files",
+    "duplicate_groups",
+    "processed_files",
+    "partial_files",
+    "failed_files",
+    "review_required_files",
+    "review_required_reasons",
+    "partial_reasons",
+    "failed_reasons"
+  ],
+  "properties": {
+    "schema_version": { "const": "summary.v1" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["success", "partial_success", "failed", "cancelled"] },
+    "input_dir": { "type": "string", "minLength": 1 },
+    "output_dir": { "type": "string", "minLength": 1 },
+    "run_dir": { "type": "string", "minLength": 1 },
+    "discovered_files": { "type": "integer", "minimum": 0 },
+    "supported_files": { "type": "integer", "minimum": 0 },
+    "unsupported_files": { "type": "integer", "minimum": 0 },
+    "duplicate_groups": { "type": "integer", "minimum": 0 },
+    "processed_files": { "type": "integer", "minimum": 0 },
+    "partial_files": { "type": "integer", "minimum": 0 },
+    "failed_files": { "type": "integer", "minimum": 0 },
+    "review_required_files": { "type": "integer", "minimum": 0 },
+    "review_required_reasons": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "partial_reasons": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "failed_reasons": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    }
+  },
+  "additionalProperties": false
+}

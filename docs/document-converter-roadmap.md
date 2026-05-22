@@ -1,7 +1,7 @@
 # Roadmap: Windows Document Converter
 
 Дата: 2026-05-22
-Статус: проектная дорожная карта
+Статус: проектная дорожная карта и факт исполнения
 
 ## 1. Цель проекта
 
@@ -67,7 +67,7 @@ Plain text, Markdown и chunks являются производными сло�
     "docx_path": null
   },
   "quality": {
-    "confidence": null,
+    "flags": [],
     "warnings": []
   }
 }
@@ -163,6 +163,28 @@ output/
 - packager: сборка Windows EXE или installer.
 
 ## 7. Спринты
+
+Фактический статус исполнения на 2026-05-22:
+
+| Sprint | Статус | Комментарий |
+| --- | --- | --- |
+| 0 | Выполнен | Product contract, representative samples и acceptance criteria зафиксированы |
+| 1 | Выполнен | CLI skeleton, run directory и базовый запуск реализованы |
+| 2 | Выполнен | Canonical schemas и stable IDs добавлены |
+| 3 | Выполнен | Inventory, hashing, dedup и queue state реализованы |
+| 4 | Выполнен в MVP scope | DOCX route реализован; расширенная семантика headings/lists/captions остаётся backlog |
+| 5 | Выполнен в MVP scope | PDF-text route реализован; advanced layout/table extraction остаётся backlog |
+| 6 | Выполнен в MVP scope | OCR route и runtime готовы; richer OCR provenance остаётся backlog |
+| 7 | Выполнен в MVP scope | Assets и figure handling добавлены базово, без расширенной классификации |
+| 8 | Выполнен в MVP scope | Quality gates, summary и review flags реализованы в первой версии |
+| 9 | Выполнен | GUI MVP реализован |
+| 10 | Выполнен | Windows EXE build подтверждён |
+| 11 | Частично выполнен | Downstream handoff и chunk-source schema добавлены; sample chunks и DB mapping notes ещё не завершены |
+| 12 | Выполнен | Full pilot, OCR runtime, build validation и automated GUI launch smoke завершены |
+| 13 | Выполнен | OCR page mapping, asset fingerprints и portable source metadata реализованы |
+| 14 | Выполнен | DOCX body order и базовая semantic typing для section/list/caption реализованы |
+| 15 | Выполнен в current scope | Layout-first PDF extraction, page provenance и repeated edge filtering реализованы; advanced table/figure extraction остаётся backlog |
+| 16 | Выполнен | Schema hardening, unit-level quality contract и release profile notes синхронизированы |
 
 ### Sprint 0. Product contract и эталонные документы
 
@@ -471,6 +493,13 @@ Definition of Done:
 
 ### Sprint 11. Downstream handoff для БД, chunks и search
 
+Статус: частично выполнен.
+
+Факт на 2026-05-22:
+
+- уже выполнено: `docs/downstream-handoff.md`, `schemas/chunk-source.v1.schema.json`, правила переносимости output package и contract `document_id + unit_id`;
+- остаётся: sample `chunks.v1.jsonl`, завершённые DB mapping notes и reference loader flow на уровне артефактов.
+
 Цель: сделать выход конвертера удобным для другого проекта, который будет грузить данные в БД и строить поиск.
 
 Задачи:
@@ -498,6 +527,14 @@ Definition of Done:
 
 ### Sprint 12. Pilot на корпусе ФСНБ и release hardening
 
+Статус: выполнен.
+
+Факт на 2026-05-22:
+
+- выполнено: full 21-sample pilot, OCR runtime activation, build hardening, workspace setup, запуск Context7 MCP, automated GUI startup smoke в тестах и EXE launch smoke для собранного package;
+- release closure v0.2.0 дополнительно закрыла runtime schema validation, resume/reuse, duplicate skip, reference chunks, Windows CI и portable release packaging;
+- остаточный backlog перенесён в post-release improvements: advanced PDF extraction для tables/figures/formulas, DOCX footnotes/header/footer semantic pass и optional OCR helpers polish.
+
 Цель: проверить приложение на реальном наборе DOCX и PDF.
 
 Задачи:
@@ -523,6 +560,145 @@ Definition of Done:
 - известна доля `success`, `partial_success`, `failed`;
 - найденные дефекты заведены как backlog;
 - release candidate можно дать пользователю для локальной работы.
+
+### Sprint 13. OCR hardening и portable source/assets metadata
+
+Статус: выполнен.
+
+Факт на 2026-05-22:
+
+- `pdf_scan` сохраняет OCR page boundaries через form-feed и больше не теряет paragraph units;
+- OCR assets и extracted files получают `sha256`, `size_bytes`, `filename`, `media_type`;
+- `source.relative_input_path` добавлен в `document.v1.json` и покрыт tests.
+
+Цель: закрыть локальные defects OCR route и усилить переносимость выходного пакета.
+
+Задачи:
+
+- исправить page mapping в `pdf_scan`, чтобы paragraph units строились по реальным страницам OCR output;
+- сохранять page-level OCR text и не терять paragraph children у page units;
+- досчитывать `sha256`, `size_bytes` и MIME/file metadata для extracted assets и OCR artifacts;
+- добавить `relative_input_path` или `source_locator` рядом с `original_path`, чтобы package оставался переносимым без machine-local path;
+- проверить, что OCR asset metadata достаточно для downstream dedup и аудита.
+
+Артефакты:
+
+- обновлённый `pdf_scan` route;
+- расширенный asset metadata contract;
+- portability notes for source metadata;
+- tests for OCR page/unit mapping.
+
+Definition of Done:
+
+- `pdf_scan` не теряет paragraph units после OCR;
+- assets получают fingerprints и базовую file metadata;
+- output package можно перенести без критической зависимости от absolute Windows path;
+- regression tests покрывают OCR page mapping.
+
+### Sprint 14. DOCX reading order и semantic body blocks
+
+Статус: выполнен.
+
+Факт на 2026-05-22:
+
+- DOCX converter переведён на реальный body traversal `paragraph/table`;
+- headings, list items и captions маппятся в явные structural unit types;
+- unit-level quality flags появились и покрыты mixed-structure DOCX tests.
+
+Цель: привести DOCX output к реальному порядку чтения и базовой семантике headings, lists и captions.
+
+Задачи:
+
+- обходить DOCX body blocks в реальном порядке `paragraph/table`;
+- отличать headings от обычных paragraphs по style mapping;
+- выделять списки и `list_item`;
+- сохранять captions рядом с `figure` и `table`, где это доступно;
+- по возможности сохранять `footnote`, `header`, `footer` semantics вместо flattening в plain paragraph;
+- добавлять unit-level review flags для сомнительных DOCX blocks.
+
+Артефакты:
+
+- обновлённый DOCX converter;
+- DOCX semantic mapping rules;
+- fixtures на mixed paragraph/table order;
+- unit-level DOCX quality checks.
+
+Definition of Done:
+
+- DOCX body blocks сохраняют фактический порядок чтения;
+- heading/list/caption units представлены явно в `document.v1.json`;
+- DOCX quality flags могут назначаться на уровне units, а не только документа;
+- acceptance checks покрывают mixed-structure DOCX.
+
+### Sprint 15. Layout-aware PDF text и provenance
+
+Статус: выполнен в current scope.
+
+Факт на 2026-05-22:
+
+- `pypdf.extract_text(extraction_mode="layout")` внедрён как layout-first path с fallback на plain mode;
+- page units получают `bbox`, `coordinate_system`, `page_width`, `page_height`;
+- repeated edge blocks переводятся в `header`/`footer` units и не засоряют `search_text.txt`;
+- ограничения current scope явно сохранены в acceptance/build docs: таблицы, формулы и figures для PDF остаются отдельным backlog.
+
+Цель: улучшить порядок чтения PDF-text и сделать provenance пригодным для downstream layout-aware processing.
+
+Задачи:
+
+- проверить и внедрить `pypdf.extract_text(extraction_mode="layout")` там, где это улучшает output;
+- добавить visitor-based provenance hooks для координат и page-level layout metadata, где они доступны;
+- хранить coordinate system и page size вместе с `bbox`;
+- обнаруживать повторяющиеся `header`, `footer` и page numbers, чтобы не смешивать их с body text;
+- улучшить reading order для multi-column PDF;
+- начать отдельное представление tables, figures и captions в PDF-text route.
+
+Артефакты:
+
+- layout-aware PDF text converter;
+- expanded provenance model;
+- fixtures для multi-column PDF;
+- updated PDF extraction notes.
+
+Definition of Done:
+
+- PDF-text reading order ближе к реальному visual layout;
+- provenance содержит `page + bbox + coordinate system`, где это доступно;
+- repeated headers/footers/page numbers больше не засоряют body paragraphs;
+- ограничения layout extraction зафиксированы явно в docs.
+
+### Sprint 16. Schema hardening и richer quality semantics
+
+Статус: выполнен.
+
+Факт на 2026-05-22:
+
+- core schema ужесточена: top-level/source/source_ref/asset/quality contract больше не опирается на blanket `additionalProperties`;
+- unit quality нормализован в `flags + warnings` на document и unit level;
+- acceptance, build и OCR runtime docs синхронизированы с текущими emitters и optional OCR helper profile.
+
+Цель: ужесточить `document.v1` как межпроектный контракт и выровнять schema, acceptance и emitters.
+
+Задачи:
+
+- сократить blanket `additionalProperties` в core schema и вынести расширяемые поля в явные секции `extensions` или `debug`;
+- выровнять schema, acceptance и emitters для `figure`, `caption`, `formula`, `header`, `footer`;
+- расширить unit-level quality payloads и добавить richer provenance/debug metadata;
+- считать asset hashes последовательно для всех export artifacts;
+- проверить, нужен ли release profile с optional OCR helpers `jbig2`, `pngquant`, `verapdf`.
+
+Артефакты:
+
+- tightened `document.v1` schema;
+- updated acceptance criteria;
+- richer quality contract;
+- release profile notes for optional OCR helpers.
+
+Definition of Done:
+
+- schema contract строже и соответствует фактическим emitters;
+- quality signals доступны на document и unit level;
+- asset hashes стабильны и заполнены там, где они обязательны;
+- release profile для optional OCR helpers описан явно.
 
 ## 8. Chunking readiness
 
@@ -584,5 +760,6 @@ MVP считается готовым, когда пользователь мо�
 3. Sprint 7-8: assets и quality gates.
 4. Sprint 9-10: GUI и Windows packaging.
 5. Sprint 11-12: downstream handoff и pilot release.
+6. Sprint 13-16: hardening OCR/DOCX/PDF, provenance и schema contract.
 
-Такой порядок снижает риск: сначала фиксируется переносимый формат и structural references, затем строится обработка, и только после этого появляется GUI и EXE.
+Такой порядок снижает риск: сначала фиксируется переносимый формат и structural references, затем строится обработка, после этого появляется GUI и EXE, и только затем ужесточается accuracy/provenance contract для production-like downstream use.
