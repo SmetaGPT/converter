@@ -47,7 +47,7 @@ class CliSmokeTests(unittest.TestCase):
 
             with patch("doc_converter.ocr_runtime.sys.executable", str(scripts_dir / python_name)):
                 with patch("doc_converter.ocr_runtime.shutil.which", return_value=None):
-                    self.assertEqual(find_ocrmypdf_executable(), str(ocrmypdf_path))
+                    self.assertEqual(find_ocrmypdf_executable(), str(ocrmypdf_path.resolve()))
 
     def test_empty_folder_creates_run_package(self) -> None:
         with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:
