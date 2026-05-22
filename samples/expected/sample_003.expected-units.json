@@ -1,0 +1,30 @@
+{
+  "sample_id": "sample_003",
+  "route": "docx_native",
+  "purpose": "large text-heavy DOCX without detected tables or images",
+  "source_observation": {
+    "paragraphs_non_empty": 1589,
+    "tables": 0,
+    "inline_shapes": 0,
+    "first_text_starts_with": "Зарегистрировано в Минюсте России 28 мая 2015 г. N 37446"
+  },
+  "expected_units": {
+    "required_types": ["document", "paragraph"],
+    "minimum_counts": {
+      "paragraph": 1200
+    },
+    "forbidden_regression": {
+      "table_count_must_not_be_fabricated": true,
+      "figure_count_must_not_be_fabricated": true
+    }
+  },
+  "required_references": {
+    "stable_document_id": true,
+    "stable_unit_ids": true,
+    "preserve_reading_order": true
+  },
+  "quality_expectations": {
+    "empty_text": false,
+    "review_required": false
+  }
+}

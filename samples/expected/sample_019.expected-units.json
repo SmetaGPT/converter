@@ -1,0 +1,30 @@
+{
+  "sample_id": "sample_019",
+  "route": "pdf_scan",
+  "purpose": "small PDF scan with no extractable text layer before OCR",
+  "source_observation": {
+    "pages": 3,
+    "pre_ocr_text_chars": 0,
+    "filename": "PPRF_680.pdf"
+  },
+  "expected_units": {
+    "required_types_after_ocr": ["document", "page", "paragraph"],
+    "minimum_counts_after_ocr": {
+      "page": 3,
+      "paragraph": 1
+    }
+  },
+  "required_references": {
+    "stable_document_id": true,
+    "stable_unit_ids": true,
+    "page_refs": true,
+    "ocr_artifact_refs": true,
+    "preserve_original_pdf": true
+  },
+  "quality_expectations": {
+    "ocr_required": true,
+    "ocr_applied": true,
+    "empty_text_after_ocr": false,
+    "review_required_on_low_confidence": true
+  }
+}

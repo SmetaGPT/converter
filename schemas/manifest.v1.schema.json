@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/SmetaGPT/converter/schemas/manifest.v1.schema.json",
+  "title": "Manifest V1 JSONL Record",
+  "type": "object",
+  "required": ["run_id", "relative_path", "filename", "format", "size_bytes", "route", "status"],
+  "properties": {
+    "run_id": { "type": "string" },
+    "relative_path": { "type": "string" },
+    "filename": { "type": "string" },
+    "format": { "enum": ["docx", "pdf"] },
+    "size_bytes": { "type": "integer", "minimum": 0 },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "route": { "enum": ["docx_native", "pdf_text", "pdf_scan", "not_classified"] },
+    "status": { "enum": ["discovered", "queued", "processing", "success", "partial_success", "failed", "skipped_duplicate"] }
+  },
+  "additionalProperties": true
+}

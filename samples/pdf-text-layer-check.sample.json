@@ -1,0 +1,34 @@
+{
+  "checked_at": "2026-05-22",
+  "tool": "pypdf",
+  "method": "extract text from the first 5 pages for corpus scan, all pages for selected samples",
+  "sp_folder": {
+    "path": "D:\\ФСНБ\\Документы\\Загрузка НПА\\SP",
+    "total_pdf": 343,
+    "pdf_text_candidates": 343,
+    "pdf_scan_candidates": 0
+  },
+  "full_corpus": {
+    "path": "D:\\ФСНБ",
+    "total_pdf": 371,
+    "pdf_text_candidates": 365,
+    "pdf_scan_candidates": 6
+  },
+  "selected_pdf_text_samples": [
+    "sample_009",
+    "sample_010",
+    "sample_011",
+    "sample_012",
+    "sample_013",
+    "sample_014",
+    "sample_015",
+    "sample_016",
+    "sample_017",
+    "sample_018"
+  ],
+  "selected_pdf_scan_samples": [
+    "sample_019",
+    "sample_020",
+    "sample_021"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "sample_id": "sample_006",
+  "route": "docx_native",
+  "purpose": "small DOCX edge case",
+  "source_observation": {
+    "paragraphs_non_empty": 2,
+    "tables": 0,
+    "inline_shapes": 0,
+    "first_text_starts_with": "УТРАТИВШИМ СИЛУ ПРИКАЗА МИНИСТЕРСТВА СТРОИТЕЛЬСТВА"
+  },
+  "expected_units": {
+    "required_types": ["document", "paragraph"],
+    "minimum_counts": {
+      "paragraph": 2
+    }
+  },
+  "required_references": {
+    "stable_document_id": true,
+    "stable_unit_ids": true,
+    "preserve_reading_order": true
+  },
+  "quality_expectations": {
+    "empty_text": false,
+    "short_extraction": false,
+    "review_required": false
+  }
+}

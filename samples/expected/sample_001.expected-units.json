@@ -1,0 +1,29 @@
+{
+  "sample_id": "sample_001",
+  "route": "docx_native",
+  "purpose": "large DOCX with tables and embedded images",
+  "source_observation": {
+    "paragraphs_non_empty": 1481,
+    "tables": 97,
+    "inline_shapes": 28,
+    "first_text_starts_with": "Зарегистрировано в Минюсте России 23 сентября 2020 г. N 59986"
+  },
+  "expected_units": {
+    "required_types": ["document", "paragraph", "table", "table_row", "table_cell", "figure"],
+    "minimum_counts": {
+      "paragraph": 1200,
+      "table": 80,
+      "figure": 20
+    }
+  },
+  "required_references": {
+    "stable_document_id": true,
+    "stable_unit_ids": true,
+    "preserve_reading_order": true,
+    "asset_refs_relative": true
+  },
+  "quality_expectations": {
+    "empty_text": false,
+    "review_required": false
+  }
+}

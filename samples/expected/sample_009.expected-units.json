@@ -1,0 +1,29 @@
+{
+  "sample_id": "sample_009",
+  "route": "pdf_text",
+  "purpose": "large PDF with usable text layer",
+  "source_observation": {
+    "pages": 151,
+    "text_chars": 201167,
+    "first_text_contains": "СВОД ПРАВИЛ"
+  },
+  "expected_units": {
+    "required_types": ["document", "page", "paragraph"],
+    "minimum_counts": {
+      "page": 151,
+      "paragraph": 300
+    }
+  },
+  "required_references": {
+    "stable_document_id": true,
+    "stable_unit_ids": true,
+    "page_refs": true,
+    "bbox_refs_when_available": true,
+    "preserve_reading_order": true
+  },
+  "quality_expectations": {
+    "empty_text": false,
+    "ocr_applied": false,
+    "review_required": false
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "post-task",
+  "trigger": "task_closeout",
+  "purpose": "Закрыть задачу через state, telemetry, memory и handoff, а не только через diff.",
+  "required_actions": [
+    "update current-status if task changed project state",
+    "update current-sprint if task belongs to active sprint",
+    "append telemetry row",
+    "update release-status when release impact exists",
+    "write repo-memory learning when a new validated fact appeared"
+  ],
+  "required_outputs": [
+    "what was done",
+    "validation summary",
+    "changed files or artifacts",
+    "next step or residual risk"
+  ]
+}

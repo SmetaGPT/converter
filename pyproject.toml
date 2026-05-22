@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "windows-document-converter"
+version = "0.1.0"
+description = "Local Windows document converter for portable machine-readable outputs."
+readme = "docs/document-converter-roadmap.md"
+requires-python = ">=3.11"
+dependencies = [
+	"pypdf>=5.0",
+	"python-docx>=1.1",
+	"ocrmypdf>=17.4",
+]
+
+[project.optional-dependencies]
+build = [
+	"pyinstaller>=6.20",
+]
+
+[project.urls]
+Repository = "https://github.com/SmetaGPT/converter"
+
+[project.scripts]
+document-converter = "doc_converter.cli:main"
+document-converter-gui = "doc_converter.gui:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

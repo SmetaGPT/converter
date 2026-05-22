@@ -1,0 +1,23 @@
+{
+  "name": "pre-task",
+  "trigger": "task_start",
+  "purpose": "Поднять state и memory контекст до локального поиска и планирования.",
+  "required_reads": [
+    "docs/current-status.md",
+    "docs/current-sprint.md",
+    "docs/release-status.md"
+  ],
+  "optional_reads": [
+    "latest relevant task checkpoint",
+    "/memories/repo/* relevant notes"
+  ],
+  "required_outputs": [
+    "task scope",
+    "current active sprint",
+    "initial validation target or note why it is not yet executable"
+  ],
+  "stop_conditions": [
+    "state layer not read",
+    "task scope still unclear after targeted context gathering"
+  ]
+}

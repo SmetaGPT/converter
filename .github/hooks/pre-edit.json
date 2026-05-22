@@ -1,0 +1,21 @@
+{
+  "name": "pre-edit",
+  "trigger": "before_first_substantive_edit",
+  "purpose": "Зафиксировать локальную гипотезу и validation target до первой правки.",
+  "required_inputs": [
+    "concrete anchor file or symbol",
+    "local falsifiable hypothesis",
+    "cheap disconfirming check",
+    "focused validation target"
+  ],
+  "required_outputs": [
+    "edit scope",
+    "hypothesis statement",
+    "validation target"
+  ],
+  "stop_conditions": [
+    "no local hypothesis",
+    "no validation target when a narrow check exists",
+    "scope keeps widening before the first edit"
+  ]
+}

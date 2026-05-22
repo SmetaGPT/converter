@@ -1,0 +1,16 @@
+{
+  "name": "post-edit",
+  "trigger": "after_substantive_edit",
+  "purpose": "Принудить focused validation до дальнейшего расширения задачи.",
+  "required_actions": [
+    "run narrow validation",
+    "record validation result",
+    "repair same slice immediately if the failure is local"
+  ],
+  "stop_conditions": [
+    "new broad search before validation",
+    "opening a second edit slice before validating the first",
+    "repair loop budget exceeded"
+  ],
+  "success_signal": "validation result is recorded and state remains coherent"
+}
