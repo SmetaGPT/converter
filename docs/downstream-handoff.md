@@ -61,6 +61,11 @@ document_id + unit_id
 - `source_sha256`;
 - `source_filename`;
 - `source_format`;
+- `document_title`;
+- `document_type`;
+- `short_summary`;
+- `metadata_confidence`;
+- `metadata_method`;
 - `processing_route`;
 - `processing_status`;
 - `quality_flags`;
@@ -84,6 +89,11 @@ Reference mapping для текущего релиза:
 
 - `documents.document_id` <- `document.v1.json.document_id`
 - `documents.source_sha256` <- `document.v1.json.source.sha256`
+- `documents.document_title` <- `document.v1.json.metadata.title`
+- `documents.document_type` <- `document.v1.json.metadata.document_type`
+- `documents.short_summary` <- `document.v1.json.metadata.short_summary`
+- `documents.metadata_confidence` <- `document.v1.json.metadata.confidence`
+- `documents.metadata_method` <- `document.v1.json.metadata.method`
 - `documents.processing_route` <- `document.v1.json.processing.route`
 - `documents.processing_status` <- `document.v1.json.processing.status`
 - `document_units.page` <- `unit.source_ref.page`

@@ -21,6 +21,7 @@ from doc_converter.canonical import (
     minimal_document,
     unit_id,
 )
+from doc_converter.document_metadata import build_document_metadata
 from doc_converter.quality import quality_payload, text_quality_flags
 from doc_converter.schema_validation import validate_payload
 
@@ -170,6 +171,7 @@ def convert_docx(
         assets=assets,
         quality=quality_payload(text_quality_flags(search_text, size_bytes=source_path.stat().st_size, route="docx_native")),
         relative_source_path=relative_source_path,
+        metadata=build_document_metadata(filename=source_path.name, units=units, search_text=search_text),
     )
     _write_validated_json(output_dir / "document.v1.json", payload, "document.v1.schema.json")
     _write_json(

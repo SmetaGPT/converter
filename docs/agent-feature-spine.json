@@ -1,0 +1,602 @@
+{
+  "schema_version": "agent-feature-spine.v1",
+  "last_updated": "2026-05-23",
+  "features": [
+    {
+      "feature_id": "state-layer",
+      "area": "state",
+      "title": "State layer as startup anchor",
+      "status": "validated",
+      "behavior": "Cold-start for cross-module and resume tasks begins with current-status, current-sprint and release-status before local search.",
+      "owner_docs": [
+        "AGENTS.md",
+        "docs/current-status.md",
+        "docs/current-sprint.md",
+        "docs/release-status.md"
+      ],
+      "verification": [
+        {
+          "type": "procedure",
+          "target": "Read docs/current-status.md, docs/current-sprint.md and docs/release-status.md before local search."
+        }
+      ],
+      "evidence": [
+        "AGENTS.md",
+        "docs/current-status.md",
+        "docs/current-sprint.md",
+        "docs/release-status.md"
+      ],
+      "residual_risk": "State docs still need manual updates after each non-trivial task."
+    },
+    {
+      "feature_id": "lifecycle-validation",
+      "area": "process",
+      "title": "Lifecycle with focused validation",
+      "status": "validated",
+      "behavior": "Each non-trivial task must record a local hypothesis, make a bounded edit and immediately run focused validation before widening scope.",
+      "owner_docs": [
+        "docs/agent-lifecycle.md",
+        "docs/agent-stop-budgets.md",
+        "docs/agent-guardrails.md"
+      ],
+      "verification": [
+        {
+          "type": "procedure",
+          "target": "Use the lifecycle flow and confirm that the first post-edit action is a focused validation step."
+        }
+      ],
+      "evidence": [
+        "docs/agent-lifecycle.md",
+        "docs/agent-stop-budgets.md",
+        "docs/agent-guardrails.md"
+      ],
+      "residual_risk": "Discipline is enforced by process and review, not by a runtime hook yet."
+    },
+    {
+      "feature_id": "routing-matrix",
+      "area": "routing",
+      "title": "Task routing by mode",
+      "status": "validated",
+      "behavior": "Research, implementation, review and release tasks are routed through explicit modes with different tool and output expectations.",
+      "owner_docs": [
+        "docs/agent-routing-matrix.md",
+        ".github/agents/"
+      ],
+      "verification": [
+        {
+          "type": "procedure",
+          "target": "Classify the task against docs/agent-routing-matrix.md before expanding scope."
+        }
+      ],
+      "evidence": [
+        "docs/agent-routing-matrix.md"
+      ],
+      "residual_risk": "Routing still depends on operator discipline for ambiguous tasks."
+    },
+    {
+      "feature_id": "real-e2e-and-run-validation",
+      "area": "validation",
+      "title": "Synthetic and real-folder end-to-end validation",
+      "status": "validated",
+      "behavior": "Cross-module converter changes are verified through schema-backed run-package validation and end-to-end runs, not only unit tests.",
+      "owner_docs": [
+        "scripts/run_synthetic_e2e.py",
+        "scripts/run_folder_e2e.py",
+        "scripts/validate_run_package.py",
+        ".github/workflows/windows-ci.yml"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\run_synthetic_e2e.py --clean"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_run_package.py runs\\synthetic-e2e-output\\runs\\<run_id>"
+        }
+      ],
+      "evidence": [
+        "scripts/run_synthetic_e2e.py",
+        "scripts/run_folder_e2e.py",
+        "scripts/validate_run_package.py",
+        ".github/workflows/windows-ci.yml"
+      ],
+      "residual_risk": "Real-corpus E2E still requires a deliberate task decision and is not part of every CI run."
+    },
+    {
+      "feature_id": "feature-spine",
+      "area": "harness",
+      "title": "Machine-readable harness feature spine",
+      "status": "validated",
+      "behavior": "Harness capabilities are tracked in a machine-readable file with behavior, state, verification and evidence instead of relying on narrative roadmap alone.",
+      "owner_docs": [
+        "docs/agent-feature-spine.json",
+        "schemas/agent-feature-spine.v1.schema.json",
+        "scripts/validate_harness_assets.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_harness_assets.py"
+        }
+      ],
+      "evidence": [
+        "docs/agent-feature-spine.json",
+        "schemas/agent-feature-spine.v1.schema.json",
+        "scripts/validate_harness_assets.py"
+      ],
+      "residual_risk": "The spine currently covers the harness layer and not every product capability of the converter."
+    },
+    {
+      "feature_id": "bootstrap-contract",
+      "area": "harness",
+      "title": "Bootstrap contract for cold start",
+      "status": "validated",
+      "behavior": "A new session can reacquire the repo, environment, release scope and next validation path without broad search.",
+      "owner_docs": [
+        "docs/agent-bootstrap-contract.md",
+        "docs/build-and-run.md",
+        "docs/current-status.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_harness_assets.py"
+        }
+      ],
+      "evidence": [
+        "docs/agent-bootstrap-contract.md",
+        "docs/build-and-run.md",
+        "docs/current-status.md"
+      ],
+      "residual_risk": "Bootstrap still depends on a healthy local .venv and Windows OCR prerequisites."
+    },
+    {
+      "feature_id": "clean-exit-checklist",
+      "area": "harness",
+      "title": "Clean exit checklist",
+      "status": "validated",
+      "behavior": "Every non-trivial task ends with validation evidence, state updates, residual risk capture and resume breadcrumbs.",
+      "owner_docs": [
+        "docs/agent-session-exit-checklist.md",
+        "docs/agent-lifecycle.md",
+        "docs/agent-telemetry-log.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_harness_assets.py"
+        }
+      ],
+      "evidence": [
+        "docs/agent-session-exit-checklist.md",
+        "docs/agent-lifecycle.md",
+        "docs/agent-telemetry-log.md"
+      ],
+      "residual_risk": "Checklist enforcement is procedural until a higher-level workflow hook is added."
+    },
+    {
+      "feature_id": "sprint-contract-template",
+      "area": "planning",
+      "title": "Sprint contract template",
+      "status": "validated",
+      "behavior": "Non-trivial tasks can declare goal, non-goals, local hypothesis, validation plan and stop conditions before edits begin.",
+      "owner_docs": [
+        "docs/agent-sprint-contract-template.md",
+        "docs/agent-task-checkpoint-template.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_harness_assets.py"
+        }
+      ],
+      "evidence": [
+        "docs/agent-sprint-contract-template.md",
+        "docs/agent-task-checkpoint-template.md"
+      ],
+      "residual_risk": "The template exists, but adoption still depends on task complexity and operator judgment."
+    },
+    {
+      "feature_id": "evaluator-rubric",
+      "area": "observability",
+      "title": "Evaluator rubric for completion quality",
+      "status": "validated",
+      "behavior": "Task quality can be scored against scope control, validation, evidence and closeout instead of relying on subjective completion claims.",
+      "owner_docs": [
+        "docs/agent-evaluator-rubric.md",
+        "docs/agent-quality-scorecard.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_harness_assets.py"
+        }
+      ],
+      "evidence": [
+        "docs/agent-evaluator-rubric.md",
+        "docs/agent-quality-scorecard.md"
+      ],
+      "residual_risk": "The rubric is defined and now feeds a generated weekly snapshot, but final qualitative judgement still needs human review."
+    },
+    {
+      "feature_id": "harness-validator-in-ci",
+      "area": "observability",
+      "title": "Harness assets validator in CI",
+      "status": "validated",
+      "behavior": "Core harness artifacts are validated in CI so regressions in feature spine or required process docs fail early.",
+      "owner_docs": [
+        "scripts/validate_harness_assets.py",
+        ".github/workflows/windows-ci.yml"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_harness_assets.py"
+        }
+      ],
+      "evidence": [
+        "scripts/validate_harness_assets.py",
+        ".github/workflows/windows-ci.yml"
+      ],
+      "residual_risk": "The validator checks structure and file presence, not the semantic quality of every document."
+    },
+    {
+      "feature_id": "canonical-document-package",
+      "area": "product",
+      "title": "Canonical document.v1 package",
+      "status": "validated",
+      "behavior": "The main product output is a portable document.v1.json package with source metadata, processing route, semantic metadata, structural units, assets and quality flags instead of plain text only.",
+      "owner_docs": [
+        "docs/document-converter-roadmap.md",
+        "docs/document-converter-acceptance.md",
+        "schemas/document.v1.schema.json",
+        "scripts/validate_run_package.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\run_synthetic_e2e.py --clean"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_run_package.py runs\\synthetic-e2e-output\\runs\\<run_id>"
+        }
+      ],
+      "evidence": [
+        "docs/document-converter-roadmap.md",
+        "docs/document-converter-acceptance.md",
+        "schemas/document.v1.schema.json",
+        "scripts/validate_run_package.py"
+      ],
+      "residual_risk": "Advanced PDF tables, formulas and figures remain outside the guaranteed release scope."
+    },
+    {
+      "feature_id": "docx-native-route",
+      "area": "product",
+      "title": "DOCX native conversion route",
+      "status": "validated",
+      "behavior": "DOCX files are processed natively with reading-order preservation, semantic units for headings, lists, captions and tables, extracted media assets and search_text.txt.",
+      "owner_docs": [
+        "docs/document-converter-acceptance.md",
+        "docs/build-and-run.md",
+        "src/doc_converter/converters/docx.py",
+        "tests/test_docx_converter.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_docx_converter -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\run_sample_pilot.py --clean"
+        }
+      ],
+      "evidence": [
+        "docs/document-converter-acceptance.md",
+        "src/doc_converter/converters/docx.py",
+        "tests/test_docx_converter.py"
+      ],
+      "residual_risk": "Separate semantic pass for DOCX footnotes, headers and footers is still a post-release enhancement."
+    },
+    {
+      "feature_id": "pdf-text-route",
+      "area": "product",
+      "title": "PDF text-layer conversion route",
+      "status": "validated",
+      "behavior": "PDF files with an extractable text layer are processed without OCR using layout-first extraction, page provenance and repeated edge-block filtering into header and footer units.",
+      "owner_docs": [
+        "docs/document-converter-acceptance.md",
+        "docs/build-and-run.md",
+        "src/doc_converter/converters/pdf_text.py",
+        "tests/test_pdf_text_converter.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_pdf_text_converter -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\run_folder_e2e.py \"D:\\ФСНБ\\Документы\\Загрузка НПА\\SP\" --output runs\\sp-e2e --clean"
+        }
+      ],
+      "evidence": [
+        "docs/document-converter-acceptance.md",
+        "src/doc_converter/converters/pdf_text.py",
+        "tests/test_pdf_text_converter.py",
+        "scripts/run_folder_e2e.py"
+      ],
+      "residual_risk": "Standalone semantic extraction for PDF tables, figures and formulas is still outside the declared release scope."
+    },
+    {
+      "feature_id": "pdf-scan-route",
+      "area": "product",
+      "title": "PDF scan OCR route",
+      "status": "validated",
+      "behavior": "PDF scans are processed through OCR into searchable.pdf and sidecar text, then emitted into canonical document packages with OCR provenance and quality flags.",
+      "owner_docs": [
+        "docs/document-converter-acceptance.md",
+        "docs/build-and-run.md",
+        "docs/ocr-runtime-windows.md",
+        "src/doc_converter/converters/pdf_scan.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m doc_converter.cli check-ocr"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\run_sample_pilot.py --clean"
+        }
+      ],
+      "evidence": [
+        "docs/document-converter-acceptance.md",
+        "docs/ocr-runtime-windows.md",
+        "src/doc_converter/converters/pdf_scan.py"
+      ],
+      "residual_risk": "Optional OCR helpers jbig2, pngquant and verapdf are not required and remain uninstalled by default."
+    },
+    {
+      "feature_id": "semantic-document-metadata",
+      "area": "product",
+      "title": "Semantic document metadata block",
+      "status": "validated",
+      "behavior": "Each canonical package includes rule-based title, document_type, short_summary, confidence and method fields without depending on an external LLM.",
+      "owner_docs": [
+        "docs/document-converter-acceptance.md",
+        "src/doc_converter/document_metadata.py",
+        "tests/test_document_metadata.py",
+        "schemas/document.v1.schema.json"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_document_metadata -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_run_package.py runs\\metod-e2e\\runs\\20260522T204542Z"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/document_metadata.py",
+        "tests/test_document_metadata.py",
+        "schemas/document.v1.schema.json",
+        "docs/document-converter-acceptance.md"
+      ],
+      "residual_risk": "Rule-based classification still depends on corpus wording and may need new patterns on unseen document families."
+    },
+    {
+      "feature_id": "quality-and-review-reporting",
+      "area": "product",
+      "title": "Quality flags and review-required reporting",
+      "status": "validated",
+      "behavior": "The converter emits normalized document and unit quality flags, review-required.jsonl and summary reason buckets for failed, partial and review-required cases.",
+      "owner_docs": [
+        "docs/document-converter-acceptance.md",
+        "src/doc_converter/runner.py",
+        "tests/test_quality.py",
+        "scripts/validate_run_package.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_quality -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_run_package.py runs\\sp-e2e\\runs\\20260522T205641Z"
+        }
+      ],
+      "evidence": [
+        "docs/document-converter-acceptance.md",
+        "src/doc_converter/runner.py",
+        "scripts/validate_run_package.py"
+      ],
+      "residual_risk": "Some quality signals remain heuristic and may need threshold tuning on new corpora."
+    },
+    {
+      "feature_id": "resume-dedup-and-queue-state",
+      "area": "product",
+      "title": "Resume, dedup and queue-state reuse",
+      "status": "validated",
+      "behavior": "Repeated runs reuse previous output for unchanged files, preserve duplicate provenance and keep queue-state stable instead of reprocessing blindly.",
+      "owner_docs": [
+        "docs/document-converter-roadmap.md",
+        "docs/build-and-run.md",
+        "src/doc_converter/runner.py",
+        "tests/test_cli_smoke.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_cli_smoke -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\run_sample_pilot.py --clean"
+        }
+      ],
+      "evidence": [
+        "docs/document-converter-roadmap.md",
+        "docs/build-and-run.md",
+        "src/doc_converter/runner.py"
+      ],
+      "residual_risk": "Resume behavior is validated within current local run layout and has not been generalized to distributed execution."
+    },
+    {
+      "feature_id": "chunking-and-downstream-handoff",
+      "area": "product",
+      "title": "Chunking and downstream handoff",
+      "status": "validated",
+      "behavior": "Structural units can be transformed into portability-safe chunks.v1.jsonl and handed downstream without re-running OCR or reparsing the source files.",
+      "owner_docs": [
+        "docs/downstream-handoff.md",
+        "docs/build-and-run.md",
+        "src/doc_converter/chunking.py",
+        "scripts/build_sample_chunks.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\build_sample_chunks.py runs\\sample-pilot\\runs\\<run_id>"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_run_package.py runs\\sample-pilot\\runs\\<run_id>"
+        }
+      ],
+      "evidence": [
+        "docs/downstream-handoff.md",
+        "src/doc_converter/chunking.py",
+        "scripts/build_sample_chunks.py"
+      ],
+      "residual_risk": "DB mapping notes and downstream loaders still evolve separately from the converter runtime."
+    },
+    {
+      "feature_id": "operator-gui-and-release-packaging",
+      "area": "product",
+      "title": "Operator GUI and Windows release packaging",
+      "status": "validated",
+      "behavior": "Operators can run the converter through a GUI with progress, current file, cancel, open output and summary counts, while Windows packaging produces a portable EXE and release zip.",
+      "owner_docs": [
+        "docs/build-and-run.md",
+        "src/doc_converter/gui.py",
+        "tests/test_gui_import.py",
+        "scripts/build-windows.ps1",
+        "scripts/package-release.ps1"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_gui_import -v"
+        },
+        {
+          "type": "command",
+          "target": "powershell -ExecutionPolicy Bypass -File scripts\\build-windows.ps1 -Name DocumentConverter"
+        }
+      ],
+      "evidence": [
+        "docs/build-and-run.md",
+        "src/doc_converter/gui.py",
+        "tests/test_gui_import.py",
+        "scripts/build-windows.ps1",
+        "scripts/package-release.ps1"
+      ],
+      "residual_risk": "Pause and resume are intentionally not exposed as GUI controls; the product relies on safe rerun semantics instead."
+    },
+    {
+      "feature_id": "machine-readable-telemetry",
+      "area": "observability",
+      "title": "Machine-readable telemetry companion",
+      "status": "validated",
+      "behavior": "Task-level validation and state-update signals are stored in a schema-backed JSONL companion with feature traceability, alongside the human-readable markdown telemetry log.",
+      "owner_docs": [
+        "docs/agent-telemetry-log.md",
+        "docs/agent-telemetry.v1.jsonl",
+        "schemas/agent-telemetry-entry.v1.schema.json",
+        "scripts/validate_harness_assets.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_harness_assets.py"
+        }
+      ],
+      "evidence": [
+        "docs/agent-telemetry-log.md",
+        "docs/agent-telemetry.v1.jsonl",
+        "schemas/agent-telemetry-entry.v1.schema.json",
+        "scripts/validate_harness_assets.py"
+      ],
+      "residual_risk": "Historical telemetry remains primarily in markdown; JSONL starts as a structured companion from the latest harness iterations."
+    },
+    {
+      "feature_id": "machine-readable-scorecard",
+      "area": "observability",
+      "title": "Machine-readable quality scorecard companion",
+      "status": "validated",
+      "behavior": "Observed quality signals are summarized from structured telemetry and feature spine into a schema-backed scorecard companion, while the human-readable markdown structured companion section is kept in sync through a generated markdown check and can be consumed by the weekly eval loop.",
+      "owner_docs": [
+        "docs/agent-quality-scorecard.md",
+        "docs/agent-quality-scorecard.v1.json",
+        "schemas/agent-quality-scorecard.v1.schema.json",
+        "scripts/build_agent_scorecard.py",
+        "scripts/validate_harness_assets.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\build_agent_scorecard.py --check --check-markdown"
+        }
+      ],
+      "evidence": [
+        "docs/agent-quality-scorecard.md",
+        "docs/agent-quality-scorecard.v1.json",
+        "schemas/agent-quality-scorecard.v1.schema.json",
+        "scripts/build_agent_scorecard.py",
+        "scripts/validate_harness_assets.py"
+      ],
+      "residual_risk": "Generated scores and markdown sync are proxy signals from telemetry coverage and still need qualitative interpretation in the weekly eval loop."
+    },
+    {
+      "feature_id": "weekly-eval-companion",
+      "area": "observability",
+      "title": "Generated weekly eval companion",
+      "status": "validated",
+      "behavior": "Weekly eval can be refreshed in one command from the machine-readable scorecard, structured telemetry and machine-readable sampled weekly reviews into generated JSON and markdown snapshots with coverage gaps, next actions and qualitative sampling evidence, instead of relying only on manual weekly review notes.",
+      "owner_docs": [
+        "docs/agent-evals.md",
+        "docs/agent-weekly-eval.md",
+        "docs/agent-weekly-eval.v1.json",
+        "docs/agent-weekly-reviews.v1.json",
+        "schemas/agent-weekly-eval.v1.schema.json",
+        "schemas/agent-weekly-reviews.v1.schema.json",
+        "scripts/build_agent_weekly_eval.py",
+        "scripts/refresh_agent_eval.py",
+        "scripts/validate_harness_assets.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\refresh_agent_eval.py --check --check-markdown"
+        }
+      ],
+      "evidence": [
+        "docs/agent-evals.md",
+        "docs/agent-weekly-eval.md",
+        "docs/agent-weekly-eval.v1.json",
+        "docs/agent-weekly-reviews.v1.json",
+        "schemas/agent-weekly-eval.v1.schema.json",
+        "schemas/agent-weekly-reviews.v1.schema.json",
+        "scripts/build_agent_weekly_eval.py",
+        "scripts/refresh_agent_eval.py",
+        "scripts/validate_harness_assets.py"
+      ],
+      "residual_risk": "Weekly snapshot больше не purely proxy-only на reviewed weeks, но всё ещё зависит от дисциплины обновления docs/agent-weekly-reviews.v1.json после каждого completed weekly review."
+    }
+  ]
+}

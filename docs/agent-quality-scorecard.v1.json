@@ -1,0 +1,97 @@
+{
+  "schema_version": "agent-quality-scorecard.v1",
+  "as_of_date": "2026-05-23",
+  "sources": {
+    "feature_spine": "docs/agent-feature-spine.json",
+    "telemetry_jsonl": "docs/agent-telemetry.v1.jsonl",
+    "scorecard_markdown": "docs/agent-quality-scorecard.md"
+  },
+  "telemetry_summary": {
+    "total_entries": 14,
+    "validation_results": {
+      "passed": 13,
+      "passed_after_repair": 1,
+      "failed": 0,
+      "blocked": 0
+    },
+    "state_updates": 14,
+    "feature_traceable_entries": 14,
+    "task_types": {
+      "code/docs/process": 1,
+      "code/runtime/docs": 1,
+      "docs/process": 4,
+      "docs/process/ci": 1,
+      "docs/process/observability": 6,
+      "docs/process/product": 1
+    }
+  },
+  "feature_summary": {
+    "total_features": 22,
+    "validated_features": 22,
+    "referenced_features": 22,
+    "referenced_feature_ids": [
+      "bootstrap-contract",
+      "canonical-document-package",
+      "chunking-and-downstream-handoff",
+      "clean-exit-checklist",
+      "docx-native-route",
+      "evaluator-rubric",
+      "feature-spine",
+      "harness-validator-in-ci",
+      "lifecycle-validation",
+      "machine-readable-scorecard",
+      "machine-readable-telemetry",
+      "operator-gui-and-release-packaging",
+      "pdf-scan-route",
+      "pdf-text-route",
+      "quality-and-review-reporting",
+      "real-e2e-and-run-validation",
+      "resume-dedup-and-queue-state",
+      "routing-matrix",
+      "semantic-document-metadata",
+      "sprint-contract-template",
+      "state-layer",
+      "weekly-eval-companion"
+    ],
+    "referenced_areas": {
+      "harness": 3,
+      "observability": 5,
+      "planning": 1,
+      "process": 1,
+      "product": 9,
+      "routing": 1,
+      "state": 1,
+      "validation": 1
+    }
+  },
+  "observed_signals": [
+    {
+      "signal_id": "validation-discipline",
+      "title": "Validation discipline",
+      "score": 5,
+      "scale_max": 5,
+      "basis": "14/14 telemetry entries have pass-like validation results."
+    },
+    {
+      "signal_id": "state-hygiene",
+      "title": "State hygiene",
+      "score": 5,
+      "scale_max": 5,
+      "basis": "14/14 telemetry entries report state_update=true."
+    },
+    {
+      "signal_id": "feature-traceability",
+      "title": "Feature traceability",
+      "score": 5,
+      "scale_max": 5,
+      "basis": "14/14 telemetry entries reference at least one feature_id."
+    },
+    {
+      "signal_id": "feature-coverage",
+      "title": "Feature coverage in telemetry",
+      "score": 5,
+      "scale_max": 5,
+      "basis": "22/22 validated features are referenced by structured telemetry."
+    }
+  ]
+}

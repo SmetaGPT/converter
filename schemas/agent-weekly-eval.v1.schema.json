@@ -1,0 +1,400 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent weekly eval v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "as_of_date",
+    "window",
+    "overall_status",
+    "sources",
+    "telemetry_window_summary",
+    "scorecard_snapshot",
+    "qualitative_sampling",
+    "findings"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "agent-weekly-eval.v1"
+    },
+    "as_of_date": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "window": {
+      "type": "object",
+      "required": [
+        "days",
+        "start_date",
+        "end_date"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "days": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "start_date": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "end_date": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        }
+      }
+    },
+    "overall_status": {
+      "type": "string",
+      "enum": [
+        "strong",
+        "strong-with-gaps",
+        "needs-attention",
+        "no-data"
+      ]
+    },
+    "sources": {
+      "type": "object",
+      "required": [
+        "feature_spine",
+        "scorecard_json",
+        "telemetry_jsonl",
+        "weekly_reviews_json",
+        "evaluator_rubric",
+        "eval_instructions"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "feature_spine": { "type": "string", "minLength": 1 },
+        "scorecard_json": { "type": "string", "minLength": 1 },
+        "telemetry_jsonl": { "type": "string", "minLength": 1 },
+        "weekly_reviews_json": { "type": "string", "minLength": 1 },
+        "evaluator_rubric": { "type": "string", "minLength": 1 },
+        "eval_instructions": { "type": "string", "minLength": 1 }
+      }
+    },
+    "telemetry_window_summary": {
+      "type": "object",
+      "required": [
+        "total_entries",
+        "validation_results",
+        "state_updates",
+        "feature_traceable_entries",
+        "task_types"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "total_entries": { "type": "integer", "minimum": 0 },
+        "validation_results": {
+          "type": "object",
+          "required": [
+            "passed",
+            "passed_after_repair",
+            "failed",
+            "blocked"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "passed": { "type": "integer", "minimum": 0 },
+            "passed_after_repair": { "type": "integer", "minimum": 0 },
+            "failed": { "type": "integer", "minimum": 0 },
+            "blocked": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "state_updates": { "type": "integer", "minimum": 0 },
+        "feature_traceable_entries": { "type": "integer", "minimum": 0 },
+        "task_types": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "scorecard_snapshot": {
+      "type": "object",
+      "required": [
+        "scorecard_as_of_date",
+        "validated_features",
+        "referenced_features",
+        "referenced_feature_ids",
+        "coverage_gap_feature_ids",
+        "observed_signals"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "scorecard_as_of_date": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "validated_features": { "type": "integer", "minimum": 0 },
+        "referenced_features": { "type": "integer", "minimum": 0 },
+        "referenced_feature_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          }
+        },
+        "coverage_gap_feature_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          }
+        },
+        "observed_signals": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/signal"
+          }
+        }
+      }
+    },
+    "qualitative_sampling": {
+      "type": "object",
+      "required": [
+        "completed_reviews_in_window",
+        "sampled_tasks_in_window",
+        "reviews"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "completed_reviews_in_window": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sampled_tasks_in_window": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reviews": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/review"
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
+    }
+  },
+  "$defs": {
+    "signal": {
+      "type": "object",
+      "required": [
+        "signal_id",
+        "title",
+        "score",
+        "scale_max",
+        "basis"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "signal_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "scale_max": {
+          "const": 5
+        },
+        "basis": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "window": {
+      "type": "object",
+      "required": [
+        "days",
+        "start_date",
+        "end_date"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "days": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "start_date": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "end_date": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        }
+      }
+    },
+    "rubric_scores": {
+      "type": "object",
+      "required": [
+        "scope_control",
+        "feature_traceability",
+        "hypothesis_quality",
+        "validation_quality",
+        "evidence_quality",
+        "state_hygiene",
+        "closeout_quality"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "scope_control": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "feature_traceability": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "hypothesis_quality": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "validation_quality": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "evidence_quality": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "state_hygiene": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "closeout_quality": { "type": "integer", "minimum": 0, "maximum": 2 }
+      }
+    },
+    "sampled_task": {
+      "type": "object",
+      "required": [
+        "task",
+        "task_type",
+        "feature_ids",
+        "scores",
+        "total_score",
+        "max_score",
+        "interpretation"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "task": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "feature_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          }
+        },
+        "scores": {
+          "$ref": "#/$defs/rubric_scores"
+        },
+        "total_score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 14
+        },
+        "max_score": {
+          "const": 14
+        },
+        "interpretation": {
+          "type": "string",
+          "enum": [
+            "weak closeout",
+            "acceptable with gaps",
+            "strong closeout"
+          ]
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "review_id",
+        "review_date",
+        "window",
+        "summary",
+        "average_score",
+        "max_score",
+        "sampled_tasks"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "review_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "review_date": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "window": {
+          "$ref": "#/$defs/window"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "average_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 14
+        },
+        "max_score": {
+          "const": 14
+        },
+        "sampled_tasks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/sampled_task"
+          }
+        }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "required": [
+        "finding_id",
+        "severity",
+        "summary",
+        "recommended_action"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "finding_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recommended_action": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

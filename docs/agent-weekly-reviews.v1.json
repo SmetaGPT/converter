@@ -1,0 +1,124 @@
+{
+  "schema_version": "agent-weekly-reviews.v1",
+  "last_updated": "2026-05-23",
+  "reviews": [
+    {
+      "review_id": "2026-05-23-first-completed-weekly-review",
+      "review_date": "2026-05-23",
+      "window": {
+        "days": 7,
+        "start_date": "2026-05-17",
+        "end_date": "2026-05-23"
+      },
+      "summary": "Первый completed weekly review после telemetry backfill; проверяет generated snapshot на реальных задачах из разных категорий.",
+      "sampled_tasks": [
+        {
+          "task": "Sprint 1 state foundation",
+          "task_type": "docs/process",
+          "feature_ids": [
+            "state-layer"
+          ],
+          "scores": {
+            "scope_control": 2,
+            "feature_traceability": 1,
+            "hypothesis_quality": 1,
+            "validation_quality": 2,
+            "evidence_quality": 2,
+            "state_hygiene": 2,
+            "closeout_quality": 2
+          },
+          "total_score": 12,
+          "max_score": 14,
+          "interpretation": "strong closeout",
+          "note": "Исторический task slice до feature spine и формализованной local-hypothesis discipline."
+        },
+        {
+          "task": "Sprint 3 workflow hooks",
+          "task_type": "docs/process",
+          "feature_ids": [
+            "lifecycle-validation",
+            "clean-exit-checklist"
+          ],
+          "scores": {
+            "scope_control": 2,
+            "feature_traceability": 1,
+            "hypothesis_quality": 1,
+            "validation_quality": 2,
+            "evidence_quality": 2,
+            "state_hygiene": 2,
+            "closeout_quality": 2
+          },
+          "total_score": 12,
+          "max_score": 14,
+          "interpretation": "strong closeout",
+          "note": "Историческая задача до явной traceability discipline; quality подтверждена evidence и state sync."
+        },
+        {
+          "task": "Sprint 4 specialist routing",
+          "task_type": "docs/process",
+          "feature_ids": [
+            "routing-matrix"
+          ],
+          "scores": {
+            "scope_control": 2,
+            "feature_traceability": 1,
+            "hypothesis_quality": 1,
+            "validation_quality": 2,
+            "evidence_quality": 2,
+            "state_hygiene": 2,
+            "closeout_quality": 2
+          },
+          "total_score": 12,
+          "max_score": 14,
+          "interpretation": "strong closeout",
+          "note": "Ранний routing slice с retroactive traceability, но без quality defect в закрытии задачи."
+        },
+        {
+          "task": "SP folder e2e",
+          "task_type": "code/runtime/docs",
+          "feature_ids": [
+            "real-e2e-and-run-validation",
+            "pdf-text-route",
+            "docx-native-route",
+            "semantic-document-metadata"
+          ],
+          "scores": {
+            "scope_control": 2,
+            "feature_traceability": 1,
+            "hypothesis_quality": 2,
+            "validation_quality": 2,
+            "evidence_quality": 2,
+            "state_hygiene": 2,
+            "closeout_quality": 2
+          },
+          "total_score": 13,
+          "max_score": 14,
+          "interpretation": "strong closeout",
+          "note": "Сильный product-facing slice; единственный потерянный балл связан с ранней формализацией traceability."
+        },
+        {
+          "task": "Generated weekly eval companion",
+          "task_type": "docs/process/observability",
+          "feature_ids": [
+            "weekly-eval-companion",
+            "machine-readable-scorecard",
+            "evaluator-rubric"
+          ],
+          "scores": {
+            "scope_control": 2,
+            "feature_traceability": 2,
+            "hypothesis_quality": 2,
+            "validation_quality": 2,
+            "evidence_quality": 2,
+            "state_hygiene": 2,
+            "closeout_quality": 2
+          },
+          "total_score": 14,
+          "max_score": 14,
+          "interpretation": "strong closeout",
+          "note": "Полный closeout после structured telemetry backfill и generated companion sync."
+        }
+      ]
+    }
+  ]
+}

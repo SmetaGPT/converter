@@ -1,7 +1,7 @@
 # Agent Quality Scorecard
 
 Дата инициализации: 2026-05-22
-Статус: baseline initialized
+Статус: baseline initialized, structured companion active, first weekly review completed
 
 ## 1. Назначение
 
@@ -63,7 +63,7 @@ Scorecard нужен как единая точка, в которой видн�
 | State hygiene | 4/5 | State layer и telemetry ведутся последовательно |
 | Memory hygiene | 4/5 | Memory model, hygiene rules и repo-memory созданы |
 | Routing quality | 4/5 | Research, implementation, review и release разделены |
-| Closeout quality | 3/5 | Есть closeout prompt и telemetry, но release loop ещё не завершён |
+| Closeout quality | 4/5 | Есть closeout prompt, telemetry, generated weekly eval и первый completed qualitative review |
 
 ## 7. Sprint delta log
 
@@ -74,6 +74,36 @@ Scorecard нужен как единая точка, в которой видн�
 | Sprint 3 | Создан deterministic lifecycle | Validation и risky actions стали формализованы |
 | Sprint 4 | Добавлен routing | Режимы работы разделены по ролям |
 
-## 8. Следующий шаг
+## 8. Первый qualitative weekly review
 
-После Sprint 5 этот документ должен получить первый score-based review на реальном наборе задач из eval set.
+На 2026-05-23 проведён первый полный weekly review поверх generated snapshot, а не только поверх proxy signals.
+
+Sampling summary:
+
+- Sprint 1 state foundation: `12/14`;
+- Sprint 3 workflow hooks: `12/14`;
+- Sprint 4 specialist routing: `12/14`;
+- SP folder e2e: `13/14`;
+- Generated weekly eval companion: `14/14`.
+
+Средний qualitative результат: `12.6/14`, что соответствует strong closeout по действующему rubric.
+
+Корректировка assumptions:
+
+1. `Closeout quality` поднят до `4/5`, потому что weekly eval теперь замкнут end-to-end: есть generated companions, telemetry coverage закрыта и выполнен первый complete review loop.
+2. `Validation`, `Execution discipline` и `Routing quality` пока не поднимаются выше текущего значения, потому что ранние исторические задачи всё ещё несут retrospective traceability debt.
+3. Для этого репозитория generated weekly snapshot теперь можно использовать как основной weekly shortcut, но только вместе с lightweight qualitative sampling, когда затрагивается harness/process слой.
+
+## 9. Structured companion
+
+Machine-readable companion: `docs/agent-quality-scorecard.v1.json`.
+
+Текущий observed snapshot из structured telemetry:
+
+- as_of_date: `2026-05-23`;
+- telemetry entries: `14`;
+- validated features in spine: `22`;
+- referenced features in telemetry: `22`;
+- observed signals: `Validation 5/5, State hygiene 5/5, Feature traceability 5/5, Feature coverage 5/5`.
+
+Этот companion не заменяет qualitative review и eval loop. Он нужен как быстрый machine-readable слой для weekly checks и CI-backed drift detection.

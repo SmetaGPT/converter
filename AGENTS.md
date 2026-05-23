@@ -17,13 +17,21 @@
 ## Execution discipline
 
 1. Перед первым substantive edit должна быть зафиксирована локальная гипотеза и validation target.
-2. Сразу после первого substantive edit должна выполняться focused validation, если она доступна.
-3. После завершения задачи должны обновляться state files и telemetry.
-4. Если выявлен новый validated learning, он должен попасть в repo-memory.
+2. Для нетривиальной задачи до первой substantive правки должны быть определены затронутые `feature_id` из `docs/agent-feature-spine.json`.
+3. Сразу после первого substantive edit должна выполняться focused validation, если она доступна.
+4. После завершения задачи должны обновляться state files, telemetry и при необходимости `docs/agent-feature-spine.json`.
+5. Если выявлен новый validated learning, он должен попасть в repo-memory.
 
 ## Detailed process references
 
+- Bootstrap contract: docs/agent-bootstrap-contract.md
+- Feature spine: docs/agent-feature-spine.json
+- Quality scorecard: docs/agent-quality-scorecard.md, docs/agent-quality-scorecard.v1.json
+- Weekly eval snapshot: docs/agent-weekly-eval.md, docs/agent-weekly-eval.v1.json
 - Lifecycle: docs/agent-lifecycle.md
+- Exit checklist: docs/agent-session-exit-checklist.md
+- Sprint contract: docs/agent-sprint-contract-template.md
+- Evaluator rubric: docs/agent-evaluator-rubric.md
 - Guardrails: docs/agent-guardrails.md
 - Stop budgets: docs/agent-stop-budgets.md
 - Tool-interface audit: docs/agent-tool-interface-audit.md
@@ -43,7 +51,10 @@
 - Главный operational status: docs/current-status.md
 - Активный спринт: docs/current-sprint.md
 - Release status: docs/release-status.md
-- Telemetry: docs/agent-telemetry-log.md
+- Harness feature spine: docs/agent-feature-spine.json
+- Quality scorecard: docs/agent-quality-scorecard.md, docs/agent-quality-scorecard.v1.json
+- Telemetry: docs/agent-telemetry-log.md, docs/agent-telemetry.v1.jsonl
+- Weekly eval snapshot: docs/agent-weekly-eval.md, docs/agent-weekly-eval.v1.json
 
 ## Safety baseline
 

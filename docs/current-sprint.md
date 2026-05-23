@@ -1,6 +1,6 @@
 # Current Sprint
 
-Последнее обновление: 2026-05-22
+Последнее обновление: 2026-05-23
 Активный спринт: Release Closure — Production readiness v0.2.0
 Статус: completed
 
@@ -16,10 +16,33 @@
 - docs/document-converter-roadmap.md
 - docs/document-converter-acceptance.md
 - docs/build-and-run.md
+- docs/agent-bootstrap-contract.md
+- docs/agent-feature-spine.json
+- docs/agent-quality-scorecard.md
+- docs/agent-quality-scorecard.v1.json
+- docs/agent-weekly-eval.md
+- docs/agent-weekly-eval.v1.json
+- docs/agent-weekly-reviews.v1.json
+- docs/agent-session-exit-checklist.md
+- docs/agent-sprint-contract-template.md
+- docs/agent-task-checkpoint-template.md
+- docs/agent-evaluator-rubric.md
+- docs/agent-evals.md
+- docs/agent-regressions.md
+- docs/agent-telemetry.v1.jsonl
 - docs/ocr-runtime-windows.md
 - docs/current-status.md
 - docs/release-status.md
 - .github/prompts/production-readiness-hardening.prompt.md
+- schemas/agent-feature-spine.v1.schema.json
+- schemas/agent-telemetry-entry.v1.schema.json
+- schemas/agent-quality-scorecard.v1.schema.json
+- schemas/agent-weekly-eval.v1.schema.json
+- schemas/agent-weekly-reviews.v1.schema.json
+- scripts/build_agent_scorecard.py
+- scripts/build_agent_weekly_eval.py
+- scripts/refresh_agent_eval.py
+- scripts/validate_harness_assets.py
 - src/doc_converter/
 - tests/
 - schemas/
@@ -49,6 +72,18 @@
 | Добавить `review-required.jsonl`, richer summary reasons и `rotated_text` flags | Готово |
 | Добавить reference chunk builder и portability-safe `chunks.v1.jsonl` contract | Готово |
 | Добавить synthetic e2e, Windows CI и portable release packaging | Готово |
+| Добавить semantic metadata `title/document_type/short_summary` в `document.v1.json` | Готово |
+| Добавить machine-readable harness feature spine, bootstrap/exit contracts и CI validator | Готово |
+| Расширить feature spine на core product-capabilities конвертера и сделать coverage обязательным через validator | Готово |
+| Встроить feature-traceability в bootstrap, sprint contract, checkpoint, exit checklist и rubric | Готово |
+| Добавить machine-readable telemetry JSONL companion и schema-backed validation | Готово |
+| Добавить machine-readable scorecard companion и drift-check against telemetry | Готово |
+| Добавить markdown drift-check для structured companion section в scorecard | Готово |
+| Operationalize weekly eval loop через generated companion | Готово |
+| Закрыть telemetry coverage gaps и провести первый qualitative weekly review | Готово |
+| Добавить one-command refresh wrapper для generated eval companions | Готово |
+| Вынести sampled weekly review scores в machine-readable companion и weekly eval schema | Готово |
+| Улучшить harness validator diagnostics до формата `WHAT / WHY / FIX` | Готово |
 
 ## 4. Validation targets спринта
 
@@ -60,6 +95,16 @@
 6. Synthetic e2e создаёт schema-valid run package и `chunks.v1.jsonl`.
 7. Portable release package создаётся с checksum и release notes.
 8. Ограничения advanced semantic extraction и optional OCR helpers зафиксированы явно.
+9. Real-folder e2e на `metod` создаёт schema-valid package с заполненным semantic metadata block.
+10. Harness assets validator проходит локально и встроен в Windows CI.
+11. Feature spine покрывает не только process layer, но и core product-capabilities конвертера.
+12. Task-flow теперь требует traceability до `feature_id` и evidence paths через шаблоны process layer.
+13. Machine-readable telemetry companion валидируется локально и связывается с known `feature_id` из feature spine.
+14. Generated scorecard companion синхронизируется с telemetry JSONL и feature spine через `scripts/build_agent_scorecard.py --check`.
+15. Structured companion section в markdown scorecard синхронизируется через `scripts/build_agent_scorecard.py --check-markdown` и валидируется внутри harness validator.
+16. Generated weekly eval companion собирается из scorecard и telemetry через `scripts/build_agent_weekly_eval.py` и валидируется внутри harness validator.
+17. Weekly snapshot больше не содержит unexplained coverage gaps, а первый qualitative weekly review зафиксирован в eval и regression docs.
+18. One-command refresh wrapper пересобирает оба generated companions, а weekly eval JSON несёт machine-readable qualitative sampling из отдельного reviews companion.
 
 ## 5. Риски спринта
 
@@ -78,9 +123,13 @@
 
 ## 7. Следующий operational focus
 
-1. Расширить advanced semantic extraction для PDF tables/figures/formulas.
-2. Добавить DOCX footnotes/header/footer semantic pass при наличии product need.
-3. Решить, нужны ли optional OCR helpers `jbig2`, `pngquant`, `verapdf` по эксплуатационным метрикам.
+1. Поддерживать product-aware feature spine, sprint contract, checkpoint template и evaluator rubric на следующих нетривиальных задачах.
+2. Вести structured telemetry companion на следующих нетривиальных задачах без пропусков.
+3. Использовать `scripts/refresh_agent_eval.py` как штатную weekly discipline для scorecard и weekly eval companions.
+4. При необходимости добавить schedule поверх `scripts/refresh_agent_eval.py`.
+5. Расширить advanced semantic extraction для PDF tables/figures/formulas.
+6. Добавить DOCX footnotes/header/footer semantic pass при наличии product need.
+7. Решить, нужны ли optional OCR helpers `jbig2`, `pngquant`, `verapdf` по эксплуатационным метрикам.
 
 ## 8. Последняя representative проверка
 
@@ -105,3 +154,24 @@
 - Synthetic e2e: `.\.venv\Scripts\python.exe scripts\run_synthetic_e2e.py --clean`.
 - Python GUI smoke: `.\.venv\Scripts\python.exe -m unittest tests.test_gui_import -v`.
 - EXE smoke: `dist\DocumentConverter\DocumentConverter.exe` стартует как процесс и не завершается мгновенно.
+
+## 11. Последние folder e2e проверки
+
+- Команда: `.\.venv\Scripts\python.exe scripts\run_folder_e2e.py "D:\ФСНБ\Документы\Загрузка НПА\SP" --output runs\sp-e2e --clean`.
+- Run dir: `runs\sp-e2e\runs\20260522T205641Z`.
+- Результат: 344 discovered, 344 supported, 344 processed, 0 partial, 0 failed, 0 review_required, 0 duplicate groups.
+- Package validation: `.\.venv\Scripts\python.exe scripts\validate_run_package.py runs\sp-e2e\runs\20260522T205641Z` вернул `status: ok`.
+- Routes: `pdf_text: 343`, `docx_native: 1`.
+- Semantic metadata distribution: `свод правил: 344`; пустых `metadata.document_type`/`metadata.short_summary` нет.
+
+- Команда: `.\.venv\Scripts\python.exe scripts\run_folder_e2e.py "D:\ФСНБ\Документы\для парсера\Российские\metod" --output runs\metod-e2e --clean`.
+- Run dir: `runs\metod-e2e\runs\20260522T204542Z`.
+- Результат: 52 discovered, 52 supported, 52 processed, 0 partial, 0 failed, 0 review_required, 1 duplicate group, 6010 chunks.
+- Package validation: `.\.venv\Scripts\python.exe scripts\validate_run_package.py runs\metod-e2e\runs\20260522T204542Z` вернул `status: ok`.
+- Semantic metadata distribution: `приказ: 49`, `методические указания: 1`, `методическое пособие: 1` по canonical `document.v1.json`; один исходный файл попал в duplicate group.
+
+## 12. Harness assets validation
+
+- Команда: `.\.venv\Scripts\python.exe scripts\validate_harness_assets.py`.
+- Результат: `status: ok`, `features: 22`, `validated: 22`, `active: 0`, `backlog: 0`, `telemetry_entries: 13`.
+- Артефакты: `docs/agent-feature-spine.json`, bootstrap contract, clean-exit checklist, sprint contract template, task checkpoint template, evaluator rubric, `docs/agent-telemetry.v1.jsonl`, `docs/agent-quality-scorecard.v1.json`, `docs/agent-weekly-eval.v1.json`, `docs/agent-weekly-reviews.v1.json`, one-command refresh wrapper и schema-backed validator.

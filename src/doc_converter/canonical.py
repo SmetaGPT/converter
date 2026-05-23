@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from doc_converter.document_metadata import fallback_document_metadata
+
 
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
@@ -106,6 +108,7 @@ def minimal_document(
     assets: list[dict[str, Any]] | None = None,
     quality: dict[str, Any] | None = None,
     relative_source_path: str | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     document_id = document_id_from_sha256(sha256)
     return {
@@ -124,6 +127,7 @@ def minimal_document(
             "status": status,
             "warnings": [],
         },
+        "metadata": metadata or fallback_document_metadata(source_path.name),
         "units": [item.to_dict() for item in units],
         "assets": assets or [],
         "quality": quality or {"flags": [], "warnings": []},

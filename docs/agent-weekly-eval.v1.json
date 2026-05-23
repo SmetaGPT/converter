@@ -1,0 +1,224 @@
+{
+  "schema_version": "agent-weekly-eval.v1",
+  "as_of_date": "2026-05-23",
+  "window": {
+    "days": 7,
+    "start_date": "2026-05-17",
+    "end_date": "2026-05-23"
+  },
+  "overall_status": "strong",
+  "sources": {
+    "feature_spine": "docs/agent-feature-spine.json",
+    "scorecard_json": "docs/agent-quality-scorecard.v1.json",
+    "telemetry_jsonl": "docs/agent-telemetry.v1.jsonl",
+    "weekly_reviews_json": "docs/agent-weekly-reviews.v1.json",
+    "evaluator_rubric": "docs/agent-evaluator-rubric.md",
+    "eval_instructions": "docs/agent-evals.md"
+  },
+  "telemetry_window_summary": {
+    "total_entries": 14,
+    "validation_results": {
+      "passed": 13,
+      "passed_after_repair": 1,
+      "failed": 0,
+      "blocked": 0
+    },
+    "state_updates": 14,
+    "feature_traceable_entries": 14,
+    "task_types": {
+      "code/docs/process": 1,
+      "code/runtime/docs": 1,
+      "docs/process": 4,
+      "docs/process/ci": 1,
+      "docs/process/observability": 6,
+      "docs/process/product": 1
+    }
+  },
+  "scorecard_snapshot": {
+    "scorecard_as_of_date": "2026-05-23",
+    "validated_features": 22,
+    "referenced_features": 22,
+    "referenced_feature_ids": [
+      "bootstrap-contract",
+      "canonical-document-package",
+      "chunking-and-downstream-handoff",
+      "clean-exit-checklist",
+      "docx-native-route",
+      "evaluator-rubric",
+      "feature-spine",
+      "harness-validator-in-ci",
+      "lifecycle-validation",
+      "machine-readable-scorecard",
+      "machine-readable-telemetry",
+      "operator-gui-and-release-packaging",
+      "pdf-scan-route",
+      "pdf-text-route",
+      "quality-and-review-reporting",
+      "real-e2e-and-run-validation",
+      "resume-dedup-and-queue-state",
+      "routing-matrix",
+      "semantic-document-metadata",
+      "sprint-contract-template",
+      "state-layer",
+      "weekly-eval-companion"
+    ],
+    "coverage_gap_feature_ids": [],
+    "observed_signals": [
+      {
+        "signal_id": "validation-discipline",
+        "title": "Validation discipline",
+        "score": 5,
+        "scale_max": 5,
+        "basis": "14/14 telemetry entries have pass-like validation results."
+      },
+      {
+        "signal_id": "state-hygiene",
+        "title": "State hygiene",
+        "score": 5,
+        "scale_max": 5,
+        "basis": "14/14 telemetry entries report state_update=true."
+      },
+      {
+        "signal_id": "feature-traceability",
+        "title": "Feature traceability",
+        "score": 5,
+        "scale_max": 5,
+        "basis": "14/14 telemetry entries reference at least one feature_id."
+      },
+      {
+        "signal_id": "feature-coverage",
+        "title": "Feature coverage in telemetry",
+        "score": 5,
+        "scale_max": 5,
+        "basis": "22/22 validated features are referenced by structured telemetry."
+      }
+    ]
+  },
+  "qualitative_sampling": {
+    "completed_reviews_in_window": 1,
+    "sampled_tasks_in_window": 5,
+    "reviews": [
+      {
+        "review_id": "2026-05-23-first-completed-weekly-review",
+        "review_date": "2026-05-23",
+        "window": {
+          "days": 7,
+          "start_date": "2026-05-17",
+          "end_date": "2026-05-23"
+        },
+        "summary": "Первый completed weekly review после telemetry backfill; проверяет generated snapshot на реальных задачах из разных категорий.",
+        "average_score": 12.6,
+        "max_score": 14,
+        "sampled_tasks": [
+          {
+            "task": "Sprint 1 state foundation",
+            "task_type": "docs/process",
+            "feature_ids": [
+              "state-layer"
+            ],
+            "scores": {
+              "scope_control": 2,
+              "feature_traceability": 1,
+              "hypothesis_quality": 1,
+              "validation_quality": 2,
+              "evidence_quality": 2,
+              "state_hygiene": 2,
+              "closeout_quality": 2
+            },
+            "total_score": 12,
+            "max_score": 14,
+            "interpretation": "strong closeout",
+            "note": "Исторический task slice до feature spine и формализованной local-hypothesis discipline."
+          },
+          {
+            "task": "Sprint 3 workflow hooks",
+            "task_type": "docs/process",
+            "feature_ids": [
+              "lifecycle-validation",
+              "clean-exit-checklist"
+            ],
+            "scores": {
+              "scope_control": 2,
+              "feature_traceability": 1,
+              "hypothesis_quality": 1,
+              "validation_quality": 2,
+              "evidence_quality": 2,
+              "state_hygiene": 2,
+              "closeout_quality": 2
+            },
+            "total_score": 12,
+            "max_score": 14,
+            "interpretation": "strong closeout",
+            "note": "Историческая задача до явной traceability discipline; quality подтверждена evidence и state sync."
+          },
+          {
+            "task": "Sprint 4 specialist routing",
+            "task_type": "docs/process",
+            "feature_ids": [
+              "routing-matrix"
+            ],
+            "scores": {
+              "scope_control": 2,
+              "feature_traceability": 1,
+              "hypothesis_quality": 1,
+              "validation_quality": 2,
+              "evidence_quality": 2,
+              "state_hygiene": 2,
+              "closeout_quality": 2
+            },
+            "total_score": 12,
+            "max_score": 14,
+            "interpretation": "strong closeout",
+            "note": "Ранний routing slice с retroactive traceability, но без quality defect в закрытии задачи."
+          },
+          {
+            "task": "SP folder e2e",
+            "task_type": "code/runtime/docs",
+            "feature_ids": [
+              "real-e2e-and-run-validation",
+              "pdf-text-route",
+              "docx-native-route",
+              "semantic-document-metadata"
+            ],
+            "scores": {
+              "scope_control": 2,
+              "feature_traceability": 1,
+              "hypothesis_quality": 2,
+              "validation_quality": 2,
+              "evidence_quality": 2,
+              "state_hygiene": 2,
+              "closeout_quality": 2
+            },
+            "total_score": 13,
+            "max_score": 14,
+            "interpretation": "strong closeout",
+            "note": "Сильный product-facing slice; единственный потерянный балл связан с ранней формализацией traceability."
+          },
+          {
+            "task": "Generated weekly eval companion",
+            "task_type": "docs/process/observability",
+            "feature_ids": [
+              "weekly-eval-companion",
+              "machine-readable-scorecard",
+              "evaluator-rubric"
+            ],
+            "scores": {
+              "scope_control": 2,
+              "feature_traceability": 2,
+              "hypothesis_quality": 2,
+              "validation_quality": 2,
+              "evidence_quality": 2,
+              "state_hygiene": 2,
+              "closeout_quality": 2
+            },
+            "total_score": 14,
+            "max_score": 14,
+            "interpretation": "strong closeout",
+            "note": "Полный closeout после structured telemetry backfill и generated companion sync."
+          }
+        ]
+      }
+    ]
+  },
+  "findings": []
+}

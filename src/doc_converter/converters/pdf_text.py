@@ -8,6 +8,7 @@ from typing import Any
 from pypdf import PdfReader
 
 from doc_converter.canonical import SourceRef, StructuralUnit, document_id_from_sha256, minimal_document, unit_id
+from doc_converter.document_metadata import build_document_metadata
 from doc_converter.quality import quality_payload, text_quality_flags
 from doc_converter.schema_validation import validate_payload
 
@@ -110,6 +111,7 @@ def convert_pdf_text(
         assets=[],
         quality=quality_payload(flags),
         relative_source_path=relative_source_path,
+        metadata=build_document_metadata(filename=source_path.name, units=units, search_text=search_text),
     )
     payload["processing"]["ocr_applied"] = False
     _write_validated_json(output_dir / "document.v1.json", payload, "document.v1.schema.json")

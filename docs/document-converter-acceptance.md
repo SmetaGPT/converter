@@ -63,10 +63,19 @@
 - `source` содержит исходный путь, `relative_input_path`, имя, формат, размер и SHA-256;
 - `processing.route` содержит один из маршрутов `docx_native`, `pdf_text`, `pdf_scan`;
 - `processing.status` содержит `success`, `partial_success`, `failed` или `skipped_duplicate`;
+- `metadata` содержит `title`, `document_type`, `short_summary`, `confidence`, `method`;
 - `units` содержит structural units с `unit_id`, `type`, `order`, `parent_id`, `source_ref`;
 - `assets` содержит ссылки на выделенные изображения, страницы, формулы и графику, а также `sha256`, `size_bytes`, `filename`, `media_type`, где asset физически сохранён;
 - `quality` содержит flags и warnings;
 - все ссылки на assets являются относительными к папке документа.
+
+Semantic metadata minimum:
+
+- `title` — лучший доступный заголовок из первых structural text units или fallback на имя файла;
+- `document_type` — rule-based тип документа по заголовку/имени файла с fallback по тексту;
+- `short_summary` — краткое описание предмета документа без обращения к внешней LLM;
+- `confidence` — `high`, `medium` или `low`;
+- `method` — `rule_based_title_extraction` или `filename_fallback`.
 
 ## 5. Structural units acceptance
 

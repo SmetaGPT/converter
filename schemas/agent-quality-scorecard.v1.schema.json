@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent quality scorecard v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "as_of_date",
+    "sources",
+    "telemetry_summary",
+    "feature_summary",
+    "observed_signals"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "agent-quality-scorecard.v1"
+    },
+    "as_of_date": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "sources": {
+      "type": "object",
+      "required": [
+        "feature_spine",
+        "telemetry_jsonl",
+        "scorecard_markdown"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "feature_spine": {
+          "type": "string",
+          "minLength": 1
+        },
+        "telemetry_jsonl": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scorecard_markdown": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "telemetry_summary": {
+      "type": "object",
+      "required": [
+        "total_entries",
+        "validation_results",
+        "state_updates",
+        "feature_traceable_entries",
+        "task_types"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "total_entries": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "validation_results": {
+          "type": "object",
+          "required": [
+            "passed",
+            "passed_after_repair",
+            "failed",
+            "blocked"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "passed": { "type": "integer", "minimum": 0 },
+            "passed_after_repair": { "type": "integer", "minimum": 0 },
+            "failed": { "type": "integer", "minimum": 0 },
+            "blocked": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "state_updates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "feature_traceable_entries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "task_types": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "feature_summary": {
+      "type": "object",
+      "required": [
+        "total_features",
+        "validated_features",
+        "referenced_features",
+        "referenced_feature_ids",
+        "referenced_areas"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "total_features": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "validated_features": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "referenced_features": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "referenced_feature_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          }
+        },
+        "referenced_areas": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "observed_signals": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/signal"
+      }
+    }
+  },
+  "$defs": {
+    "signal": {
+      "type": "object",
+      "required": [
+        "signal_id",
+        "title",
+        "score",
+        "scale_max",
+        "basis"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "signal_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "scale_max": {
+          "const": 5
+        },
+        "basis": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

@@ -43,6 +43,8 @@ class DocxConverterTests(unittest.TestCase):
             self.assertEqual(payload["schema_version"], "document.v1")
             self.assertEqual(payload["processing"]["route"], "docx_native")
             self.assertEqual(payload["source"]["relative_input_path"], "sample.docx")
+            self.assertEqual(payload["metadata"]["method"], "rule_based_title_extraction")
+            self.assertIn("Заголовок", payload["metadata"]["title"])
             self.assertIn("Первый абзац", search_text)
             self.assertIn("paragraph", {unit["type"] for unit in payload["units"]})
             self.assertIn("table", {unit["type"] for unit in payload["units"]})

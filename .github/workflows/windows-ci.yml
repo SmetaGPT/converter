@@ -30,6 +30,11 @@ jobs:
         run: |
           python -m unittest discover -v
 
+      - name: Validate harness assets
+        shell: pwsh
+        run: |
+          python scripts\validate_harness_assets.py
+
       - name: Run OCR preflight schema check
         shell: pwsh
         run: |

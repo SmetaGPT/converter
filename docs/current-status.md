@@ -1,6 +1,6 @@
 # Current Status
 
-Последнее обновление: 2026-05-22
+Последнее обновление: 2026-05-23
 Статус контура: wave 1 complete, operational use ready
 
 ## 1. Краткий снимок состояния
@@ -15,7 +15,8 @@
 - Sprint 6 завершён;
 - roadmap wave 1 завершена;
 - state layer уже создан;
-- repo-memory, lifecycle hooks, routing, eval loop и release loop ещё не завершены.
+- repo-memory, lifecycle hooks, routing, eval loop и release loop завершены;
+- machine-readable harness and product feature spine, bootstrap contract, clean-exit contract, telemetry companion, generated scorecard companion и generated weekly eval companion добавлены.
 
 ## 2. Что уже сделано
 
@@ -69,6 +70,21 @@
 46. Добавлены `src/doc_converter/chunking.py`, `scripts/build_sample_chunks.py` и portability-safe `chunks.v1.jsonl` contract.
 47. Добавлены `scripts/validate_run_package.py`, `scripts/run_synthetic_e2e.py`, `.github/workflows/windows-ci.yml` и `scripts/package-release.ps1`.
 48. Сформирован portable release package v0.2.0 с checksum/release notes; production scope сужен и зафиксирован в release docs честно.
+49. Добавлен `scripts/run_folder_e2e.py` и выполнен e2e на `D:\ФСНБ\Документы\для парсера\Российские\metod`: 52 discovered/supported/processed, 0 partial, 0 failed, 6010 chunks, run package validation ok.
+50. Добавлен schema-backed semantic metadata block в `document.v1.json`: `title`, `document_type`, `short_summary`, `confidence`, `method`; финальный metod e2e подтвердил 52 processed, 0 failed, 6010 chunks, типы `приказ: 49`, `методические указания: 1`, `методическое пособие: 1`.
+51. Выполнен real-folder e2e на `D:\ФСНБ\Документы\Загрузка НПА\SP`: 344 processed, 0 partial, 0 failed, 0 review_required, run package validation ok; routes `pdf_text: 343`, `docx_native: 1`, `metadata.document_type` заполнен во всех 344 canonical packages и классифицирован как `свод правил`.
+52. Добавлены harness-артефакты article-grade уровня: `docs/agent-feature-spine.json`, `docs/agent-bootstrap-contract.md`, `docs/agent-session-exit-checklist.md`, `docs/agent-sprint-contract-template.md`, `docs/agent-evaluator-rubric.md`, schema `schemas/agent-feature-spine.v1.schema.json` и validator `scripts/validate_harness_assets.py`; validator встроен в Windows CI.
+53. `docs/agent-feature-spine.json` расширен с process-only слоя до product-aware spine: добавлены core capabilities конвертера (`document.v1` package, DOCX/PDF routes, semantic metadata, quality/reporting, resume/dedup, chunking/handoff, GUI/release packaging), а validator теперь требует этот coverage как обязательный минимум.
+54. Feature spine встроен в task-flow: bootstrap contract, sprint contract template, task checkpoint template, exit checklist и evaluator rubric теперь требуют traceability до `feature_id` и evidence paths, а `scripts/validate_harness_assets.py` проверяет эти связки через marker-based rules.
+55. Добавлен machine-readable telemetry companion `docs/agent-telemetry.v1.jsonl` со schema `schemas/agent-telemetry-entry.v1.schema.json`; `scripts/validate_harness_assets.py` теперь валидирует telemetry JSONL, проверяет known `feature_id` и наличие хотя бы одной записи.
+56. Добавлен generated scorecard companion `docs/agent-quality-scorecard.v1.json` со schema `schemas/agent-quality-scorecard.v1.schema.json` и генератором `scripts/build_agent_scorecard.py`; `scripts/validate_harness_assets.py` теперь валидирует schema и проверяет drift между feature spine, telemetry JSONL и scorecard.
+57. Для generated scorecard добавлен markdown drift-check: `scripts/build_agent_scorecard.py` теперь умеет `--check-markdown` и `--sync-markdown`, а `scripts/validate_harness_assets.py` проверяет синхронность structured companion section в `docs/agent-quality-scorecard.md` с generated JSON.
+58. Добавлен generated weekly eval companion: `scripts/build_agent_weekly_eval.py` собирает `docs/agent-weekly-eval.v1.json` и `docs/agent-weekly-eval.md` из scorecard и structured telemetry, а `scripts/validate_harness_assets.py` проверяет schema и drift для weekly snapshot.
+59. В `docs/agent-telemetry.v1.jsonl` выполнен historical backfill для `state-layer`, `lifecycle-validation`, `routing-matrix` и `real-e2e-and-run-validation`; generated scorecard и weekly eval теперь показывают coverage `22/22` без unexplained gaps.
+60. Проведён первый complete weekly review по `docs/agent-evaluator-rubric.md` на реальных задачах из разных категорий; recurring issues зафиксированы в `docs/agent-regressions.md`, assumptions обновлены в `docs/agent-quality-scorecard.md`, а `AGENTS.md` оставлен без изменений как достаточный operational contract.
+61. Добавлен one-command refresh wrapper `scripts/refresh_agent_eval.py`; generated scorecard и weekly eval companions теперь пересобираются и проверяются одним вызовом вместо ручного двухкомандного шага.
+62. Sampled task scores для weekly review вынесены в `docs/agent-weekly-reviews.v1.json` со schema `schemas/agent-weekly-reviews.v1.schema.json`, а generated weekly eval теперь несёт machine-readable qualitative sampling вместе с proxy signals.
+63. `scripts/validate_harness_assets.py` переведён на agent-oriented failure diagnostics в формате `WHAT / WHY / FIX`; зелёный путь validator-а и failure-helper smoke подтверждены локально.
 
 ### Готовые артефакты
 
@@ -76,19 +92,31 @@
 - docs/agent-assets-inventory.md
 - docs/agent-eval-tasks.md
 - docs/agent-quality-scorecard.md
+- docs/agent-quality-scorecard.v1.json
+- docs/agent-weekly-eval.md
+- docs/agent-weekly-eval.v1.json
+- docs/agent-weekly-reviews.v1.json
 - docs/current-status.md
 - docs/current-sprint.md
 - docs/release-status.md
 - docs/agent-task-checkpoint-template.md
 - docs/agent-telemetry-log.md
+- docs/agent-telemetry.v1.jsonl
 - docs/agent-memory-model.md
 - docs/agent-memory-hygiene.md
 - docs/agent-lessons-template.md
 - docs/agent-lifecycle.md
+- docs/agent-bootstrap-contract.md
+- docs/agent-feature-spine.json
 - docs/agent-guardrails.md
 - docs/agent-tool-interface-audit.md
 - docs/agent-stop-budgets.md
 - docs/agent-routing-matrix.md
+- docs/agent-session-exit-checklist.md
+- docs/agent-sprint-contract-template.md
+- docs/agent-evaluator-rubric.md
+- docs/agent-task-checkpoint-template.md
+- docs/agent-bootstrap-contract.md
 - docs/agent-evals.md
 - docs/agent-regressions.md
 - docs/agent-instruction-change-log.md
@@ -114,17 +142,32 @@
 - src/doc_converter/
 - tests/
 - schemas/
+- schemas/agent-feature-spine.v1.schema.json
+- schemas/agent-telemetry-entry.v1.schema.json
+- schemas/agent-quality-scorecard.v1.schema.json
+- schemas/agent-weekly-eval.v1.schema.json
+- schemas/agent-weekly-reviews.v1.schema.json
+- scripts/build_agent_scorecard.py
+- scripts/build_agent_weekly_eval.py
+- scripts/refresh_agent_eval.py
 - scripts/build-windows.ps1
 - scripts/install-ocr-runtime.ps1
+- scripts/run_folder_e2e.py
+- scripts/validate_harness_assets.py
 - AGENTS.md
 
 ## 3. Что делается сейчас
 
-Текущий фокус: эксплуатация production-ready v0.2.0 scope, weekly eval cycle и post-release semantic enhancements.
+Текущий фокус: поддержание уже закрытого harness/eval contour для production-ready v0.2.0 scope и точечные улучшения только там, где они реально снижают operational overhead.
 
 В работе:
 
-- перевод scorecard с экспертной оценки на фактические weekly scores;
+- поддержание product-aware feature spine и feature-traceability workflow на следующих нетривиальных задачах;
+- поддержание machine-readable telemetry companion без пропусков на следующих нетривиальных задачах;
+- поддержание generated scorecard companion, weekly eval companion и markdown drift-check как штатной части weekly checks;
+- optional historical telemetry backfill beyond the minimum coverage set, если понадобится более широкий retrospective analysis;
+- optional schedule поверх `scripts/refresh_agent_eval.py`, если weekly cadence начнёт создавать лишний ручной overhead;
+- дальнейшая оценка качества rule-based `document_type`/`short_summary` на новых пакетах;
 - post-release enhancement для advanced PDF tables/figures/formulas и DOCX footnotes/header/footer;
 - optional OCR helper profile `jbig2`, `pngquant`, `verapdf` по мере необходимости.
 
@@ -132,10 +175,13 @@
 
 Следующая последовательность после закрытия Sprint 1:
 
-1. Регулярный weekly eval loop на реальных пакетах v0.2.0.
-2. Post-release semantic enrichment для PDF tables/figures/formulas и DOCX footnotes/header/footer.
-3. Optional OCR helpers и installer polish только если это потребуется по эксплуатации.
-4. Уточнение repo-memory по мере появления нового production learning.
+1. Поддерживать weekly eval loop на реальных пакетах v0.2.0 как регулярный ritual, а не как bootstrap work.
+2. Держать product-aware feature spine, sprint contract, checkpoint template и evaluator rubric обязательными на новых cross-module задачах.
+3. Не допускать пропусков в machine-readable telemetry companion на новых нетривиальных задачах.
+4. При необходимости добавить schedule поверх `scripts/refresh_agent_eval.py`, а не возвращаться к ручному двухшаговому refresh.
+5. Поддерживать `docs/agent-weekly-reviews.v1.json` синхронно с будущими completed weekly reviews.
+6. Post-release semantic enrichment для PDF tables/figures/formulas и DOCX footnotes/header/footer.
+7. Optional OCR helpers и installer polish только если это потребуется по эксплуатации.
 
 ## 5. Открытые gaps
 
@@ -156,11 +202,11 @@
 | Текущий статус проекта | docs/current-status.md |
 | Активный спринт | docs/current-sprint.md |
 | Ближайший релиз | docs/release-status.md |
-| Baseline и метрики качества | docs/agent-quality-scorecard.md |
+| Baseline и метрики качества | docs/agent-quality-scorecard.md, docs/agent-quality-scorecard.v1.json, docs/agent-weekly-eval.md, docs/agent-weekly-eval.v1.json, docs/agent-weekly-reviews.v1.json |
 | Inventory agent assets | docs/agent-assets-inventory.md |
 | Eval set | docs/agent-eval-tasks.md |
 | Task checkpoint schema | docs/agent-task-checkpoint-template.md |
-| Telemetry | docs/agent-telemetry-log.md |
+| Telemetry | docs/agent-telemetry-log.md, docs/agent-telemetry.v1.jsonl |
 | Memory policy | docs/agent-memory-model.md, docs/agent-memory-hygiene.md |
 | Routing | docs/agent-routing-matrix.md, .github/agents/ |
 | Release discipline | docs/ops/, docs/agent-handoffs.md |
@@ -171,7 +217,7 @@
 
 1. docs/current-status.md — краткое изменение статуса и следующий шаг;
 2. docs/current-sprint.md — прогресс внутри активного спринта;
-3. docs/agent-telemetry-log.md — validation target, результат и факт state update;
+3. docs/agent-telemetry-log.md и docs/agent-telemetry.v1.jsonl — validation target, результат и факт state update;
 4. docs/release-status.md — если задача влияет на ближайший релиз;
 5. repo-memory — если появился новый validated learning.
 
@@ -213,6 +259,7 @@ Windows Document Converter теперь имеет рабочий MVP-конту
 - CLI: `python -m doc_converter.cli convert-folder <input> <output>`;
 - GUI: `python scripts\gui_entry.py` или собранный `dist\DocumentConverter\DocumentConverter.exe`;
 - output package: `run.json`, `manifest.jsonl`, `queue-state.json`, `processing-log.jsonl`, `summary.json`, `errors.jsonl`, `documents/*/document.v1.json`;
+- `document.v1.json` содержит обязательный semantic metadata block: `title`, `document_type`, `short_summary`, `confidence`, `method`;
 - DOCX route создаёт paragraphs, tables, table cells, extracted DOCX media assets и `search_text.txt`;
 - PDF-text route создаёт page/paragraph units без OCR;
 - PDF-scan route сохраняет page units и OCR status; без OCRmyPDF возвращает `partial_success` с review flags;
@@ -220,4 +267,4 @@ Windows Document Converter теперь имеет рабочий MVP-конту
 - primary project environment: `.venv\Scripts\python.exe`;
 - downstream handoff описан в `docs/downstream-handoff.md`.
 
-Последняя проверка: `.\.venv\Scripts\python.exe -m unittest discover -v` прошёл; `.\.venv\Scripts\python.exe scripts\run_sample_pilot.py --clean` обработал 21 sample и дал 21 success без partial/failed; `.\.venv\Scripts\python.exe -m doc_converter.cli check-ocr` вернул `status: ready`; реальный OCR smoke на `PPRF_680.pdf` дал `processing.status: success` и `ocr_applied: true`; `scripts\build-windows.ps1` успешно собрал EXE из `.venv`.
+Последняя проверка: `.\.venv\Scripts\python.exe -m unittest discover -v` прошёл, 36 tests OK; `.\.venv\Scripts\python.exe scripts\run_folder_e2e.py "D:\ФСНБ\Документы\Загрузка НПА\SP" --output runs\sp-e2e --clean` создал `runs\sp-e2e\runs\20260522T205641Z` с 344 processed, 0 partial, 0 failed, 0 review_required и schema-valid package; routes `pdf_text: 343`, `docx_native: 1`; metadata заполнены во всех 344 canonical packages. Предыдущий metod run `runs\metod-e2e\runs\20260522T204542Z` остаётся зелёным: 52 processed, 0 partial, 0 failed, 6010 chunks; `.\.venv\Scripts\python.exe scripts\run_sample_pilot.py --clean` ранее обработал 21 sample и дал 21 success без partial/failed; `.\.venv\Scripts\python.exe -m doc_converter.cli check-ocr` вернул `status: ready`; реальный OCR smoke на `PPRF_680.pdf` дал `processing.status: success` и `ocr_applied: true`; `scripts\build-windows.ps1` успешно собрал EXE из `.venv`.

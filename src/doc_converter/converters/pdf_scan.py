@@ -18,6 +18,7 @@ from doc_converter.canonical import (
     unit_id,
 )
 from doc_converter.converters.pdf_text import _split_pdf_text
+from doc_converter.document_metadata import build_document_metadata
 from doc_converter.ocr_runtime import find_ocrmypdf_executable
 from doc_converter.quality import quality_payload
 from doc_converter.schema_validation import validate_payload
@@ -270,6 +271,7 @@ def _write_scan_payload(
         assets=assets,
         quality=quality_payload(flags, warnings),
         relative_source_path=relative_source_path,
+        metadata=build_document_metadata(filename=source_path.name, units=units, search_text=search_text),
     )
     payload["processing"]["ocr_applied"] = ocr_applied
     payload["processing"]["warnings"] = warnings
