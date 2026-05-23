@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 from docx import Document
@@ -89,6 +90,39 @@ class DocxConverterTests(unittest.TestCase):
             self.assertEqual(semantic_units[4]["text"], "Абзац после таблицы")
             self.assertLess(semantic_units[2]["order"], semantic_units[4]["order"])
 
+    def test_docx_extracts_formula_header_footer_and_footnotes(self) -> None:
+        with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:
+            source_path = Path(input_dir) / "semantic.docx"
+            document = Document()
+            document.sections[0].header.paragraphs[0].text = "Верхний колонтитул"
+            document.sections[0].footer.paragraphs[0].text = "Нижний колонтитул"
+            document.add_paragraph("E = mc^2")
+            document.add_paragraph("Основной текст")
+            document.save(str(source_path))
+            _add_footnotes_xml(source_path, "Текст сноски")
+
+            result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
+
+            self.assertEqual(result.status, "success")
+            manifest_records = [
+                json.loads(line)
+                for line in (result.run_dir / "manifest.jsonl").read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            document_dir = result.run_dir / manifest_records[0]["output_dir"]
+            payload = json.loads((document_dir / "document.v1.json").read_text(encoding="utf-8"))
+            validate_payload(payload, "document.v1.schema.json")
+
+            units_by_type = {unit["type"]: unit for unit in payload["units"]}
+            self.assertEqual(units_by_type["formula"]["text"], "E = mc^2")
+            self.assertIn("semantic_structure_inferred", units_by_type["formula"]["quality"]["flags"])
+            self.assertEqual(units_by_type["header"]["text"], "Верхний колонтитул")
+            self.assertEqual(units_by_type["footer"]["text"], "Нижний колонтитул")
+            self.assertEqual(units_by_type["footnote"]["text"], "Текст сноски")
+            search_text = (document_dir / "search_text.txt").read_text(encoding="utf-8")
+            self.assertIn("E = mc^2", search_text)
+            self.assertIn("Текст сноски", search_text)
+
     def test_runner_skips_duplicate_docx_and_can_copy_originals(self) -> None:
         with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:
             first_path = Path(input_dir) / "a.docx"
@@ -119,6 +153,21 @@ class DocxConverterTests(unittest.TestCase):
             document_dir = result.run_dir / shared_output_dir
             self.assertTrue((document_dir / "originals" / "a.docx").exists())
             self.assertTrue((document_dir / "originals" / "nested" / "b.docx").exists())
+
+
+def _add_footnotes_xml(source_path: Path, footnote_text: str) -> None:
+    temp_path = source_path.with_suffix(".tmp.docx")
+    footnotes_xml = f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:footnotes xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:footnote w:type="separator" w:id="-1"><w:p><w:r><w:separator/></w:r></w:p></w:footnote>
+  <w:footnote w:id="1"><w:p><w:r><w:t>{footnote_text}</w:t></w:r></w:p></w:footnote>
+</w:footnotes>
+"""
+    with zipfile.ZipFile(source_path, "r") as source_archive, zipfile.ZipFile(temp_path, "w") as target_archive:
+        for item in source_archive.infolist():
+            target_archive.writestr(item, source_archive.read(item.filename))
+        target_archive.writestr("word/footnotes.xml", footnotes_xml.encode("utf-8"))
+    temp_path.replace(source_path)
 
 
 if __name__ == "__main__":

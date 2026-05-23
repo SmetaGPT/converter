@@ -16,7 +16,14 @@ from doc_converter.canonical import (
     minimal_document,
     unit_id,
 )
-from doc_converter.converters.pdf_text import _split_pdf_text
+from doc_converter.converters.pdf_text import (
+    _is_figure_caption,
+    _is_formula_block,
+    _is_table_block,
+    _parse_table_rows,
+    _quality_flags_for_pdf_unit,
+    _split_pdf_text,
+)
 from doc_converter.document_metadata import build_document_metadata
 from doc_converter.ocr_runtime import find_ocrmypdf_executable
 from doc_converter.quality import quality_payload
@@ -233,7 +240,7 @@ def _write_scan_payload(
         StructuralUnit(unit_id=unit_id(0), type="document", order=0, source_ref=SourceRef(document_id=doc_id))
     ]
     order = 1
-    page_texts = search_text.split("\f") if "\f" in search_text else []
+    page_texts = search_text.split("\f") if search_text else []
     for page_index in range(1, pages + 1):
         page_unit_id = unit_id(order)
         units.append(
@@ -248,17 +255,14 @@ def _write_scan_payload(
         order += 1
         page_text = page_texts[page_index - 1] if page_index <= len(page_texts) else ""
         for paragraph in _split_pdf_text(page_text):
-            units.append(
-                StructuralUnit(
-                    unit_id=unit_id(order),
-                    parent_id=page_unit_id,
-                    type="paragraph",
-                    order=order,
-                    text=paragraph,
-                    source_ref=SourceRef(document_id=doc_id, page=page_index),
-                )
+            order = _append_pdf_scan_text_units(
+                units=units,
+                order=order,
+                paragraph=paragraph,
+                doc_id=doc_id,
+                page_unit_id=page_unit_id,
+                page_index=page_index,
             )
-            order += 1
 
     payload = minimal_document(
         source_path=source_path,
@@ -292,6 +296,74 @@ def _write_scan_payload(
         text_chars=len(search_text),
         warnings=tuple(warnings),
     )
+
+
+def _append_pdf_scan_text_units(
+    *,
+    units: list[StructuralUnit],
+    order: int,
+    paragraph: str,
+    doc_id: str,
+    page_unit_id: str,
+    page_index: int,
+) -> int:
+    if _is_table_block(paragraph):
+        table_id = unit_id(order)
+        units.append(
+            StructuralUnit(
+                unit_id=table_id,
+                parent_id=page_unit_id,
+                type="table",
+                order=order,
+                source_ref=SourceRef(document_id=doc_id, page=page_index),
+                quality=quality_payload(["semantic_structure_inferred"]),
+            )
+        )
+        order += 1
+        for row_cells in _parse_table_rows(paragraph):
+            row_id = unit_id(order)
+            units.append(
+                StructuralUnit(
+                    unit_id=row_id,
+                    parent_id=table_id,
+                    type="table_row",
+                    order=order,
+                    source_ref=SourceRef(document_id=doc_id, page=page_index),
+                )
+            )
+            order += 1
+            for cell_text in row_cells:
+                units.append(
+                    StructuralUnit(
+                        unit_id=unit_id(order),
+                        parent_id=row_id,
+                        type="table_cell",
+                        order=order,
+                        text=cell_text,
+                        source_ref=SourceRef(document_id=doc_id, page=page_index),
+                    )
+                )
+                order += 1
+        return order
+
+    if _is_figure_caption(paragraph):
+        unit_type = "figure"
+    elif _is_formula_block(paragraph):
+        unit_type = "formula"
+    else:
+        unit_type = "paragraph"
+    units.append(
+        StructuralUnit(
+            unit_id=unit_id(order),
+            parent_id=page_unit_id,
+            type=unit_type,
+            order=order,
+            text=paragraph,
+            source_ref=SourceRef(document_id=doc_id, page=page_index),
+            quality=quality_payload(_quality_flags_for_pdf_unit(unit_type)),
+        )
+    )
+    return order + 1
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:

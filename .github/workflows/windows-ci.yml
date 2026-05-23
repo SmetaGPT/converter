@@ -50,6 +50,11 @@ jobs:
         run: |
           python scripts\validate_harness_assets.py
 
+      - name: Check agent eval schedule plan
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File scripts\register-agent-eval-schedule.ps1 -CheckOnly | ConvertFrom-Json | Out-Null
+
       - name: Run OCR preflight schema check
         shell: pwsh
         run: |
@@ -78,16 +83,16 @@ jobs:
       - name: Package portable release
         shell: pwsh
         run: |
-          powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 -Name DocumentConverter -Version 0.2.0 -SkipBuild
-          if (-not (Test-Path dist\release\DocumentConverter-0.2.0\DocumentConverter-0.2.0-windows-portable.zip)) { throw "Portable zip missing" }
-          if (-not (Test-Path dist\release\DocumentConverter-0.2.0\DocumentConverter-0.2.0-windows-portable.sha256.txt)) { throw "Checksum missing" }
-          if (-not (Test-Path dist\release\DocumentConverter-0.2.0\release-notes.md)) { throw "Release notes missing" }
+          powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 -Name DocumentConverter -Version 0.3.0 -SkipBuild
+          if (-not (Test-Path dist\release\DocumentConverter-0.3.0\DocumentConverter-0.3.0-windows-portable.zip)) { throw "Portable zip missing" }
+          if (-not (Test-Path dist\release\DocumentConverter-0.3.0\DocumentConverter-0.3.0-windows-portable.sha256.txt)) { throw "Checksum missing" }
+          if (-not (Test-Path dist\release\DocumentConverter-0.3.0\release-notes.md)) { throw "Release notes missing" }
 
       - name: Upload portable release artifact
         uses: actions/upload-artifact@v4
         with:
           name: document-converter-portable-release
           path: |
-            dist/release/DocumentConverter-0.2.0/DocumentConverter-0.2.0-windows-portable.zip
-            dist/release/DocumentConverter-0.2.0/DocumentConverter-0.2.0-windows-portable.sha256.txt
-            dist/release/DocumentConverter-0.2.0/release-notes.md
+            dist/release/DocumentConverter-0.3.0/DocumentConverter-0.3.0-windows-portable.zip
+            dist/release/DocumentConverter-0.3.0/DocumentConverter-0.3.0-windows-portable.sha256.txt
+            dist/release/DocumentConverter-0.3.0/release-notes.md

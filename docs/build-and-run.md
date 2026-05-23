@@ -95,10 +95,10 @@ powershell -ExecutionPolicy Bypass -File scripts\smoke-test-windows-exe.ps1 -Exe
 ## 7. Portable release package
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 -Name DocumentConverter -Version 0.2.0
+powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 -Name DocumentConverter -Version 0.3.0
 ```
 
-Portable release формируется в `dist\release\DocumentConverter-0.2.0\` и содержит zip, SHA-256 checksum и release notes.
+Portable release формируется в `dist\release\DocumentConverter-0.3.0\` и содержит zip, SHA-256 checksum и release notes.
 
 ## 8. Representative pilot
 
@@ -118,11 +118,29 @@ Portable release формируется в `dist\release\DocumentConverter-0.2.0
 
 Скрипт строит reference `chunks.v1.jsonl` из `document.v1.json` и валидирует каждую запись по `schemas/chunks.v1.schema.json`.
 
-## 10. Текущие ограничения
+## 10. Optional weekly eval schedule
+
+Generated scorecard и weekly eval можно оставить ручной командой:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\refresh_agent_eval.py
+.\.venv\Scripts\python.exe scripts\refresh_agent_eval.py --check --check-markdown
+```
+
+Если ручной weekly refresh начинает создавать overhead, guarded helper регистрирует Windows Scheduled Task поверх того же script:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\register-agent-eval-schedule.ps1 -CheckOnly
+powershell -ExecutionPolicy Bypass -File scripts\register-agent-eval-schedule.ps1 -DayOfWeek Monday -At 09:00
+```
+
+`-CheckOnly` печатает JSON plan и ничего не регистрирует. Если task уже существует, helper требует `-Force`, чтобы замена была явной.
+
+## 11. Текущие ограничения
 
 - Если OCRmyPDF недоступен, `pdf_scan` документы получают `partial_success`, flags `ocr_required`, `ocr_unavailable`, `review_required` и не теряются.
 - Release profile сейчас делится на core и optional: core = `ocrmypdf`, `tesseract`, `ghostscript`; optional = `jbig2`, `pngquant`, `verapdf`.
 - Опциональные OCRmyPDF helpers `jbig2`, `pngquant` и `verapdf` не установлены; OCR работает, но часть оптимизаций и PDF/A-проверок пропускается.
-- PDF route в release scope v0.2.0 гарантирует pages/paragraphs/header/footer, OCR text и review-required flags, но не обещает отдельное устойчивое semantic extraction для PDF tables/figures/formulas.
-- DOCX route в release scope v0.2.0 гарантирует body order, headings/lists/tables/media, но не обещает отдельный semantic pass для footnotes/header/footer.
+- PDF route в release scope v0.3.0 добавляет heuristic semantic units для tables/formulas/figure captions поверх text-layer и OCR text; сложные multi-column/table layouts всё ещё требуют downstream review по quality flags.
+- DOCX route в release scope v0.3.0 добавляет semantic pass для formulas, headers, footers и footnotes; embedded formula images классифицируются эвристически по media metadata.
 - Embeddings и загрузка в БД не входят в converter runtime; для них используется output package и `docs/downstream-handoff.md`.

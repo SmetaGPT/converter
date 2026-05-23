@@ -13,6 +13,64 @@ from doc_converter.schema_validation import validate_payload
 
 
 class PdfTextConverterTests(unittest.TestCase):
+    def test_pdf_text_infers_table_formula_and_figure_units(self) -> None:
+        class FakeMediaBox:
+            left = 0
+            bottom = 0
+            right = 595
+            top = 842
+
+        class FakePage:
+            def __init__(self, layout_text: str) -> None:
+                self._layout_text = layout_text
+                self.mediabox = FakeMediaBox()
+                self.rotation = 0
+
+            def extract_text(self, *args: object, **kwargs: object) -> str:
+                if kwargs.get("extraction_mode") == "layout":
+                    return self._layout_text
+                return self._layout_text
+
+        fake_reader = type(
+            "FakeReader",
+            (),
+            {
+                "pages": [
+                    FakePage(
+                        "Показатель  Значение\n"
+                        "A  10\n"
+                        "B  20\n\n"
+                        "S = a * b\n\n"
+                        "Рисунок 1 - Схема процесса"
+                    )
+                ]
+            },
+        )()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_path = Path(temp_dir) / "semantic.pdf"
+            output_dir = Path(temp_dir) / "out"
+            source_path.write_bytes(b"%PDF-1.4\n%stub\n")
+
+            with patch("doc_converter.converters.pdf_text.PdfReader", return_value=fake_reader):
+                result = convert_pdf_text(source_path, output_dir, "2" * 64)
+
+            payload = json.loads((output_dir / "document.v1.json").read_text(encoding="utf-8"))
+            validate_payload(payload, "document.v1.schema.json")
+            unit_types = [unit["type"] for unit in payload["units"]]
+            table_cells = [unit for unit in payload["units"] if unit["type"] == "table_cell"]
+            formula_units = [unit for unit in payload["units"] if unit["type"] == "formula"]
+            figure_units = [unit for unit in payload["units"] if unit["type"] == "figure"]
+
+            self.assertEqual(result.status, "success")
+            self.assertIn("table", unit_types)
+            self.assertIn("table_row", unit_types)
+            self.assertEqual([unit["text"] for unit in table_cells[:2]], ["Показатель", "Значение"])
+            self.assertEqual(formula_units[0]["text"], "S = a * b")
+            self.assertIn("semantic_structure_inferred", formula_units[0]["quality"]["flags"])
+            self.assertEqual(figure_units[0]["text"], "Рисунок 1 - Схема процесса")
+            self.assertIn("A | 10", (output_dir / "search_text.txt").read_text(encoding="utf-8"))
+
     def test_pdf_text_uses_layout_mode_and_marks_repeated_edge_blocks(self) -> None:
         class FakeMediaBox:
             left = 0

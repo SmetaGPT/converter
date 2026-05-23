@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 
-CHUNKABLE_TYPES = {"section", "paragraph", "list_item", "caption", "header", "footer", "table_cell"}
+CHUNKABLE_TYPES = {"section", "paragraph", "list_item", "caption", "header", "footer", "table_cell", "formula", "figure"}
 
 
 def build_chunks_from_document(document_payload: dict[str, Any], *, max_chars: int = 1200) -> list[dict[str, Any]]:

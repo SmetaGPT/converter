@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,11 @@ from doc_converter.canonical import SourceRef, StructuralUnit, document_id_from_
 from doc_converter.document_metadata import build_document_metadata
 from doc_converter.quality import quality_payload, text_quality_flags
 from doc_converter.schema_validation import validate_payload
+
+
+TABLE_SEPARATOR_RE = re.compile(r"\s{2,}|\t+|\s*\|\s*")
+FORMULA_RE = re.compile(r"(^|\s)[A-Za-zА-Яа-я][\wА-Яа-я]*\s*=|[=∑√≤≥±×÷≈]|\b(sum|sqrt|frac)\b", re.IGNORECASE)
+FIGURE_CAPTION_RE = re.compile(r"^(рис\.?|рисунок|figure)\s*\d*", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -75,6 +81,69 @@ def convert_pdf_text(
                 unit_type = "header"
             elif paragraph_index == len(page_paragraphs) - 1 and paragraph in footer_candidates:
                 unit_type = "footer"
+            elif _is_table_block(paragraph):
+                table_id = unit_id(order)
+                units.append(
+                    StructuralUnit(
+                        unit_id=table_id,
+                        parent_id=page_unit_id,
+                        type="table",
+                        order=order,
+                        source_ref=SourceRef(
+                            document_id=doc_id,
+                            page=page_index,
+                            coordinate_system="pdf_points_bottom_left",
+                            page_width=page_payload["page_width"],
+                            page_height=page_payload["page_height"],
+                        ),
+                        quality=quality_payload(["semantic_structure_inferred"]),
+                    )
+                )
+                order += 1
+                table_text_rows: list[str] = []
+                for row_index, row_cells in enumerate(_parse_table_rows(paragraph), start=1):
+                    row_id = unit_id(order)
+                    units.append(
+                        StructuralUnit(
+                            unit_id=row_id,
+                            parent_id=table_id,
+                            type="table_row",
+                            order=order,
+                            source_ref=SourceRef(
+                                document_id=doc_id,
+                                page=page_index,
+                                coordinate_system="pdf_points_bottom_left",
+                                page_width=page_payload["page_width"],
+                                page_height=page_payload["page_height"],
+                            ),
+                        )
+                    )
+                    order += 1
+                    table_text_rows.append(" | ".join(row_cells))
+                    for cell_index, cell_text in enumerate(row_cells, start=1):
+                        units.append(
+                            StructuralUnit(
+                                unit_id=unit_id(order),
+                                parent_id=row_id,
+                                type="table_cell",
+                                order=order,
+                                text=cell_text,
+                                source_ref=SourceRef(
+                                    document_id=doc_id,
+                                    page=page_index,
+                                    coordinate_system="pdf_points_bottom_left",
+                                    page_width=page_payload["page_width"],
+                                    page_height=page_payload["page_height"],
+                                ),
+                            )
+                        )
+                        order += 1
+                search_parts.append("\n".join(table_text_rows))
+                continue
+            elif _is_figure_caption(paragraph):
+                unit_type = "figure"
+            elif _is_formula_block(paragraph):
+                unit_type = "formula"
             units.append(
                 StructuralUnit(
                     unit_id=unit_id(order),
@@ -89,10 +158,10 @@ def convert_pdf_text(
                         page_width=page_payload["page_width"],
                         page_height=page_payload["page_height"],
                     ),
-                    quality=quality_payload(["repeated_edge_block"] if unit_type in {"header", "footer"} else []),
+                    quality=quality_payload(_quality_flags_for_pdf_unit(unit_type)),
                 )
             )
-            if unit_type == "paragraph":
+            if unit_type not in {"header", "footer"}:
                 search_parts.append(paragraph)
             order += 1
 
@@ -141,13 +210,49 @@ def _split_pdf_text(text: str) -> list[str]:
         stripped = line.strip()
         if not stripped:
             if current:
-                paragraphs.append(" ".join(current))
+                paragraphs.append("\n".join(current))
                 current = []
             continue
         current.append(stripped)
     if current:
-        paragraphs.append(" ".join(current))
+        paragraphs.append("\n".join(current))
     return paragraphs
+
+
+def _quality_flags_for_pdf_unit(unit_type: str) -> list[str]:
+    if unit_type in {"header", "footer"}:
+        return ["repeated_edge_block"]
+    if unit_type in {"figure", "formula"}:
+        return ["semantic_structure_inferred"]
+    return []
+
+
+def _is_table_block(text: str) -> bool:
+    rows = _parse_table_rows(text)
+    return len(rows) >= 2 and sum(1 for row in rows if len(row) >= 2) >= 2
+
+
+def _parse_table_rows(text: str) -> list[list[str]]:
+    rows: list[list[str]] = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        cells = [cell.strip() for cell in TABLE_SEPARATOR_RE.split(stripped) if cell.strip()]
+        if cells:
+            rows.append(cells)
+    return rows
+
+
+def _is_formula_block(text: str) -> bool:
+    stripped = text.strip()
+    if len(stripped) > 180:
+        return False
+    return bool(FORMULA_RE.search(stripped))
+
+
+def _is_figure_caption(text: str) -> bool:
+    return bool(FIGURE_CAPTION_RE.search(text.strip()))
 
 
 def _extract_page_payload(page: Any, page_index: int) -> dict[str, Any]:

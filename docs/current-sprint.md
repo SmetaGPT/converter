@@ -1,10 +1,10 @@
 # Current Sprint
 
 Последнее обновление: 2026-05-23
-Активный спринт: Release Closure — Production readiness v0.2.0
+Активный спринт: Release Closure — Production readiness v0.3.0
 Статус: completed
 
-Последний завершённый спринт: Release Closure — Production readiness v0.2.0
+Последний завершённый спринт: Release Closure — Production readiness v0.3.0
 Статус wave 1: completed
 
 ## 1. Цель спринта
@@ -85,6 +85,9 @@
 | Вынести sampled weekly review scores в machine-readable companion и weekly eval schema | Готово |
 | Улучшить harness validator diagnostics до формата `WHAT / WHY / FIX` | Готово |
 | Проверять integrity OCR traineddata downloads в OCR helper | Готово |
+| Закрыть post-release semantic extraction для PDF/DOCX tables/formulas/figures и DOCX footnotes/header/footer | Готово |
+| Добавить optional Windows schedule helper для `refresh_agent_eval.py` | Готово |
+| Пересобрать и версионировать portable package как v0.3.0 | Готово |
 
 ## 4. Validation targets спринта
 
@@ -107,11 +110,12 @@
 17. Weekly snapshot больше не содержит unexplained coverage gaps, а первый qualitative weekly review зафиксирован в eval и regression docs.
 18. One-command refresh wrapper пересобирает оба generated companions, а weekly eval JSON несёт machine-readable qualitative sampling из отдельного reviews companion.
 19. OCR runtime install helper проверяет SHA-256 для direct traineddata downloads и fail-fast останавливается на mismatch.
+20. DOCX/PDF routes создают semantic units для formulas, figure captions, heuristic tables, DOCX headers/footers/footnotes и сохраняют это в schema-valid `document.v1.json`.
+21. Optional weekly eval schedule helper проходит `-CheckOnly`, а portable release v0.3.0 собран и проходит EXE smoke.
 
 ## 5. Риски спринта
 
-- Advanced semantic extraction PDF tables/figures/formulas остаётся post-release enhancement;
-- DOCX footnotes/header/footer semantic pass остаётся post-release enhancement;
+- PDF/DOCX semantic extraction теперь heuristic и требует review на сложных layouts, но больше не является открытым backlog item;
 - Optional OCR helpers `jbig2`, `pngquant`, `verapdf` не установлены; это не блокирует OCR, но ограничивает оптимизацию и PDF/A checks.
 
 ## 6. Критерий выхода
@@ -152,7 +156,7 @@
 
 - Build команда: `powershell -ExecutionPolicy Bypass -File scripts\build-windows.ps1 -Name DocumentConverter`.
 - Результат: `dist\DocumentConverter\DocumentConverter.exe` собран успешно.
-- Portable release: `powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 -Name DocumentConverter -Version 0.2.0 -SkipBuild`.
+- Portable release: `powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 -Name DocumentConverter -Version 0.3.0 -SkipBuild`.
 - Synthetic e2e: `.\.venv\Scripts\python.exe scripts\run_synthetic_e2e.py --clean`.
 - Python GUI smoke: `.\.venv\Scripts\python.exe -m unittest tests.test_gui_import -v`.
 - EXE smoke: `dist\DocumentConverter\DocumentConverter.exe` стартует как процесс и не завершается мгновенно.
@@ -175,7 +179,7 @@
 ## 12. Harness assets validation
 
 - Команда: `.\.venv\Scripts\python.exe scripts\validate_harness_assets.py`.
-- Результат: `status: ok`, `features: 22`, `validated: 22`, `active: 0`, `backlog: 0`, `telemetry_entries: 16`.
+- Результат: `status: ok`, `features: 22`, `validated: 22`, `active: 0`, `backlog: 0`, `telemetry_entries: 17`.
 - Артефакты: `docs/agent-feature-spine.json`, bootstrap contract, clean-exit checklist, sprint contract template, task checkpoint template, evaluator rubric, `docs/agent-telemetry.v1.jsonl`, `docs/agent-quality-scorecard.v1.json`, `docs/agent-weekly-eval.v1.json`, `docs/agent-weekly-reviews.v1.json`, one-command refresh wrapper и schema-backed validator.
 
 ## 13. Post-audit remediation
@@ -183,5 +187,6 @@
 - P0 blockers закрыты: runner и GUI reject overlapping input/output paths до inventory, а mixed-input folders теперь дают truthful `discovered/supported/unsupported` counts и `document_skipped_unsupported` log records.
 - P1 gates закрыты: repo-local `dev` extra добавляет `ruff` и `pyright`, Windows CI запускает `pip check`, `ruff`, `pyright`, build, EXE smoke и `package-release`, а portable zip/checksum/release-notes публикуются как workflow artifact.
 - P2 cleanup закрыт: `workers` больше не эмитится в `run.json`, schema держит его только как deprecated backward-compatible field, standalone scripts используют shared `scripts/sitecustomize.py`, а OCR traineddata downloads проверяются по pinned SHA-256.
-- Последняя локальная validation: `.\.venv\Scripts\python.exe -m pip check`, `.\.venv\Scripts\python.exe -m ruff check src tests scripts`, `.\.venv\Scripts\python.exe -m pyright`, `.\.venv\Scripts\python.exe -m unittest discover -v`, `.\.venv\Scripts\python.exe scripts\run_synthetic_e2e.py --clean`, `scripts\build-windows.ps1`, `scripts\smoke-test-windows-exe.ps1`, `scripts\package-release.ps1 -SkipBuild`, `scripts\install-ocr-runtime.ps1 -CheckOnly`, OCR traineddata mismatch smoke — passed.
+- Post-release v0.3.0 закрыт: DOCX formulas/header/footer/footnote units, PDF text/OCR heuristic table/formula/figure units, schedule helper и versioned portable package `DocumentConverter-0.3.0`.
+- Последняя локальная validation: `.\.venv\Scripts\python.exe -m pip check`, `.\.venv\Scripts\python.exe -m ruff check src tests scripts`, `.\.venv\Scripts\python.exe -m pyright`, `.\.venv\Scripts\python.exe -m unittest discover -v`, `.\.venv\Scripts\python.exe scripts\run_synthetic_e2e.py --clean`, `scripts\build-windows.ps1`, `scripts\smoke-test-windows-exe.ps1`, `scripts\package-release.ps1 -Version 0.3.0 -SkipBuild`, `scripts\register-agent-eval-schedule.ps1 -CheckOnly`, `scripts\install-ocr-runtime.ps1 -CheckOnly`, OCR traineddata mismatch smoke — passed.
 - Clean-room note: отдельная внешняя Python 3.12 venv с `pip install -e .[build,dev]` тоже проходит `pip check`; локальный сбой `charset-normalizer/fonttools is not supported on this platform` был traced to contaminated wheels внутри старой `.venv` и устраняется recreation env или force-reinstall этих пакетов.

@@ -87,6 +87,7 @@
 63. `scripts/validate_harness_assets.py` переведён на agent-oriented failure diagnostics в формате `WHAT / WHY / FIX`; зелёный путь validator-а и failure-helper smoke подтверждены локально.
 64. Закрыт follow-up по production audit от 2026-05-23: runner и GUI теперь reject overlapping input/output paths до inventory, mixed-input folders честно считают unsupported inputs, `workers` больше не эмитится в `run.json`, standalone scripts используют shared `scripts/sitecustomize.py`, а Windows CI валидирует `pip check`, `ruff`, `pyright`, EXE smoke и portable release artifact.
 65. Закрыт последний P2 follow-up production audit: OCR runtime helper фиксирует SHA-256 для `eng`, `rus`, `osd` traineddata, проверяет direct downloads после `curl.exe`, удаляет mismatch artifact и документирует integrity verification в OCR runtime notes.
+66. Закрыт post-release semantic/package bundle v0.3.0: DOCX route выделяет formulas, headers, footers и footnotes; PDF text/OCR routes выделяют heuristic `table`/`formula`/`figure` units; weekly eval получил guarded Windows schedule helper; portable package `DocumentConverter-0.3.0` пересобран с checksum `2ce1f979b0eecc7644ca52b903034c72d642a7cdef7c54b760e4b4d510ed72f8`.
 
 ### Готовые артефакты
 
@@ -152,6 +153,7 @@
 - scripts/build_agent_scorecard.py
 - scripts/build_agent_weekly_eval.py
 - scripts/refresh_agent_eval.py
+- scripts/register-agent-eval-schedule.ps1
 - scripts/build-windows.ps1
 - scripts/install-ocr-runtime.ps1
 - scripts/run_folder_e2e.py
@@ -160,7 +162,7 @@
 
 ## 3. Что делается сейчас
 
-Текущий фокус: поддержание уже закрытого harness/eval contour для production-ready v0.2.0 scope и точечные улучшения только там, где они реально снижают operational overhead.
+Текущий фокус: поддержание уже закрытого harness/eval contour для production-ready v0.3.0 scope и точечные улучшения только там, где они реально снижают operational overhead.
 
 Последний production-audit follow-up закрыт локально и в repo contract: self-ingestion guard, truthful unsupported accounting, repo-local lint/type tooling, clean source-setup path и CI-backed release artifact validation теперь входят в штатный контур.
 
@@ -170,21 +172,19 @@
 - поддержание machine-readable telemetry companion без пропусков на следующих нетривиальных задачах;
 - поддержание generated scorecard companion, weekly eval companion и markdown drift-check как штатной части weekly checks;
 - optional historical telemetry backfill beyond the minimum coverage set, если понадобится более широкий retrospective analysis;
-- optional schedule поверх `scripts/refresh_agent_eval.py`, если weekly cadence начнёт создавать лишний ручной overhead;
-- дальнейшая оценка качества rule-based `document_type`/`short_summary` на новых пакетах;
-- post-release enhancement для advanced PDF tables/figures/formulas и DOCX footnotes/header/footer;
+- дальнейшая оценка качества rule-based `document_type`/`short_summary` и heuristic semantic extraction на новых пакетах;
 - optional OCR helper profile `jbig2`, `pngquant`, `verapdf` по мере необходимости.
 
 ## 4. Что идёт дальше
 
 Следующая последовательность после закрытия Sprint 1:
 
-1. Поддерживать weekly eval loop на реальных пакетах v0.2.0 как регулярный ritual, а не как bootstrap work.
+1. Поддерживать weekly eval loop на реальных пакетах v0.3.0 как регулярный ritual, а не как bootstrap work.
 2. Держать product-aware feature spine, sprint contract, checkpoint template и evaluator rubric обязательными на новых cross-module задачах.
 3. Не допускать пропусков в machine-readable telemetry companion на новых нетривиальных задачах.
-4. При необходимости добавить schedule поверх `scripts/refresh_agent_eval.py`, а не возвращаться к ручному двухшаговому refresh.
+4. Использовать `scripts/register-agent-eval-schedule.ps1` только если weekly refresh действительно нужно перевести в Windows Scheduled Task.
 5. Поддерживать `docs/agent-weekly-reviews.v1.json` синхронно с будущими completed weekly reviews.
-6. Post-release semantic enrichment для PDF tables/figures/formulas и DOCX footnotes/header/footer.
+6. Проверить heuristic semantic extraction на новых production-like пакетах и уточнять эвристики только по наблюдаемым ошибкам.
 7. Optional OCR helpers и installer polish только если это потребуется по эксплуатации.
 
 ## 5. Открытые gaps

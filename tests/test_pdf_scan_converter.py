@@ -56,6 +56,53 @@ class PdfScanConverterTests(unittest.TestCase):
             self.assertIsNotNone(payload["assets"][0]["sha256"])
             self.assertGreater(payload["assets"][1]["size_bytes"], 0)
 
+    def test_ocr_success_infers_table_formula_and_figure_units(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            source_path = temp_path / "scan.pdf"
+            output_dir = temp_path / "out"
+            ocr_dir = output_dir / "ocr"
+            searchable_pdf = ocr_dir / "searchable.pdf"
+            sidecar_text = ocr_dir / "sidecar.txt"
+
+            source_path.write_bytes(b"%PDF-1.4\n%stub\n")
+            ocr_dir.mkdir(parents=True)
+            searchable_pdf.write_bytes(b"%PDF-1.4\n%ocr\n")
+            sidecar_text.write_text("page 1\n", encoding="utf-8")
+
+            fake_pages = [
+                Mock(
+                    extract_text=Mock(
+                        return_value=(
+                            "Показатель  Значение\n"
+                            "A  10\n"
+                            "B  20\n\n"
+                            "S = a * b\n\n"
+                            "Рисунок 1 - Схема процесса"
+                        )
+                    )
+                )
+            ]
+            fake_reader = Mock(pages=fake_pages)
+
+            with patch("doc_converter.converters.pdf_scan.PdfReader", return_value=fake_reader):
+                result = _write_ocr_success_result(
+                    source_path=source_path,
+                    searchable_pdf=searchable_pdf,
+                    sidecar_text=sidecar_text,
+                    output_dir=output_dir,
+                    sha256="3" * 64,
+                )
+
+            payload = json.loads((output_dir / "document.v1.json").read_text(encoding="utf-8"))
+            validate_payload(payload, "document.v1.schema.json")
+            unit_types = [unit["type"] for unit in payload["units"]]
+            self.assertEqual(result.status, "success")
+            self.assertIn("table", unit_types)
+            self.assertIn("table_cell", unit_types)
+            self.assertIn("formula", unit_types)
+            self.assertIn("figure", unit_types)
+
     def test_runner_handles_real_pdf_scan_sample_when_available(self) -> None:
         sample = Path(r"D:\ФСНБ\Документы\Загрузка НПА\sub_law\PPRF_680.pdf")
         if not sample.exists():

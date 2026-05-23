@@ -104,7 +104,9 @@ Semantic metadata minimum:
 - `section`, `list_item`, `caption` выделяются как отдельные unit types там, где это доступно по style/structure mapping;
 - таблицы имеют units `table`, `table_row`, `table_cell`;
 - embedded images сохранены в `assets/`;
-- формулы и картинки не пропадают, даже если пока не распознаны семантически;
+- формулы выделяются как `formula` там, где они представлены OMML или устойчивым text pattern;
+- embedded images сохраняются как `figure` или `formula_image` units/assets по доступной metadata;
+- headers, footers и footnotes выделяются как отдельные semantic units;
 - создан `search_text.txt`;
 - создан `extractor_raw.json`;
 - `document.v1.json` проходит schema validation.
@@ -127,7 +129,7 @@ PDF route делится на два подмаршрута после пров�
 - где возможно, сохраняется `bbox`, `coordinate_system`, `page_width`, `page_height`;
 - повторяющиеся верхние и нижние edge-блоки не попадают в body paragraphs и могут быть выделены как `header`/`footer`;
 - повёрнутые PDF pages помечаются `rotated_text` и `review_required`;
-- advanced semantic extraction отдельных PDF tables/figures/formulas не входит в обещанный release scope v0.2.0 и остаётся post-release enhancement;
+- heuristic semantic extraction выделяет PDF tables как `table`/`table_row`/`table_cell`, formulas как `formula`, figure captions как `figure` units;
 - создан `search_text.txt`.
 
 Для `pdf_scan` требуется:
@@ -138,6 +140,7 @@ PDF route делится на два подмаршрута после пров�
 - `processing.ocr_applied` равен `true`;
 - OCR warnings и low confidence pages попадают в `quality.flags`;
 - итоговые text units строятся из OCR-производной.
+- OCR text также проходит heuristic semantic extraction для `table`, `formula` и `figure` units.
 
 Минимальная ручная проверка для Sprint 0:
 
@@ -151,12 +154,13 @@ PDF route делится на два подмаршрута после пров�
 
 ## 8. Таблицы, формулы и рисунки
 
-Критерии приёмки для release scope v0.2.0:
+Критерии приёмки для release scope v0.3.0:
 
 - DOCX tables сохраняются как `table`/`table_row`/`table_cell`;
-- embedded DOCX media сохраняется как assets и `figure` units;
-- PDF route гарантирует переносимый text-first contract, а не отдельное устойчивое semantic extraction для standalone tables/formulas/figures;
-- если семантическое распознавание графики или формулы ненадёжно либо недоступно в текущем route, это считается post-release enhancement, а не release blocker;
+- DOCX formulas, headers, footers и footnotes сохраняются как отдельные semantic units там, где доступны в package XML;
+- embedded DOCX media сохраняется как assets и `figure`/`formula_image` units;
+- PDF text и OCR routes создают heuristic `table`, `formula` и `figure` units из layout text blocks;
+- если семантическое распознавание графики или формулы ненадёжно в конкретном документе, это помечается как review concern, а не как потеря исходного content;
 - quality contract обязан помечать сомнительные случаи через `review_required`.
 
 ## 9. Quality flags первой версии
@@ -175,6 +179,7 @@ PDF route делится на два подмаршрута после пров�
 | `rotated_text` | Страница PDF имеет rotation и требует ручной проверки результата text extraction |
 | `review_required` | Документ или unit требует ручной проверки |
 | `semantic_style_inferred` | Unit type для DOCX выведен из style или numbering mapping |
+| `semantic_structure_inferred` | Unit type выведен эвристикой из OOXML/PDF/OCR structure или text pattern |
 | `repeated_edge_block` | PDF header/footer выделен эвристикой повторяющегося edge-блока |
 
 ## 10. Representative pilot validation

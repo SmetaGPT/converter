@@ -1,6 +1,6 @@
 param(
     [string]$Name = "DocumentConverter",
-    [string]$Version = "0.2.0",
+    [string]$Version = "0.3.0",
     [switch]$SkipBuild
 )
 
@@ -35,16 +35,18 @@ $releaseNotesPath = Join-Path $releaseDir "release-notes.md"
 - Artifact: $(Split-Path $zipPath -Leaf)
 - SHA256: $($hash.Hash.ToLower())
 - Packaging: portable Windows zip
+- Semantic extraction: DOCX headers, footers, footnotes, formulas; PDF table/formula/figure units for text and OCR routes
 - OCR core dependencies: ocrmypdf, tesseract, ghostscript
 - Optional OCR helpers: jbig2, pngquant, verapdf
 - Validation baseline:
-    - python -m pip check
-    - python -m ruff check src tests scripts
-    - python -m pyright
-  - python -m unittest discover -v
-  - python scripts\run_synthetic_e2e.py --clean
-  - powershell -ExecutionPolicy Bypass -File scripts\build-windows.ps1 -Name $Name
-    - powershell -ExecutionPolicy Bypass -File scripts\smoke-test-windows-exe.ps1 -ExePath dist\$Name\$Name.exe
+    * python -m pip check
+    * python -m ruff check src tests scripts
+    * python -m pyright
+    * python -m unittest discover -v
+    * python scripts\run_synthetic_e2e.py --clean
+    * powershell -ExecutionPolicy Bypass -File scripts\build-windows.ps1 -Name $Name
+    * powershell -ExecutionPolicy Bypass -File scripts\smoke-test-windows-exe.ps1 -ExePath dist\$Name\$Name.exe
+    * powershell -ExecutionPolicy Bypass -File scripts\register-agent-eval-schedule.ps1 -CheckOnly
 "@ | Set-Content -Path $releaseNotesPath -Encoding utf8
 
 Write-Host "Release package created: $releaseDir"

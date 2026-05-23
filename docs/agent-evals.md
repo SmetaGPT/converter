@@ -60,6 +60,7 @@ Eval loop нужен, чтобы оценивать качество агент�
 - Refresh command: `.\.venv\Scripts\python.exe scripts\refresh_agent_eval.py`.
 - Drift check: `.\.venv\Scripts\python.exe scripts\refresh_agent_eval.py --check --check-markdown`.
 - Granular fallback: `scripts/build_agent_scorecard.py --sync-markdown` и `scripts/build_agent_weekly_eval.py`.
+- Optional schedule helper: `powershell -ExecutionPolicy Bypass -File scripts\register-agent-eval-schedule.ps1 -CheckOnly`; без `-CheckOnly` helper регистрирует Windows Scheduled Task и требует `-Force` для замены существующей task.
 
 Этот companion не заменяет ручной task sampling, но убирает ручной пересчёт базовых signals и coverage gaps.
 

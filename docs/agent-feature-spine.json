@@ -269,14 +269,14 @@
         "schemas/document.v1.schema.json",
         "scripts/validate_run_package.py"
       ],
-      "residual_risk": "Advanced PDF tables, formulas and figures remain outside the guaranteed release scope."
+      "residual_risk": "Advanced PDF tables, formulas and figures now have heuristic unit extraction, but pixel-perfect table geometry and multimodal figure understanding remain downstream concerns."
     },
     {
       "feature_id": "docx-native-route",
       "area": "product",
       "title": "DOCX native conversion route",
       "status": "validated",
-      "behavior": "DOCX files are processed natively with reading-order preservation, semantic units for headings, lists, captions and tables, extracted media assets and search_text.txt.",
+      "behavior": "DOCX files are processed natively with reading-order preservation, semantic units for headings, lists, captions, tables, formulas, headers, footers and footnotes, extracted media assets and search_text.txt.",
       "owner_docs": [
         "docs/document-converter-acceptance.md",
         "docs/build-and-run.md",
@@ -298,14 +298,14 @@
         "src/doc_converter/converters/docx.py",
         "tests/test_docx_converter.py"
       ],
-      "residual_risk": "Separate semantic pass for DOCX footnotes, headers and footers is still a post-release enhancement."
+      "residual_risk": "DOCX headers, footers, footnotes and formulas are extracted heuristically from package XML; complex field codes and linked external objects may still need review."
     },
     {
       "feature_id": "pdf-text-route",
       "area": "product",
       "title": "PDF text-layer conversion route",
       "status": "validated",
-      "behavior": "PDF files with an extractable text layer are processed without OCR using layout-first extraction, page provenance and repeated edge-block filtering into header and footer units.",
+      "behavior": "PDF files with an extractable text layer are processed without OCR using layout-first extraction, page provenance, repeated edge-block filtering into header/footer units and heuristic table/formula/figure unit extraction.",
       "owner_docs": [
         "docs/document-converter-acceptance.md",
         "docs/build-and-run.md",
@@ -328,14 +328,14 @@
         "tests/test_pdf_text_converter.py",
         "scripts/run_folder_e2e.py"
       ],
-      "residual_risk": "Standalone semantic extraction for PDF tables, figures and formulas is still outside the declared release scope."
+      "residual_risk": "PDF table/formula/figure extraction is heuristic over text blocks; exact cell geometry, figure pixels and multimodal semantics remain downstream/review concerns."
     },
     {
       "feature_id": "pdf-scan-route",
       "area": "product",
       "title": "PDF scan OCR route",
       "status": "validated",
-      "behavior": "PDF scans are processed through OCR into searchable.pdf and sidecar text, then emitted into canonical document packages with OCR provenance and quality flags.",
+      "behavior": "PDF scans are processed through OCR into searchable.pdf and sidecar text, then emitted into canonical document packages with OCR provenance, quality flags and heuristic table/formula/figure units from OCR text.",
       "owner_docs": [
         "docs/document-converter-acceptance.md",
         "docs/build-and-run.md",
@@ -567,7 +567,7 @@
       "area": "observability",
       "title": "Generated weekly eval companion",
       "status": "validated",
-      "behavior": "Weekly eval can be refreshed in one command from the machine-readable scorecard, structured telemetry and machine-readable sampled weekly reviews into generated JSON and markdown snapshots with coverage gaps, next actions and qualitative sampling evidence, instead of relying only on manual weekly review notes.",
+      "behavior": "Weekly eval can be refreshed in one command or via an optional Windows Scheduled Task helper from the machine-readable scorecard, structured telemetry and machine-readable sampled weekly reviews into generated JSON and markdown snapshots with coverage gaps, next actions and qualitative sampling evidence.",
       "owner_docs": [
         "docs/agent-evals.md",
         "docs/agent-weekly-eval.md",
@@ -577,6 +577,7 @@
         "schemas/agent-weekly-reviews.v1.schema.json",
         "scripts/build_agent_weekly_eval.py",
         "scripts/refresh_agent_eval.py",
+        "scripts/register-agent-eval-schedule.ps1",
         "scripts/validate_harness_assets.py"
       ],
       "verification": [
@@ -594,9 +595,10 @@
         "schemas/agent-weekly-reviews.v1.schema.json",
         "scripts/build_agent_weekly_eval.py",
         "scripts/refresh_agent_eval.py",
+        "scripts/register-agent-eval-schedule.ps1",
         "scripts/validate_harness_assets.py"
       ],
-      "residual_risk": "Weekly snapshot больше не purely proxy-only на reviewed weeks, но всё ещё зависит от дисциплины обновления docs/agent-weekly-reviews.v1.json после каждого completed weekly review."
+      "residual_risk": "Weekly snapshot больше не purely proxy-only на reviewed weeks; schedule helper removes refresh overhead, but qualitative review scores in docs/agent-weekly-reviews.v1.json still require human/agent sampling discipline."
     }
   ]
 }

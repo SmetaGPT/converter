@@ -172,10 +172,10 @@ output/
 | 1 | Выполнен | CLI skeleton, run directory и базовый запуск реализованы |
 | 2 | Выполнен | Canonical schemas и stable IDs добавлены |
 | 3 | Выполнен | Inventory, hashing, dedup и queue state реализованы |
-| 4 | Выполнен в MVP scope | DOCX route реализован; расширенная семантика headings/lists/captions остаётся backlog |
-| 5 | Выполнен в MVP scope | PDF-text route реализован; advanced layout/table extraction остаётся backlog |
-| 6 | Выполнен в MVP scope | OCR route и runtime готовы; richer OCR provenance остаётся backlog |
-| 7 | Выполнен в MVP scope | Assets и figure handling добавлены базово, без расширенной классификации |
+| 4 | Выполнен | DOCX route реализован; headings/lists/captions, tables, formulas, headers, footers и footnotes выделяются в текущем semantic scope |
+| 5 | Выполнен | PDF-text route реализован; layout-first extraction и heuristic table/formula/figure units добавлены |
+| 6 | Выполнен | OCR route и runtime готовы; OCR text получает page boundaries и heuristic table/formula/figure units |
+| 7 | Выполнен | Assets и figure/formula-image handling добавлены в текущем heuristic scope |
 | 8 | Выполнен в MVP scope | Quality gates, summary и review flags реализованы в первой версии |
 | 9 | Выполнен | GUI MVP реализован |
 | 10 | Выполнен | Windows EXE build подтверждён |
@@ -183,7 +183,7 @@ output/
 | 12 | Выполнен | Full pilot, OCR runtime, build validation и automated GUI launch smoke завершены |
 | 13 | Выполнен | OCR page mapping, asset fingerprints и portable source metadata реализованы |
 | 14 | Выполнен | DOCX body order и базовая semantic typing для section/list/caption реализованы |
-| 15 | Выполнен в current scope | Layout-first PDF extraction, page provenance и repeated edge filtering реализованы; advanced table/figure extraction остаётся backlog |
+| 15 | Выполнен | Layout-first PDF extraction, page provenance, repeated edge filtering и heuristic table/formula/figure extraction реализованы |
 | 16 | Выполнен | Schema hardening, unit-level quality contract и release profile notes синхронизированы |
 
 ### Sprint 0. Product contract и эталонные документы
@@ -603,6 +603,7 @@ Definition of Done:
 
 - DOCX converter переведён на реальный body traversal `paragraph/table`;
 - headings, list items и captions маппятся в явные structural unit types;
+- formulas, headers, footers и footnotes маппятся в явные semantic units;
 - unit-level quality flags появились и покрыты mixed-structure DOCX tests.
 
 Цель: привести DOCX output к реальному порядку чтения и базовой семантике headings, lists и captions.
@@ -632,14 +633,14 @@ Definition of Done:
 
 ### Sprint 15. Layout-aware PDF text и provenance
 
-Статус: выполнен в current scope.
+Статус: выполнен.
 
 Факт на 2026-05-22:
 
 - `pypdf.extract_text(extraction_mode="layout")` внедрён как layout-first path с fallback на plain mode;
 - page units получают `bbox`, `coordinate_system`, `page_width`, `page_height`;
 - repeated edge blocks переводятся в `header`/`footer` units и не засоряют `search_text.txt`;
-- ограничения current scope явно сохранены в acceptance/build docs: таблицы, формулы и figures для PDF остаются отдельным backlog.
+- text-layer и OCR PDF blocks получают heuristic `table`, `formula` и `figure` units там, где это видно из layout/OCR text.
 
 Цель: улучшить порядок чтения PDF-text и сделать provenance пригодным для downstream layout-aware processing.
 
