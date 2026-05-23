@@ -225,7 +225,8 @@ def _iter_body_blocks(document: Any) -> list[tuple[str, Paragraph | Table, int]]
 
 
 def _classify_paragraph_type(paragraph: Paragraph) -> str:
-    style_name = (paragraph.style.name if paragraph.style is not None else "").strip().lower()
+    style = paragraph.style
+    style_name = ((style.name if style is not None else "") or "").strip().lower()
     if "heading" in style_name or style_name.startswith("заголов"):
         return "section"
     if "caption" in style_name or "подпись" in style_name:

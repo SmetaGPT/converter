@@ -13,14 +13,14 @@
     "output_dir": { "type": "string", "minLength": 1 },
     "options": {
       "type": "object",
-      "required": ["ocr_languages", "workers", "include_originals", "duplicate_policy"],
+      "required": ["ocr_languages", "include_originals", "duplicate_policy"],
       "properties": {
         "ocr_languages": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 },
           "minItems": 1
         },
-        "workers": { "type": "integer", "minimum": 1 },
+        "workers": { "type": "integer", "minimum": 1, "deprecated": true },
         "include_originals": { "type": "boolean" },
         "duplicate_policy": { "type": "string", "minLength": 1 }
       },

@@ -85,6 +85,8 @@
 61. Добавлен one-command refresh wrapper `scripts/refresh_agent_eval.py`; generated scorecard и weekly eval companions теперь пересобираются и проверяются одним вызовом вместо ручного двухкомандного шага.
 62. Sampled task scores для weekly review вынесены в `docs/agent-weekly-reviews.v1.json` со schema `schemas/agent-weekly-reviews.v1.schema.json`, а generated weekly eval теперь несёт machine-readable qualitative sampling вместе с proxy signals.
 63. `scripts/validate_harness_assets.py` переведён на agent-oriented failure diagnostics в формате `WHAT / WHY / FIX`; зелёный путь validator-а и failure-helper smoke подтверждены локально.
+64. Закрыт follow-up по production audit от 2026-05-23: runner и GUI теперь reject overlapping input/output paths до inventory, mixed-input folders честно считают unsupported inputs, `workers` больше не эмитится в `run.json`, standalone scripts используют shared `scripts/sitecustomize.py`, а Windows CI валидирует `pip check`, `ruff`, `pyright`, EXE smoke и portable release artifact.
+65. Закрыт последний P2 follow-up production audit: OCR runtime helper фиксирует SHA-256 для `eng`, `rus`, `osd` traineddata, проверяет direct downloads после `curl.exe`, удаляет mismatch artifact и документирует integrity verification в OCR runtime notes.
 
 ### Готовые артефакты
 
@@ -159,6 +161,8 @@
 ## 3. Что делается сейчас
 
 Текущий фокус: поддержание уже закрытого harness/eval contour для production-ready v0.2.0 scope и точечные улучшения только там, где они реально снижают operational overhead.
+
+Последний production-audit follow-up закрыт локально и в repo contract: self-ingestion guard, truthful unsupported accounting, repo-local lint/type tooling, clean source-setup path и CI-backed release artifact validation теперь входят в штатный контур.
 
 В работе:
 

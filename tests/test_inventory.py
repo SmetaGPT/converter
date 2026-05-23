@@ -16,8 +16,12 @@ class InventoryTests(unittest.TestCase):
             (root / "~$temp.docx").write_bytes(b"ignored")
             (root / "note.txt").write_text("ignored", encoding="utf-8")
 
-            records = build_inventory(root)
+            scan = build_inventory(root)
+            records = scan.supported_records
 
+            self.assertEqual(scan.scanned_files, 3)
+            self.assertEqual(len(scan.unsupported_records), 1)
+            self.assertEqual(scan.unsupported_records[0].relative_path, "note.txt")
             self.assertEqual(len(records), 2)
             self.assertEqual({record.route for record in records}, {"docx_native"})
             self.assertTrue(all(record.sha256 for record in records))

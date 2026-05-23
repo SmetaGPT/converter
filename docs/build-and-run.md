@@ -1,6 +1,19 @@
 # Build and Run
 
-Дата: 2026-05-22
+Дата: 2026-05-23
+
+## 0. Подготовка окружения из чистого checkout
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -e .[build,dev]
+.\.venv\Scripts\python.exe -m pip check
+.\.venv\Scripts\python.exe -m ruff check src tests scripts
+.\.venv\Scripts\python.exe -m pyright
+```
+
+Если `pip check` сообщает `is not supported on this platform`, текущая `.venv` загрязнена wheel-артефактами от другого Python minor version. Для этого репозитория правильный фикс — пересоздать `.venv`, а не менять project dependencies наугад.
 
 ## 1. CLI запуск из исходников
 
@@ -21,6 +34,8 @@ D:\converter-output\runs\<run_id>\
 ```
 
 GUI позволяет выбрать входную и выходную папки, OCR languages и запустить обработку.
+
+Входная и выходная папки не должны совпадать и не могут быть вложены друг в друга.
 
 Текущий GUI v0.2.0 показывает текущий файл, progress, summary counts, позволяет отменить обработку после текущего файла и открыть папку результата. Отдельная кнопка pause/resume не заявляется; вместо этого поддерживается безопасный повторный запуск с reuse предыдущего output для неизменённых файлов.
 
@@ -70,6 +85,12 @@ dist\DocumentConverter\DocumentConverter.exe
 ```
 
 Последняя автоматическая проверка запуска EXE: process стартует и не завершается мгновенно, после чего корректно останавливается как launch-smoke без ручного UI walkthrough.
+
+Команда smoke-проверки собранного EXE:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\smoke-test-windows-exe.ps1 -ExePath dist\DocumentConverter\DocumentConverter.exe
+```
 
 ## 7. Portable release package
 

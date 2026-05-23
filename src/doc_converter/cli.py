@@ -44,7 +44,6 @@ def main(argv: list[str] | None = None) -> int:
 def _handle_convert_folder(args: argparse.Namespace) -> int:
     options = ConverterOptions(
         ocr_languages=_parse_ocr_languages(args.ocr_languages),
-        workers=1,
         include_originals=args.include_originals,
     )
     result = run_convert_folder(

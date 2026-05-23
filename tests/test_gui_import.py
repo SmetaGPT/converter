@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import tempfile
 import tkinter as tk
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
+from typing import Any, cast
+from unittest.mock import patch
 
 
 class GuiImportTests(unittest.TestCase):
@@ -66,10 +70,34 @@ class GuiImportTests(unittest.TestCase):
             self.skipTest(f"Tk is not available: {exc}")
 
         try:
-            app.worker = SimpleNamespace(is_alive=lambda: True)
+            app.worker = cast(Any, SimpleNamespace(is_alive=lambda: True))
             app._cancel()
             self.assertTrue(app.cancel_requested.is_set())
             self.assertEqual(app.status_var.get(), "Отмена после текущего файла...")
+        finally:
+            app.destroy()
+
+    def test_start_rejects_overlapping_directories_before_worker_launch(self) -> None:
+        import doc_converter.gui as gui
+
+        try:
+            app = gui.ConverterApp()
+        except tk.TclError as exc:
+            self.skipTest(f"Tk is not available: {exc}")
+
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                input_dir = Path(temp_dir) / "input"
+                input_dir.mkdir()
+                app.input_var.set(str(input_dir))
+                app.output_var.set(str(input_dir / "out"))
+
+                with patch.object(gui.messagebox, "showerror") as showerror:
+                    app._start()
+
+                showerror.assert_called_once()
+                self.assertIsNone(app.worker)
+                self.assertEqual(app.status_var.get(), "Готово")
         finally:
             app.destroy()
 

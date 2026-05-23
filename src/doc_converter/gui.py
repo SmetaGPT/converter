@@ -10,7 +10,7 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
 from .config import ConverterConfig, ConverterOptions
-from .runner import ConverterError, run_convert_folder
+from .runner import ConverterError, run_convert_folder, validate_run_directories
 
 
 class ConverterApp(tk.Tk):
@@ -98,6 +98,11 @@ class ConverterApp(tk.Tk):
         if not str(input_dir) or not str(output_dir):
             messagebox.showerror("Ошибка", "Выберите входную и выходную папки.")
             return
+        try:
+            input_dir, output_dir = validate_run_directories(input_dir, output_dir)
+        except ConverterError as exc:
+            messagebox.showerror("Ошибка", str(exc))
+            return
 
         self.start_button.configure(state=tk.DISABLED)
         self.cancel_button.configure(state=tk.NORMAL)
@@ -180,8 +185,8 @@ class ConverterApp(tk.Tk):
         self.after(100, self._drain_events)
 
     def _handle_progress_event(self, event: dict[str, object]) -> None:
-        total_files = int(event.get("total_files", 0))
-        processed_files = int(event.get("processed_files", 0))
+        total_files = _coerce_event_int(event.get("total_files", 0))
+        processed_files = _coerce_event_int(event.get("processed_files", 0))
         relative_path = str(event.get("relative_path", "") or "")
         event_name = str(event.get("event", ""))
 
@@ -209,6 +214,17 @@ class ConverterApp(tk.Tk):
     def _append_log(self, message: str) -> None:
         self.log.insert(tk.END, message + "\n")
         self.log.see(tk.END)
+
+
+def _coerce_event_int(value: object) -> int:
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return 0
+    return 0
 
 
 def main() -> int:

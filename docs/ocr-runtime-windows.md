@@ -1,6 +1,6 @@
 # OCR Runtime on Windows
 
-Дата: 2026-05-22
+Дата: 2026-05-23
 
 ## 1. Назначение
 
@@ -39,9 +39,11 @@ Helper выполняет следующие шаги:
 1. создаёт `.venv`, если её ещё нет;
 2. ставит проект в `.venv` через `pip install -e .`;
 3. ставит `tesseract` и `ghostscript` через `scoop install tesseract ghostscript`;
-4. докладывает `eng`, `rus`, `osd` traineddata в `~/scoop/persist/tesseract/tessdata`.
+4. докладывает `eng`, `rus`, `osd` traineddata в `~/scoop/persist/tesseract/tessdata` и сразу проверяет их SHA-256.
 
 На этой машине `scoop install tesseract-languages` не сработал из-за symlink extraction error без специальных прав, поэтому helper сразу использует прямую загрузку нужных traineddata.
+
+Если hash загруженного traineddata не совпадает с ожидаемым значением, helper удаляет испорченный файл и останавливается с fail-fast ошибкой вместо продолжения установки.
 
 ## 4. Ручная проверка после установки
 

@@ -23,7 +23,22 @@ jobs:
         shell: pwsh
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e .[build]
+          python -m pip install -e .[build,dev]
+
+      - name: Check dependency graph
+        shell: pwsh
+        run: |
+          python -m pip check
+
+      - name: Run Ruff
+        shell: pwsh
+        run: |
+          python -m ruff check src tests scripts
+
+      - name: Run Pyright
+        shell: pwsh
+        run: |
+          python -m pyright
 
       - name: Run unit tests
         shell: pwsh
@@ -54,3 +69,25 @@ jobs:
         shell: pwsh
         run: |
           powershell -ExecutionPolicy Bypass -File scripts\build-windows.ps1 -Name DocumentConverter
+
+      - name: Smoke test packaged EXE
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File scripts\smoke-test-windows-exe.ps1 -ExePath dist\DocumentConverter\DocumentConverter.exe
+
+      - name: Package portable release
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 -Name DocumentConverter -Version 0.2.0 -SkipBuild
+          if (-not (Test-Path dist\release\DocumentConverter-0.2.0\DocumentConverter-0.2.0-windows-portable.zip)) { throw "Portable zip missing" }
+          if (-not (Test-Path dist\release\DocumentConverter-0.2.0\DocumentConverter-0.2.0-windows-portable.sha256.txt)) { throw "Checksum missing" }
+          if (-not (Test-Path dist\release\DocumentConverter-0.2.0\release-notes.md)) { throw "Release notes missing" }
+
+      - name: Upload portable release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: document-converter-portable-release
+          path: |
+            dist/release/DocumentConverter-0.2.0/DocumentConverter-0.2.0-windows-portable.zip
+            dist/release/DocumentConverter-0.2.0/DocumentConverter-0.2.0-windows-portable.sha256.txt
+            dist/release/DocumentConverter-0.2.0/release-notes.md

@@ -5,10 +5,11 @@ import os
 import tempfile
 import unittest
 from contextlib import redirect_stdout
-from docx import Document
 from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
+
+from docx import Document
 
 from doc_converter.cli import build_parser, main
 from doc_converter.config import ConverterConfig, ConverterOptions
@@ -75,6 +76,7 @@ class CliSmokeTests(unittest.TestCase):
             self.assertEqual(summary["schema_version"], "summary.v1")
             self.assertEqual(summary["status"], "success")
             self.assertEqual(summary["supported_files"], 0)
+            self.assertNotIn("workers", run_payload["options"])
 
     def test_failed_document_writes_review_required_file_and_failed_reason(self) -> None:
         with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:
@@ -101,6 +103,34 @@ class CliSmokeTests(unittest.TestCase):
             self.assertEqual(summary["failed_reasons"]["OSError"], 1)
             self.assertEqual(review_required_records[0]["status"], "failed")
             validate_payload(review_required_records[0], "review-required.v1.schema.json")
+
+    def test_mixed_folder_reports_unsupported_inputs(self) -> None:
+        with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:
+            document = Document()
+            document.add_paragraph("supported")
+            document.save(str(Path(input_dir) / "source.docx"))
+            (Path(input_dir) / "ignored.txt").write_text("ignored", encoding="utf-8")
+
+            result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
+
+            summary = json.loads((result.run_dir / "summary.json").read_text(encoding="utf-8"))
+            log_records = [
+                json.loads(line)
+                for line in (result.run_dir / "processing-log.jsonl").read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+
+            self.assertEqual(result.discovered_files, 2)
+            self.assertEqual(result.supported_files, 1)
+            self.assertEqual(summary["discovered_files"], 2)
+            self.assertEqual(summary["supported_files"], 1)
+            self.assertEqual(summary["unsupported_files"], 1)
+            unsupported_records = [
+                record for record in log_records if record.get("event") == "document_skipped_unsupported"
+            ]
+            self.assertEqual(len(unsupported_records), 1)
+            self.assertEqual(unsupported_records[0]["relative_path"], "ignored.txt")
+            self.assertEqual(unsupported_records[0]["status"], "skipped_unsupported")
 
     def test_repeated_run_reuses_previous_output_for_unchanged_input(self) -> None:
         with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:
@@ -140,6 +170,38 @@ class CliSmokeTests(unittest.TestCase):
             missing = Path(output_dir) / "missing"
             with self.assertRaises(ConverterError):
                 run_convert_folder(ConverterConfig(input_dir=missing, output_dir=Path(output_dir)))
+
+    def test_equal_input_and_output_directory_fails_before_run_starts(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            shared_dir = Path(temp_dir) / "shared"
+            shared_dir.mkdir()
+
+            with self.assertRaises(ConverterError):
+                run_convert_folder(ConverterConfig(input_dir=shared_dir, output_dir=shared_dir))
+
+            self.assertFalse((shared_dir / "runs").exists())
+
+    def test_output_directory_inside_input_fails_before_run_starts(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            input_dir = Path(temp_dir) / "input"
+            input_dir.mkdir()
+            output_dir = input_dir / "out"
+
+            with self.assertRaises(ConverterError):
+                run_convert_folder(ConverterConfig(input_dir=input_dir, output_dir=output_dir))
+
+            self.assertFalse(output_dir.exists())
+
+    def test_input_directory_inside_output_fails_before_run_starts(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "output"
+            input_dir = output_dir / "input"
+            input_dir.mkdir(parents=True)
+
+            with self.assertRaises(ConverterError):
+                run_convert_folder(ConverterConfig(input_dir=input_dir, output_dir=output_dir))
+
+            self.assertFalse((output_dir / "runs").exists())
 
 
 if __name__ == "__main__":

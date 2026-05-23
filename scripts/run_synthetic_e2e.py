@@ -5,20 +5,17 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
-import sys
 from pathlib import Path
 
 from docx import Document
-
-ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "src"
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
 
 from doc_converter.chunking import build_chunks_from_document
 from doc_converter.config import ConverterConfig
 from doc_converter.runner import run_convert_folder
 from doc_converter.schema_validation import validate_json_file, validate_payload
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def main(argv: list[str] | None = None) -> int:

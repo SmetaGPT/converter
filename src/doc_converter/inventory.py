@@ -38,10 +38,38 @@ class InventoryRecord:
         }
 
 
-def build_inventory(input_dir: Path) -> list[InventoryRecord]:
-    candidates = [item for item in _iter_supported_files(input_dir)]
-    raw_records = [_build_record(input_dir, item) for item in candidates]
-    return _attach_duplicate_info(raw_records)
+@dataclass(frozen=True)
+class UnsupportedInventoryRecord:
+    relative_path: str
+    filename: str
+    format: str
+    size_bytes: int
+    warnings: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class InventoryScanResult:
+    scanned_files: int
+    supported_records: list[InventoryRecord]
+    unsupported_records: list[UnsupportedInventoryRecord]
+
+
+def build_inventory(input_dir: Path) -> InventoryScanResult:
+    supported_candidates: list[Path] = []
+    unsupported_records: list[UnsupportedInventoryRecord] = []
+    for item in _iter_input_files(input_dir):
+        if item.suffix.lower() in SUPPORTED_SUFFIXES:
+            supported_candidates.append(item)
+            continue
+        unsupported_records.append(_build_unsupported_record(input_dir, item))
+
+    raw_records = [_build_record(input_dir, item) for item in supported_candidates]
+    supported_records = _attach_duplicate_info(raw_records)
+    return InventoryScanResult(
+        scanned_files=len(supported_records) + len(unsupported_records),
+        supported_records=supported_records,
+        unsupported_records=unsupported_records,
+    )
 
 
 def classify_route(path: Path) -> tuple[str, tuple[str, ...]]:
@@ -53,14 +81,12 @@ def classify_route(path: Path) -> tuple[str, tuple[str, ...]]:
     return "not_classified", ("unsupported_suffix",)
 
 
-def _iter_supported_files(input_dir: Path) -> list[Path]:
+def _iter_input_files(input_dir: Path) -> list[Path]:
     files: list[Path] = []
     for item in input_dir.rglob("*"):
         if not item.is_file():
             continue
         if item.name.startswith("~$"):
-            continue
-        if item.suffix.lower() not in SUPPORTED_SUFFIXES:
             continue
         files.append(item)
     return sorted(files, key=lambda item: item.relative_to(input_dir).as_posix().lower())
@@ -78,6 +104,16 @@ def _build_record(input_dir: Path, path: Path) -> InventoryRecord:
         route=route,
         status="queued",
         warnings=warnings,
+    )
+
+
+def _build_unsupported_record(input_dir: Path, path: Path) -> UnsupportedInventoryRecord:
+    return UnsupportedInventoryRecord(
+        relative_path=path.relative_to(input_dir).as_posix(),
+        filename=path.name,
+        format=path.suffix.lower().lstrip("."),
+        size_bytes=path.stat().st_size,
+        warnings=("unsupported_suffix",),
     )
 
 

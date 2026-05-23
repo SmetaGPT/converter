@@ -36,6 +36,7 @@
 - first completed qualitative weekly review, который подтвердил strong closeout по реальным sampled tasks и закрыл bootstrap-phase gaps в eval loop.
 - machine-readable sampled weekly reviews в `docs/agent-weekly-reviews.v1.json`, которые делают qualitative sampling частью schema-backed evidence, а не только markdown narrative.
 - one-command refresh wrapper `scripts/refresh_agent_eval.py`, который пересобирает и проверяет generated eval companions одним вызовом.
+- production-audit remediation bundle: overlap/self-ingestion guard, truthful unsupported-input reporting, repo-local `ruff`/`pyright` install surface, shared script bootstrap, deprecated-only `workers` compatibility, OCR traineddata SHA-256 verification и Windows CI gates для `pip check`, `ruff`, `pyright`, EXE smoke и portable release artifact.
 
 Следующий backlog:
 
@@ -74,7 +75,7 @@
 
 ## 7. Текущий release risk
 
-Операционных blocker-ов для релиза v0.2.0 не осталось. Остаточный риск теперь ограничен только явно задокументированным scope: advanced semantic extraction PDF tables/figures/formulas и DOCX footnotes/header/footer вынесены в post-release enhancements и не являются частью обещанного release contract. Optional OCR helpers `jbig2`, `pngquant`, `verapdf` остаются необязательными и не блокируют core OCR path. Для harness layer остаточный риск теперь в основном операционный, а не структурный: traceability, structured telemetry, generated scorecard, generated weekly eval и machine-readable weekly reviews уже замкнуты end-to-end, но будущие недели всё ещё требуют дисциплины обновления telemetry и `docs/agent-weekly-reviews.v1.json`.
+Операционных blocker-ов для релиза v0.2.0 не осталось. Последний внешний production audit больше не оставляет runtime- или CI-blocker: self-ingestion guard и unsupported accounting закрыты в runtime, OCR traineddata direct downloads проверяются по pinned SHA-256, а lint/type/pip/package smoke теперь выполняются в штатном workflow. Остаточный риск теперь ограничен только явно задокументированным scope: advanced semantic extraction PDF tables/figures/formulas и DOCX footnotes/header/footer вынесены в post-release enhancements и не являются частью обещанного release contract. Optional OCR helpers `jbig2`, `pngquant`, `verapdf` остаются необязательными и не блокируют core OCR path. Для harness layer остаточный риск теперь в основном операционный, а не структурный: traceability, structured telemetry, generated scorecard, generated weekly eval и machine-readable weekly reviews уже замкнуты end-to-end, но будущие недели всё ещё требуют дисциплины обновления telemetry и `docs/agent-weekly-reviews.v1.json`.
 
 ## 8. Последняя сборка
 
@@ -109,6 +110,7 @@
 - Check-only команда: `powershell -ExecutionPolicy Bypass -File scripts\install-ocr-runtime.ps1 -CheckOnly`.
 - Предпочтительный path: `.venv + scoop`, без elevated PowerShell, если `scoop` доступен.
 - Fallback path: `winget + choco`, если `scoop` отсутствует.
+- Integrity check: direct `eng`, `rus`, `osd` traineddata downloads проверяются по pinned SHA-256; mismatch artifact удаляется и установка останавливается fail-fast.
 - Документация: `docs/ocr-runtime-windows.md`.
 
 ## 13. Synthetic E2E и GUI smoke
@@ -121,5 +123,12 @@
 ## 14. Harness assets validation
 
 - Команда: `.\.venv\Scripts\python.exe scripts\validate_harness_assets.py`.
-- Результат: `status: ok`, `features: 22`, `validated: 22`, `active: 0`, `backlog: 0`, `telemetry_entries: 13`.
+- Результат: `status: ok`, `features: 22`, `validated: 22`, `active: 0`, `backlog: 0`, `telemetry_entries: 16`.
 - Назначение: ранний провал CI при потере feature spine, feature-traceability markers в шаблонах, machine-readable telemetry companion, generated scorecard companion, generated weekly eval companion, machine-readable weekly reviews source, markdown structured companion sync, qualitative weekly review evidence или core product-capabilities ссылок.
+
+## 15. Latest Audit Remediation
+
+- Команды: `.\.venv\Scripts\python.exe -m pip check`, `.\.venv\Scripts\python.exe -m ruff check src tests scripts`, `.\.venv\Scripts\python.exe -m pyright`, `.\.venv\Scripts\python.exe -m unittest discover -v`, `.\.venv\Scripts\python.exe scripts\run_synthetic_e2e.py --clean`, `powershell -ExecutionPolicy Bypass -File scripts\build-windows.ps1 -Name DocumentConverter`, `powershell -ExecutionPolicy Bypass -File scripts\smoke-test-windows-exe.ps1 -ExePath dist\DocumentConverter\DocumentConverter.exe`, `powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 -Name DocumentConverter -Version 0.2.0 -SkipBuild`, `powershell -ExecutionPolicy Bypass -File scripts\install-ocr-runtime.ps1 -CheckOnly`, OCR traineddata mismatch smoke.
+- Результат: все проверки passed; synthetic run `runs\synthetic-e2e-output\runs\20260523T094304Z`, build/smoke/package прошли на локальной `.venv`, OCR helper check-only и mismatch smoke прошли, portable release снова сформирован в `dist\release\DocumentConverter-0.2.0`.
+- Clean-room setup: отдельная внешняя Python 3.12 venv с `pip install -e .[build,dev]` и `pip check` тоже прошла успешно.
+- Local env note: предыдущий `pip check` fail был вызван contaminated `cp313` wheels для `charset-normalizer` и `fonttools` внутри старой `.venv`; force-reinstall этих двух пакетов восстановил корректный `cp312` state без изменений project dependencies.

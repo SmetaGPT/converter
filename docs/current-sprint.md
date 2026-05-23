@@ -84,6 +84,7 @@
 | Добавить one-command refresh wrapper для generated eval companions | Готово |
 | Вынести sampled weekly review scores в machine-readable companion и weekly eval schema | Готово |
 | Улучшить harness validator diagnostics до формата `WHAT / WHY / FIX` | Готово |
+| Проверять integrity OCR traineddata downloads в OCR helper | Готово |
 
 ## 4. Validation targets спринта
 
@@ -105,6 +106,7 @@
 16. Generated weekly eval companion собирается из scorecard и telemetry через `scripts/build_agent_weekly_eval.py` и валидируется внутри harness validator.
 17. Weekly snapshot больше не содержит unexplained coverage gaps, а первый qualitative weekly review зафиксирован в eval и regression docs.
 18. One-command refresh wrapper пересобирает оба generated companions, а weekly eval JSON несёт machine-readable qualitative sampling из отдельного reviews companion.
+19. OCR runtime install helper проверяет SHA-256 для direct traineddata downloads и fail-fast останавливается на mismatch.
 
 ## 5. Риски спринта
 
@@ -173,5 +175,13 @@
 ## 12. Harness assets validation
 
 - Команда: `.\.venv\Scripts\python.exe scripts\validate_harness_assets.py`.
-- Результат: `status: ok`, `features: 22`, `validated: 22`, `active: 0`, `backlog: 0`, `telemetry_entries: 13`.
+- Результат: `status: ok`, `features: 22`, `validated: 22`, `active: 0`, `backlog: 0`, `telemetry_entries: 16`.
 - Артефакты: `docs/agent-feature-spine.json`, bootstrap contract, clean-exit checklist, sprint contract template, task checkpoint template, evaluator rubric, `docs/agent-telemetry.v1.jsonl`, `docs/agent-quality-scorecard.v1.json`, `docs/agent-weekly-eval.v1.json`, `docs/agent-weekly-reviews.v1.json`, one-command refresh wrapper и schema-backed validator.
+
+## 13. Post-audit remediation
+
+- P0 blockers закрыты: runner и GUI reject overlapping input/output paths до inventory, а mixed-input folders теперь дают truthful `discovered/supported/unsupported` counts и `document_skipped_unsupported` log records.
+- P1 gates закрыты: repo-local `dev` extra добавляет `ruff` и `pyright`, Windows CI запускает `pip check`, `ruff`, `pyright`, build, EXE smoke и `package-release`, а portable zip/checksum/release-notes публикуются как workflow artifact.
+- P2 cleanup закрыт: `workers` больше не эмитится в `run.json`, schema держит его только как deprecated backward-compatible field, standalone scripts используют shared `scripts/sitecustomize.py`, а OCR traineddata downloads проверяются по pinned SHA-256.
+- Последняя локальная validation: `.\.venv\Scripts\python.exe -m pip check`, `.\.venv\Scripts\python.exe -m ruff check src tests scripts`, `.\.venv\Scripts\python.exe -m pyright`, `.\.venv\Scripts\python.exe -m unittest discover -v`, `.\.venv\Scripts\python.exe scripts\run_synthetic_e2e.py --clean`, `scripts\build-windows.ps1`, `scripts\smoke-test-windows-exe.ps1`, `scripts\package-release.ps1 -SkipBuild`, `scripts\install-ocr-runtime.ps1 -CheckOnly`, OCR traineddata mismatch smoke — passed.
+- Clean-room note: отдельная внешняя Python 3.12 venv с `pip install -e .[build,dev]` тоже проходит `pip check`; локальный сбой `charset-normalizer/fonttools is not supported on this platform` был traced to contaminated wheels внутри старой `.venv` и устраняется recreation env или force-reinstall этих пакетов.

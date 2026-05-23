@@ -6,6 +6,11 @@ $ErrorActionPreference = "Stop"
 $ProjectRoot = Split-Path $PSScriptRoot -Parent
 $VenvPython = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
 $TessdataDir = Join-Path $HOME "scoop\persist\tesseract\tessdata"
+$TrainedDataSha256 = @{
+    eng = "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2"
+    rus = "e16e5e036cce1d9ec2b00063cf8b54472625b9e14d893a169e2b0dedeb4df225"
+    osd = "9cf5d576fcc47564f11265841e5ca839001e7e6f38ff7f7aacf46d15a96b00ff"
+}
 
 function Test-Admin {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -31,10 +36,33 @@ function Invoke-CheckedCommand {
     }
 }
 
+function Assert-Sha256Match {
+    param(
+        [string]$Path,
+        [string]$ExpectedSha256,
+        [string]$ArtifactName
+    )
+
+    if (-not (Test-Path $Path)) {
+        throw "$ArtifactName not found: $Path"
+    }
+
+    $actualSha256 = (Get-FileHash -Algorithm SHA256 -Path $Path).Hash.ToLower()
+    $expectedSha256 = $ExpectedSha256.ToLower()
+    if ($actualSha256 -ne $expectedSha256) {
+        throw "SHA-256 mismatch for ${ArtifactName}: expected $expectedSha256, got $actualSha256"
+    }
+}
+
 function Install-TessdataFile {
     param(
         [string]$Name
     )
+
+    $expectedSha256 = $TrainedDataSha256[$Name]
+    if (-not $expectedSha256) {
+        throw "No expected SHA-256 configured for $Name traineddata"
+    }
 
     New-Item -ItemType Directory -Force -Path $TessdataDir | Out-Null
     $target = Join-Path $TessdataDir "$Name.traineddata"
@@ -42,7 +70,20 @@ function Install-TessdataFile {
     Write-Host "==> Install Tesseract language $Name"
     & curl.exe -L $url -o $target
     if ($LASTEXITCODE -ne 0) {
+        if (Test-Path $target) {
+            Remove-Item -Force $target
+        }
         throw "Failed to download $Name traineddata"
+    }
+
+    try {
+        Assert-Sha256Match -Path $target -ExpectedSha256 $expectedSha256 -ArtifactName "$Name traineddata"
+    }
+    catch {
+        if (Test-Path $target) {
+            Remove-Item -Force $target
+        }
+        throw
     }
 }
 
@@ -78,7 +119,7 @@ $status = [ordered]@{
             "python -m venv .venv (if missing)",
             ".\\.venv\\Scripts\\python.exe -m pip install -e .",
             "scoop install tesseract ghostscript",
-            "download eng/rus/osd traineddata into ~/scoop/persist/tesseract/tessdata"
+            "download and verify eng/rus/osd traineddata into ~/scoop/persist/tesseract/tessdata"
         )
     } else {
         @(
@@ -87,18 +128,23 @@ $status = [ordered]@{
             "python -m pip install --upgrade ocrmypdf"
         )
     }
+    traineddata_sha256 = [ordered]@{
+        eng = $TrainedDataSha256.eng
+        rus = $TrainedDataSha256.rus
+        osd = $TrainedDataSha256.osd
+    }
 }
 
 if ($CheckOnly) {
     $status | ConvertTo-Json -Depth 4
-    exit 0
+    return
 }
 
 if ($status.scoop) {
     Install-WithScoop
     Write-Host "OCR runtime install steps completed. Validate with:"
     Write-Host "  .\.venv\Scripts\python.exe -m doc_converter.cli check-ocr"
-    exit 0
+    return
 }
 
 if (-not $status.is_admin) {
@@ -120,3 +166,4 @@ Invoke-CheckedCommand -Name "Install OCRmyPDF" -FilePath "python" -Arguments @("
 
 Write-Host "OCR runtime install steps completed. Restart PowerShell so PATH changes are visible, then run:"
 Write-Host "  `$env:PYTHONPATH='src'; python -m doc_converter.cli check-ocr"
+return

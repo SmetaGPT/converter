@@ -43,10 +43,7 @@ def run_convert_folder(
     progress_callback: Callable[[dict[str, object]], None] | None = None,
     should_cancel: Callable[[], bool] | None = None,
 ) -> RunResult:
-    input_dir = config.input_dir.expanduser().resolve()
-    output_dir = config.output_dir.expanduser().resolve()
-
-    _validate_startup_paths(input_dir, output_dir)
+    input_dir, output_dir = validate_run_directories(config.input_dir, config.output_dir)
 
     run_id = _new_run_id()
     run_dir = _allocate_run_dir(output_dir / "runs", run_id)
@@ -56,7 +53,9 @@ def run_convert_folder(
     run_metadata = _build_run_metadata(run_id, input_dir, output_dir, config)
     _write_validated_json(run_dir / "run.json", run_metadata, "run.v1.schema.json")
 
-    inventory_records = build_inventory(input_dir)
+    inventory = build_inventory(input_dir)
+    inventory_records = inventory.supported_records
+    unsupported_records = inventory.unsupported_records
 
     manifest_path = run_dir / "manifest.jsonl"
     log_path = run_dir / "processing-log.jsonl"
@@ -71,6 +70,20 @@ def run_convert_folder(
 
     resume_index = _load_resume_index(output_dir / "runs", run_dir)
     total_files = len(inventory_records)
+    for unsupported_record in unsupported_records:
+        _append_jsonl(
+            log_path,
+            {
+                "event": "document_skipped_unsupported",
+                "run_id": run_id,
+                "relative_path": unsupported_record.relative_path,
+                "filename": unsupported_record.filename,
+                "format": unsupported_record.format,
+                "size_bytes": unsupported_record.size_bytes,
+                "warnings": list(unsupported_record.warnings),
+                "status": "skipped_unsupported",
+            },
+        )
     _emit_progress(
         progress_callback,
         {
@@ -329,9 +342,9 @@ def run_convert_folder(
         "input_dir": str(input_dir),
         "output_dir": str(output_dir),
         "run_dir": str(run_dir),
-        "discovered_files": len(inventory_records),
+        "discovered_files": inventory.scanned_files,
         "supported_files": len(inventory_records),
-        "unsupported_files": 0,
+        "unsupported_files": len(unsupported_records),
         "duplicate_groups": len(duplicate_groups),
         "processed_files": len(completed) + len(partial),
         "partial_files": len(partial),
@@ -364,10 +377,18 @@ def run_convert_folder(
     return RunResult(
         run_id=run_id,
         run_dir=run_dir,
-        discovered_files=len(inventory_records),
+        discovered_files=inventory.scanned_files,
         supported_files=len(inventory_records),
         status=final_status,
     )
+
+
+def validate_run_directories(input_dir: Path, output_dir: Path) -> tuple[Path, Path]:
+    resolved_input_dir = input_dir.expanduser().resolve()
+    resolved_output_dir = output_dir.expanduser().resolve()
+
+    _validate_startup_paths(resolved_input_dir, resolved_output_dir)
+    return resolved_input_dir, resolved_output_dir
 
 
 def _validate_startup_paths(input_dir: Path, output_dir: Path) -> None:
@@ -377,7 +398,24 @@ def _validate_startup_paths(input_dir: Path, output_dir: Path) -> None:
         raise ConverterError(f"Input path is not a directory: {input_dir}")
     if output_dir.exists() and not output_dir.is_dir():
         raise ConverterError(f"Output path is not a directory: {output_dir}")
+    if _paths_overlap(input_dir, output_dir):
+        raise ConverterError(
+            "Input and output directories must be different and must not be nested inside each other: "
+            f"input={input_dir}, output={output_dir}"
+        )
     output_dir.mkdir(parents=True, exist_ok=True)
+
+
+def _paths_overlap(first_path: Path, second_path: Path) -> bool:
+    return _is_relative_to(first_path, second_path) or _is_relative_to(second_path, first_path)
+
+
+def _is_relative_to(path: Path, other_path: Path) -> bool:
+    try:
+        path.relative_to(other_path)
+    except ValueError:
+        return False
+    return True
 
 
 def _new_run_id() -> str:

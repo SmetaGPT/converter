@@ -5,18 +5,15 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
-import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
-ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "src"
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
-
 from doc_converter.config import ConverterConfig, ConverterOptions
 from doc_converter.runner import run_convert_folder
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def main(argv: list[str] | None = None) -> int:
