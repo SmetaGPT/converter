@@ -25,6 +25,7 @@ class ConverterApp(tk.Tk):
         self.worker: threading.Thread | None = None
         self.cancel_requested = threading.Event()
         self.last_run_dir: Path | None = None
+        self._last_suggested_output = ""
 
         self.input_var = tk.StringVar()
         self.output_var = tk.StringVar()
@@ -36,8 +37,38 @@ class ConverterApp(tk.Tk):
         self.progress_var = tk.DoubleVar(value=0.0)
         self.summary_var = tk.StringVar(value="")
 
+        self.input_var.trace_add("write", self._sync_output_suggestion)
+
         self._build_ui()
         self.after(100, self._drain_events)
+
+    def _sync_output_suggestion(self, *_args: object) -> None:
+        input_value = self.input_var.get().strip()
+        suggested_output = self._build_suggested_output(input_value)
+        if suggested_output is None:
+            return
+
+        current_output = self.output_var.get().strip()
+        if current_output and not self._is_same_path(current_output, self._last_suggested_output):
+            return
+
+        suggested_value = str(suggested_output)
+        if current_output != suggested_value:
+            self.output_var.set(suggested_value)
+        self._last_suggested_output = suggested_value
+
+    def _build_suggested_output(self, input_value: str) -> Path | None:
+        if not input_value:
+            return None
+
+        input_dir = Path(input_value).expanduser()
+        input_name = input_dir.name or "output"
+        return input_dir.parent / f"{input_name}_output"
+
+    def _is_same_path(self, first: str, second: str) -> bool:
+        if not first or not second:
+            return False
+        return Path(first).expanduser().resolve() == Path(second).expanduser().resolve()
 
     def _build_ui(self) -> None:
         root = ttk.Frame(self, padding=16)
@@ -105,7 +136,7 @@ class ConverterApp(tk.Tk):
         try:
             input_dir, output_dir = validate_run_directories(input_dir, output_dir)
         except ConverterError as exc:
-            messagebox.showerror("Ошибка", str(exc))
+            messagebox.showerror("Ошибка", self._format_startup_error(exc, input_dir, output_dir))
             return
 
         self.start_button.configure(state=tk.DISABLED)
@@ -122,6 +153,20 @@ class ConverterApp(tk.Tk):
         self._append_log("Запуск обработки")
         self.worker = threading.Thread(target=self._run_worker, args=(input_dir, output_dir), daemon=True)
         self.worker.start()
+
+    def _format_startup_error(self, exc: ConverterError, input_dir: Path, output_dir: Path) -> str:
+        message = str(exc)
+        overlap_prefix = "Input and output directories must be different and must not be nested inside each other"
+        if message.startswith(overlap_prefix):
+            suggested_output = input_dir.parent / f"{input_dir.name}_output"
+            return (
+                "Входная и выходная папки не должны совпадать и не должны быть вложены одна в другую.\n\n"
+                f"Сейчас:\nвход: {input_dir}\nвыход: {output_dir}\n\n"
+                "Это защитный запрет: при вложенном output конвертер на следующем прогоне начнёт видеть свои же артефакты.\n\n"
+                "Выберите отдельную выходную папку рядом с входной, например:\n"
+                f"{suggested_output}"
+            )
+        return message
 
     def _cancel(self) -> None:
         if self.worker and self.worker.is_alive():

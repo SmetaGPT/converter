@@ -97,8 +97,50 @@ class GuiImportTests(unittest.TestCase):
                     app._start()
 
                 showerror.assert_called_once()
+                error_message = showerror.call_args.args[1]
+                self.assertIn("не должны быть вложены", error_message)
+                self.assertIn("input_output", error_message)
                 self.assertIsNone(app.worker)
                 self.assertEqual(app.status_var.get(), "Готово")
+        finally:
+            app.destroy()
+
+    def test_input_change_autofills_sibling_output(self) -> None:
+        import doc_converter.gui as gui
+
+        try:
+            app = gui.ConverterApp()
+        except tk.TclError as exc:
+            self.skipTest(f"Tk is not available: {exc}")
+
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                input_dir = Path(temp_dir) / "input"
+                app.input_var.set(str(input_dir))
+
+                self.assertEqual(app.output_var.get(), str(Path(temp_dir) / "input_output"))
+        finally:
+            app.destroy()
+
+    def test_input_change_preserves_manual_output(self) -> None:
+        import doc_converter.gui as gui
+
+        try:
+            app = gui.ConverterApp()
+        except tk.TclError as exc:
+            self.skipTest(f"Tk is not available: {exc}")
+
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                first_input_dir = Path(temp_dir) / "input-a"
+                second_input_dir = Path(temp_dir) / "input-b"
+                manual_output_dir = Path(temp_dir) / "manual-output"
+
+                app.input_var.set(str(first_input_dir))
+                app.output_var.set(str(manual_output_dir))
+                app.input_var.set(str(second_input_dir))
+
+                self.assertEqual(app.output_var.get(), str(manual_output_dir))
         finally:
             app.destroy()
 

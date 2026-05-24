@@ -105,6 +105,7 @@
 81. Добавлен safe formula evaluator для `calc_expr`: новый CLI subcommand `evaluate-formula` считает только ограниченное арифметическое подмножество (`+`, `-`, `*`, `/`, `**`, unary `+/-`, скобки и переменные), а DOCX heuristic parser расширен на проценты `%` и степени `^`; real operator-path на Windows подтвердил расчёт `S_Svls = PZ1_p + PZ2_p * S_vls` из свежего `812/пр` run package.
 82. Для DOCX formulas с переносами строки добавлена нормализация повторённого оператора на границе line-wrap (`x`/`x` схлопывается в одно умножение), а новый CLI subcommand `evaluate-document-formulas` проходит по `document.v1.json`, считает все доступные `calc_expr` и переиспользует уже вычисленные targets как входы для зависимых формул того же документа; real run на `812/пр` показал 41 `calc_expr`, успешный расчёт `S_Svls = 1340.0` и честный partial по оставшимся 40 формулам без входных значений.
 83. Добавлен first-class HTML QC export: `src/doc_converter/human_readable.py` стал shared renderer для Markdown/HTML, `scripts/export_human_readable_html.py` умеет экспортировать как отдельный `document.v1.json`, так и целый `run_dir` в `human-readable-index.html`, а GUI получил кнопку `HTML QC` для немедленной проверки качества конвертации в браузере.
+84. GUI теперь автоматически предлагает sibling output path вида `<input>_output` при выборе входной папки и сохраняет вручную заданный отдельный output без перезаписи; это снижает операторские ошибки на nested output path, не снимая intentional self-ingestion guard.
 
 ### Готовые артефакты
 
