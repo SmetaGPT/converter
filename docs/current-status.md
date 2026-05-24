@@ -106,6 +106,7 @@
 82. Для DOCX formulas с переносами строки добавлена нормализация повторённого оператора на границе line-wrap (`x`/`x` схлопывается в одно умножение), а новый CLI subcommand `evaluate-document-formulas` проходит по `document.v1.json`, считает все доступные `calc_expr` и переиспользует уже вычисленные targets как входы для зависимых формул того же документа; real run на `812/пр` показал 41 `calc_expr`, успешный расчёт `S_Svls = 1340.0` и честный partial по оставшимся 40 формулам без входных значений.
 83. Добавлен first-class HTML QC export: `src/doc_converter/human_readable.py` стал shared renderer для Markdown/HTML, `scripts/export_human_readable_html.py` умеет экспортировать как отдельный `document.v1.json`, так и целый `run_dir` в `human-readable-index.html`, а GUI получил кнопку `HTML QC` для немедленной проверки качества конвертации в браузере.
 84. GUI теперь автоматически предлагает sibling output path вида `<input>_output` при выборе входной папки и сохраняет вручную заданный отдельный output без перезаписи; это снижает операторские ошибки на nested output path, не снимая intentional self-ingestion guard.
+85. LLM formula recognition теперь включается по умолчанию безопаснее: при наличии `OPENROUTER_API_KEY` formula slice автоматически использует `openrouter` + `openai/gpt-4o` даже без `FORMULA_MODEL`, а OpenRouter request переведён на strict `json_schema`, чтобы `linear_text`/`display_latex`/`calc_expr` стабильно возвращались как machine-readable JSON.
 
 ### Готовые артефакты
 
@@ -196,7 +197,7 @@
 
 Новый operational learning по provider config: секретный ключ formula-recognition безопаснее держать в `.env.local` с process-env override, а в run metadata и diagnostics писать только provider/model/configured без утечки `api_key`.
 
-Новый operational learning по OpenRouter-схеме: если обычная модель и модель для формул отличаются, лучше хранить общую provider/mode routing через `LLM_PROVIDER` и provider-specific model key, а formula override задавать отдельной переменной `FORMULA_MODEL`, чтобы не смешивать reasoning-модель и visual/formula-модель.
+Новый operational learning по OpenRouter-схеме: если обычная модель и модель для формул отличаются, лучше хранить общую provider/model routing через `LLM_PROVIDER` и provider-specific model key, а formula override задавать отдельной переменной `FORMULA_MODEL`, чтобы не смешивать reasoning-модель и visual/formula-модель; если override не задан, formula slice безопаснее default-ить на отдельную multimodal structured-output модель (`openai/gpt-4o`), а не наследовать generic reasoning-модель вроде `deepseek/deepseek-v4-pro`.
 
 Новый operational learning по runtime stage: live provider calls нельзя делать частью обычного test/CI контура, потому что это внешние кредиты и сетевой риск; для репозитория безопасный baseline — mocked validation + отдельный operator run при реальной проверке качества распознавания.
 

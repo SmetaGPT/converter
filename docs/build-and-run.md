@@ -34,7 +34,7 @@ CLI, GUI и прямое создание `ConverterOptions()` автомати�
 
 - `LLM_PROVIDER=openrouter`
 - `OPENROUTER_MODEL=deepseek/deepseek-v4-pro`
-- `FORMULA_MODEL=openai/gpt-4o`
+- `FORMULA_MODEL=openai/gpt-4o` (опциональный override; если не задан и есть `OPENROUTER_API_KEY`, formula slice по умолчанию использует `openai/gpt-4o`)
 - `OPENROUTER_API_KEY=...`
 
 Заполнять нужно именно `.env.local`. В `run.json` попадает только безопасный срез `formula_recognition` с `provider`, `model` и `configured`; `api_key` в run metadata не сериализуется.
@@ -43,7 +43,7 @@ CLI, GUI и прямое создание `ConverterOptions()` автомати�
 
 - сначала используется локальная WMF/MathType hint extraction, если она даёт достаточную уверенность;
 - затем для оставшихся кандидатов вызывается OpenRouter vision model;
-- результаты пишутся в `formula-recognition.jsonl`, а успешные распознавания попадают в `unit.text`, `unit.formula` и `processing.formula_recognition` внутри `document.v1.json`.
+- результаты пишутся в `formula-recognition.jsonl`, а успешные распознавания попадают в `unit.text`, `unit.formula` и `processing.formula_recognition` внутри `document.v1.json`; OpenRouter response запрашивается через strict `json_schema`, чтобы downstream formula block был стабильнее machine-readable.
 
 Live provider call не входит в automated validation этого репозитория, чтобы не расходовать внешние кредиты во время тестов и CI.
 

@@ -101,7 +101,7 @@ Machine-readable companion: `docs/agent-quality-scorecard.v1.json`.
 Текущий observed snapshot из structured telemetry:
 
 - as_of_date: `2026-05-24`;
-- telemetry entries: `35`;
+- telemetry entries: `36`;
 - validated features in spine: `25`;
 - referenced features in telemetry: `25`;
 - observed signals: `Validation 5/5, State hygiene 5/5, Feature traceability 5/5, Feature coverage 5/5`.

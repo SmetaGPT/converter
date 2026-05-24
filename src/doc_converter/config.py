@@ -28,6 +28,10 @@ _PLACEHOLDER_VALUES = {
     "your-api-key-here",
     "change-me",
 }
+_DEFAULT_FORMULA_PROVIDER = "openrouter"
+_DEFAULT_FORMULA_MODEL_BY_PROVIDER = {
+    "openrouter": "openai/gpt-4o",
+}
 
 
 @dataclass(frozen=True)
@@ -72,14 +76,21 @@ def load_formula_recognition_config(
             _GENERAL_PROVIDER_ENV_KEY,
         )
     )
+    if provider is None:
+        provider = _infer_formula_provider(resolved)
+
     model = _normalize_env_value(
         _first_resolved_value(
             resolved,
             _FORMULA_RECOGNITION_ENV_KEYS["model"],
             _FORMULA_MODEL_ALIAS_ENV_KEY,
-            _provider_model_env_key(provider),
         )
     )
+    if model is None:
+        model = _default_formula_model(provider)
+    if model is None:
+        model = _normalize_env_value(_first_resolved_value(resolved, _provider_model_env_key(provider)))
+
     api_key = _normalize_env_value(
         _first_resolved_value(
             resolved,
@@ -158,6 +169,20 @@ def _provider_api_key_env_key(provider: str | None) -> str | None:
     if provider is None:
         return None
     return _PROVIDER_API_KEY_ENV_KEYS.get(provider.lower())
+
+
+def _infer_formula_provider(resolved: Mapping[str, str]) -> str | None:
+    openrouter_api_key = _normalize_env_value(resolved.get(_PROVIDER_API_KEY_ENV_KEYS["openrouter"]))
+    openrouter_model = _normalize_env_value(resolved.get(_PROVIDER_MODEL_ENV_KEYS["openrouter"]))
+    if openrouter_api_key is not None or openrouter_model is not None:
+        return _DEFAULT_FORMULA_PROVIDER
+    return None
+
+
+def _default_formula_model(provider: str | None) -> str | None:
+    if provider is None:
+        return None
+    return _DEFAULT_FORMULA_MODEL_BY_PROVIDER.get(provider.lower())
 
 
 def _parse_env_file(path: Path) -> dict[str, str]:

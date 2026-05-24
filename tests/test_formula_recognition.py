@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from doc_converter.config import FormulaRecognitionConfig
-from doc_converter.formula_recognition import run_formula_recognition_postprocess
+from doc_converter.formula_recognition import _request_openrouter_completion, run_formula_recognition_postprocess
 from doc_converter.schema_validation import validate_payload
 
 
@@ -83,6 +83,61 @@ class FormulaRecognitionPostprocessTests(unittest.TestCase):
             artifact_record = json.loads(artifact_lines[0])
             self.assertEqual(artifact_record["status"], "recognized_provider")
             self.assertEqual(artifact_record["unit_id"], "u_000001")
+
+    def test_openrouter_request_uses_strict_json_schema(self) -> None:
+        captured: dict[str, object] = {}
+
+        class _FakeResponse:
+            def __enter__(self) -> "_FakeResponse":
+                return self
+
+            def __exit__(self, exc_type, exc, tb) -> None:
+                return None
+
+            def read(self) -> bytes:
+                return json.dumps(
+                    {
+                        "choices": [
+                            {
+                                "message": {
+                                    "content": json.dumps(
+                                        {
+                                            "linear_text": "C = A + B",
+                                            "display_latex": r"C = A + B",
+                                            "calc_expr": "C = A + B",
+                                            "confidence": "high",
+                                            "warnings": [],
+                                        },
+                                        ensure_ascii=False,
+                                    )
+                                }
+                            }
+                        ]
+                    },
+                    ensure_ascii=False,
+                ).encode("utf-8")
+
+        def _fake_urlopen(request, timeout: int):
+            captured["timeout"] = timeout
+            captured["body"] = json.loads(request.data.decode("utf-8"))
+            return _FakeResponse()
+
+        with patch("doc_converter.formula_recognition.urllib.request.urlopen", side_effect=_fake_urlopen):
+            _request_openrouter_completion(
+                api_key="secret",
+                model="openai/gpt-4o",
+                image_url="data:image/png;base64,AAAA",
+                prompt="extract formula",
+            )
+
+        request_body = captured["body"]
+        assert isinstance(request_body, dict)
+        self.assertEqual(request_body["model"], "openai/gpt-4o")
+        self.assertEqual(request_body["response_format"]["type"], "json_schema")
+        self.assertEqual(request_body["response_format"]["json_schema"]["name"], "formula_extraction")
+        self.assertTrue(request_body["response_format"]["json_schema"]["strict"])
+        self.assertEqual(request_body["messages"][1]["content"][1]["type"], "image_url")
+        self.assertEqual(request_body["messages"][1]["content"][1]["image_url"]["url"], "data:image/png;base64,AAAA")
 
 
 def _minimal_document_payload(asset_path: Path) -> dict[str, object]:

@@ -24,6 +24,33 @@ from doc_converter.schema_validation import validate_payload
 OPENROUTER_CHAT_COMPLETIONS_URL = "https://openrouter.ai/api/v1/chat/completions"
 FORMULA_RECOGNITION_RESULTS_FILENAME = "formula-recognition.jsonl"
 FORMULA_RECOGNITION_TIMEOUT_SECONDS = 90
+FORMULA_RESPONSE_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "linear_text": {
+            "type": ["string", "null"],
+            "description": "Human-readable linear formula text with original symbols where possible.",
+        },
+        "display_latex": {
+            "type": ["string", "null"],
+            "description": "Display LaTeX for rendering the formula.",
+        },
+        "calc_expr": {
+            "type": ["string", "null"],
+            "description": "Python-like machine-readable expression for calculation, or null when ambiguous.",
+        },
+        "confidence": {
+            "type": "string",
+            "enum": ["high", "medium", "low"],
+        },
+        "warnings": {
+            "type": "array",
+            "items": {"type": "string"},
+        },
+    },
+    "required": ["linear_text", "display_latex", "calc_expr", "confidence", "warnings"],
+    "additionalProperties": False,
+}
 
 
 @dataclass(frozen=True)
@@ -230,9 +257,10 @@ def _formula_recognition_prompt(asset_name: str, local_hint_text: str | None) ->
         "Распознай формулу на изображении и верни только JSON-объект.",
         "Сохраняй кириллические обозначения и индексы, если они есть на изображении.",
         "Поля JSON: linear_text, display_latex, calc_expr, confidence, warnings.",
+        "Для calc_expr используй Python-like операторы: *, /, ** и круглые скобки; если формула неоднозначна, верни null.",
         "confidence должно быть одним из: high, medium, low.",
         "warnings должно быть массивом коротких snake_case строк.",
-        "Если расчётное выражение неоднозначно, верни calc_expr = null.",
+        "Не добавляй markdown, комментарии или поясняющий текст вне JSON.",
         f"asset_name: {asset_name}",
     ]
     if local_hint_text:
@@ -245,7 +273,14 @@ def _request_openrouter_completion(*, api_key: str, model: str, image_url: str, 
         "model": model,
         "temperature": 0,
         "max_tokens": 500,
-        "response_format": {"type": "json_object"},
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "formula_extraction",
+                "strict": True,
+                "schema": FORMULA_RESPONSE_SCHEMA,
+            },
+        },
         "messages": [
             {
                 "role": "system",
