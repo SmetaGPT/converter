@@ -1,6 +1,8 @@
 # Build and Run
 
-Дата: 2026-05-23
+.\.venv\Scripts\python.exe -m doc_converter.cli convert-folder "D:\ФСНБ\Документы\Загрузка НПА\metod" "D:\converter-output"
+
+Поддержанные входные форматы: DOCX, PDF с текстовым слоем, PDF-сканы и XLSX. Для XLSX route конвертер сохраняет листы, строки, ячейки, значения и Excel-формулы в `document.v1.json`; cached values формул читаются из workbook, но сами формулы не пересчитываются внутри конвертера.
 
 ## 0. Подготовка окружения из чистого checkout
 
@@ -21,11 +23,69 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m doc_converter.cli convert-folder "D:\ФСНБ\Документы\Загрузка НПА\metod" "D:\converter-output"
 ```
 
+Для formula-recognition provider config в репозитории заведены env-файлы:
+
+- `.env.example` - отслеживаемый шаблон;
+- `.env.local` - локальный файл, который можно заполнить либо explicit-переменными `FORMULA_RECOGNITION_*`, либо shorthand-схемой `LLM_PROVIDER`, provider-specific model key и `FORMULA_MODEL`; он исключён из git.
+
+CLI, GUI и прямое создание `ConverterOptions()` автоматически читают `.env.local` и `.env` из текущей рабочей папки или её родительских каталогов; переменные окружения процесса имеют приоритет над файлами.
+
+Для вашего текущего сценария shorthand-конфиг выглядит так:
+
+- `LLM_PROVIDER=openrouter`
+- `OPENROUTER_MODEL=deepseek/deepseek-v4-pro`
+- `FORMULA_MODEL=openai/gpt-4o`
+- `OPENROUTER_API_KEY=...`
+
+Заполнять нужно именно `.env.local`. В `run.json` попадает только безопасный срез `formula_recognition` с `provider`, `model` и `configured`; `api_key` в run metadata не сериализуется.
+
+Если formula-recognition config заполнен, runner после базового extraction открывает `document.v1.json`, ищет `formula_image` units и запускает отдельный post-processing stage:
+
+- сначала используется локальная WMF/MathType hint extraction, если она даёт достаточную уверенность;
+- затем для оставшихся кандидатов вызывается OpenRouter vision model;
+- результаты пишутся в `formula-recognition.jsonl`, а успешные распознавания попадают в `unit.text`, `unit.formula` и `processing.formula_recognition` внутри `document.v1.json`.
+
+Live provider call не входит в automated validation этого репозитория, чтобы не расходовать внешние кредиты во время тестов и CI.
+
+Поддержанные входные форматы: DOCX, PDF с текстовым слоем, PDF-сканы и XLSX. Для XLSX route конвертер сохраняет листы, строки, ячейки, значения и Excel-формулы в `document.v1.json`; cached values формул читаются из workbook, но сами формулы не пересчитываются внутри конвертера.
+
 Результат создаётся в:
 
 ```text
 D:\converter-output\runs\<run_id>\
 ```
+
+В корне каждого `run_dir` теперь создаются `processed-documents-catalog.json` и `processed-documents-catalog.xlsx`. XLSX-версия содержит тот же каталог в табличном виде и локальные hyperlinks на папку документа, `document.v1.json` и `search_text.txt`, чтобы оператор мог быстро открыть обработанный артефакт и проверить его наличие.
+
+Для обратного человекочитаемого Markdown-экспорта из canonical package:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\export_human_readable.py "D:\converter-output\runs\<run_id>\documents\<document_folder>\document.v1.json"
+```
+
+Скрипт создаёт `human-readable.md` рядом с `document.v1.json`. Если у `formula` unit есть `formula.display_latex`, он выводится как KaTeX-compatible block `$$...$$`; если есть `formula.calc_expr`, рядом добавляется code block для расчётного слоя.
+
+Для прямой проверки расчётного слоя по уже нормализованному `calc_expr`:
+
+```powershell
+@{
+    PZ1_p = 1200
+    PZ2_p = 3.5
+    S_vls = 40
+} | ConvertTo-Json | Set-Content -Path .\values.json -Encoding utf8
+
+.\.venv\Scripts\python.exe -m doc_converter.cli evaluate-formula --calc-expr "S_Svls = PZ1_p + PZ2_p * S_vls" --values-file .\values.json
+```
+
+На Windows PowerShell практичнее использовать `--values-file`, а не inline `--values`, чтобы не упираться в shell quoting. CLI читает такой JSON BOM-safe через `utf-8-sig`, поэтому файл, записанный PowerShell `Set-Content -Encoding utf8`, тоже принимается корректно.
+
+Для расчёта всех нормализованных `calc_expr` внутри уже готового `document.v1.json`:
+
+```powershell
+.\.venv\Scripts\python.exe -m doc_converter.cli evaluate-document-formulas "D:\converter-output\runs\<run_id>\documents\<document_folder>\document.v1.json" --values-file .\values.json
+```
+
+Команда проходит по `units[*].formula.calc_expr`, возвращает machine-readable summary и пытается переиспользовать уже вычисленные targets как входы для следующих формул того же документа. Если части значений всё ещё не хватает, CLI честно возвращает `status: partial`, exit code `1` и per-formula `missing_variables`.
 
 ## 2. GUI запуск из исходников
 
@@ -70,7 +130,7 @@ GUI позволяет выбрать входную и выходную пап�
 .\.venv\Scripts\python.exe scripts\validate_run_package.py runs\synthetic-e2e-output\runs\<run_id>
 ```
 
-Synthetic e2e создаёт локальный DOCX, прогоняет converter end-to-end, строит `chunks.v1.jsonl` и валидирует `run.json`, `summary.json`, `queue-state.json`, `manifest.jsonl`, `review-required.jsonl`, `document.v1.json` и `chunks.v1.jsonl`.
+Synthetic e2e создаёт локальный DOCX, прогоняет converter end-to-end, строит `chunks.v1.jsonl` и валидирует `run.json`, `summary.json`, `queue-state.json`, `processed-documents-catalog.json`, `processed-documents-catalog.xlsx`, `manifest.jsonl`, `review-required.jsonl`, `document.v1.json` и `chunks.v1.jsonl`.
 
 ## 6. Сборка Windows package
 
@@ -142,5 +202,5 @@ powershell -ExecutionPolicy Bypass -File scripts\register-agent-eval-schedule.ps
 - Release profile сейчас делится на core и optional: core = `ocrmypdf`, `tesseract`, `ghostscript`; optional = `jbig2`, `pngquant`, `verapdf`.
 - Опциональные OCRmyPDF helpers `jbig2`, `pngquant` и `verapdf` не установлены; OCR работает, но часть оптимизаций и PDF/A-проверок пропускается.
 - PDF route в release scope v0.3.0 добавляет heuristic semantic units для tables/formulas/figure captions поверх text-layer и OCR text; сложные multi-column/table layouts всё ещё требуют downstream review по quality flags.
-- DOCX route в release scope v0.3.0 добавляет semantic pass для formulas, headers, footers и footnotes; embedded formula images классифицируются эвристически по media metadata.
+- DOCX route в release scope v0.3.0 добавляет semantic pass для formulas, headers, footers и footnotes; embedded formula images классифицируются эвристически по media metadata, а MathType WMF formula text records могут заполнять `formula.display_latex` и `formula.calc_expr` для последующего KaTeX/Word rendering и расчётов.
 - Embeddings и загрузка в БД не входят в converter runtime; для них используется output package и `docs/downstream-handoff.md`.

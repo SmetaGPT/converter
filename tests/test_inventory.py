@@ -34,6 +34,11 @@ class InventoryTests(unittest.TestCase):
         self.assertEqual(route, "docx_native")
         self.assertEqual(warnings, ())
 
+    def test_classify_xlsx_route(self) -> None:
+        route, warnings = classify_route(Path("sample.xlsx"))
+        self.assertEqual(route, "xlsx_native")
+        self.assertEqual(warnings, ())
+
 
 if __name__ == "__main__":
     unittest.main()

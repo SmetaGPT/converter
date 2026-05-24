@@ -14,7 +14,7 @@
         "original_path": { "type": "string" },
         "relative_input_path": { "type": ["string", "null"] },
         "filename": { "type": "string" },
-        "format": { "enum": ["docx", "pdf"] },
+        "format": { "enum": ["docx", "pdf", "xlsx"] },
         "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
         "size_bytes": { "type": "integer", "minimum": 0 }
       },
@@ -24,7 +24,7 @@
       "type": "object",
       "required": ["route", "status"],
       "properties": {
-        "route": { "enum": ["docx_native", "pdf_text", "pdf_scan"] },
+        "route": { "enum": ["docx_native", "pdf_text", "pdf_scan", "xlsx_native"] },
         "status": { "enum": ["success", "partial_success", "failed", "skipped_duplicate"] },
         "ocr_applied": { "type": "boolean" },
         "warnings": { "type": "array", "items": { "type": "string" } }
@@ -98,6 +98,8 @@
         "order": { "type": "integer", "minimum": 0 },
         "text": { "type": ["string", "null"] },
         "asset_ref": { "type": ["string", "null"] },
+        "formula": { "$ref": "#/$defs/formula_representation" },
+        "cell": { "$ref": "#/$defs/spreadsheet_cell" },
         "source_ref": {
           "type": "object",
           "required": ["document_id"],
@@ -118,6 +120,41 @@
           "additionalProperties": false
         },
         "quality": { "$ref": "#/$defs/quality" }
+      },
+      "additionalProperties": false
+    },
+    "formula_representation": {
+      "type": ["object", "null"],
+      "required": ["source_format", "linear_text", "display_latex", "confidence", "warnings"],
+      "properties": {
+        "source_format": {
+          "enum": ["docx_text_linearized", "mathtype_wmf_text_records", "heuristic_latex"]
+        },
+        "linear_text": { "type": "string", "minLength": 1 },
+        "display_latex": { "type": "string", "minLength": 1 },
+        "calc_expr": { "type": ["string", "null"] },
+        "variables": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "confidence": { "enum": ["high", "medium", "low"] },
+        "warnings": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "spreadsheet_cell": {
+      "type": ["object", "null"],
+      "required": ["worksheet", "address", "row", "column", "value", "formula", "data_type", "number_format", "hyperlink"],
+      "properties": {
+        "worksheet": { "type": "string", "minLength": 1 },
+        "address": { "type": "string", "minLength": 1 },
+        "row": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 },
+        "value": { "type": ["string", "number", "boolean", "null"] },
+        "formula": { "type": ["string", "null"] },
+        "data_type": { "type": ["string", "null"] },
+        "number_format": { "type": ["string", "null"] },
+        "hyperlink": { "type": ["string", "null"] }
       },
       "additionalProperties": false
     },

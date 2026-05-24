@@ -8,10 +8,10 @@
     "run_id": { "type": "string" },
     "relative_path": { "type": "string" },
     "filename": { "type": "string" },
-    "format": { "enum": ["docx", "pdf"] },
+    "format": { "enum": ["docx", "pdf", "xlsx"] },
     "size_bytes": { "type": "integer", "minimum": 0 },
     "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-    "route": { "enum": ["docx_native", "pdf_text", "pdf_scan", "not_classified"] },
+    "route": { "enum": ["docx_native", "pdf_text", "pdf_scan", "xlsx_native", "not_classified"] },
     "status": { "enum": ["discovered", "queued", "processing", "success", "partial_success", "failed", "skipped_duplicate"] }
   },
   "additionalProperties": true

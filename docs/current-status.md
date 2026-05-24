@@ -1,6 +1,6 @@
 # Current Status
 
-Последнее обновление: 2026-05-23
+Последнее обновление: 2026-05-24
 Статус контура: wave 1 complete, operational use ready
 
 ## 1. Краткий снимок состояния
@@ -80,7 +80,7 @@
 56. Добавлен generated scorecard companion `docs/agent-quality-scorecard.v1.json` со schema `schemas/agent-quality-scorecard.v1.schema.json` и генератором `scripts/build_agent_scorecard.py`; `scripts/validate_harness_assets.py` теперь валидирует schema и проверяет drift между feature spine, telemetry JSONL и scorecard.
 57. Для generated scorecard добавлен markdown drift-check: `scripts/build_agent_scorecard.py` теперь умеет `--check-markdown` и `--sync-markdown`, а `scripts/validate_harness_assets.py` проверяет синхронность structured companion section в `docs/agent-quality-scorecard.md` с generated JSON.
 58. Добавлен generated weekly eval companion: `scripts/build_agent_weekly_eval.py` собирает `docs/agent-weekly-eval.v1.json` и `docs/agent-weekly-eval.md` из scorecard и structured telemetry, а `scripts/validate_harness_assets.py` проверяет schema и drift для weekly snapshot.
-59. В `docs/agent-telemetry.v1.jsonl` выполнен historical backfill для `state-layer`, `lifecycle-validation`, `routing-matrix` и `real-e2e-and-run-validation`; generated scorecard и weekly eval теперь показывают coverage `22/22` без unexplained gaps.
+59. В `docs/agent-telemetry.v1.jsonl` выполнен historical backfill для `state-layer`, `lifecycle-validation`, `routing-matrix` и `real-e2e-and-run-validation`; generated scorecard и weekly eval теперь показывают coverage `25/25` без unexplained gaps.
 60. Проведён первый complete weekly review по `docs/agent-evaluator-rubric.md` на реальных задачах из разных категорий; recurring issues зафиксированы в `docs/agent-regressions.md`, assumptions обновлены в `docs/agent-quality-scorecard.md`, а `AGENTS.md` оставлен без изменений как достаточный operational contract.
 61. Добавлен one-command refresh wrapper `scripts/refresh_agent_eval.py`; generated scorecard и weekly eval companions теперь пересобираются и проверяются одним вызовом вместо ручного двухкомандного шага.
 62. Sampled task scores для weekly review вынесены в `docs/agent-weekly-reviews.v1.json` со schema `schemas/agent-weekly-reviews.v1.schema.json`, а generated weekly eval теперь несёт machine-readable qualitative sampling вместе с proxy signals.
@@ -88,6 +88,22 @@
 64. Закрыт follow-up по production audit от 2026-05-23: runner и GUI теперь reject overlapping input/output paths до inventory, mixed-input folders честно считают unsupported inputs, `workers` больше не эмитится в `run.json`, standalone scripts используют shared `scripts/sitecustomize.py`, а Windows CI валидирует `pip check`, `ruff`, `pyright`, EXE smoke и portable release artifact.
 65. Закрыт последний P2 follow-up production audit: OCR runtime helper фиксирует SHA-256 для `eng`, `rus`, `osd` traineddata, проверяет direct downloads после `curl.exe`, удаляет mismatch artifact и документирует integrity verification в OCR runtime notes.
 66. Закрыт post-release semantic/package bundle v0.3.0: DOCX route выделяет formulas, headers, footers и footnotes; PDF text/OCR routes выделяют heuristic `table`/`formula`/`figure` units; weekly eval получил guarded Windows schedule helper; portable package `DocumentConverter-0.3.0` пересобран с checksum `2ce1f979b0eecc7644ca52b903034c72d642a7cdef7c54b760e4b4d510ed72f8`.
+67. Добавлен root-level `processed-documents-catalog.json`: после каждого run оператор получает индекс по исходным файлам с `output_dir`, именем папки документа, статусом обработки и текстом ошибки/причины пропуска, если документ не обработан успешно.
+68. Root-level catalog расширен до `processed-documents-catalog.xlsx`: операторский отчёт теперь содержит hyperlinks на папку документа, `document.v1.json` и `search_text.txt`, а run-package validation проверяет и JSON, и XLSX-версию.
+69. Исправлен runtime regression в Windows EXE: PyInstaller build теперь включает локальный каталог `schemas`, а frozen schema resolver ищет схемы в `dist\...\schemas`, `dist\...\_internal\schemas` и `sys._MEIPASS`, поэтому GUI больше не падает на старте обработки с `Schema file not found: ... run.v1.schema.json`.
+70. DOCX text linearization сохраняет `subscript`/`superscript` как `_(...)`/`^(...)`, а встроенные inline drawings как `[INLINE_DRAWING:...]`, поэтому formula units и соседние обозначения больше не теряют индексы и графические placeholders на реальном DOCX `421/пр`.
+71. DOCX inline symbol recognition теперь пытается преобразовывать маленькие inline WMF/EMF/PNG glyph drawings в Unicode-символы с fallback на `[INLINE_DRAWING:...]`; на реальном DOCX `421/пр` формула 2 теперь сохраняется как `j = 1 ÷ J, где:` вместо графического placeholder.
+72. DOCX inline symbol recognizer расширен на дополнительные математические glyph-символы, включая `+`, `-`, `=`, `<`, `>`, `∏`, `∂`, `∇`, `∅`, `∀`, `∃`, `∝`, `∥`, `⊥`, `∠`, `⊕`, `⊗`, `∴`, `∵`; regression tests подтверждают, что эти inline-картинки теперь превращаются в нормальные Unicode-символы вместо placeholder.
+73. Для MathType WMF formula images в DOCX добавлен прямой text-record extraction до glyph fallback: простые диапазоны вроде `n = 1 ÷ N` и `m = 1 ÷ M`, а также обозначения с индексами вроде `СЦэм_(тек)^(m)` восстанавливаются без raster OCR; реальные суммовые формулы `421/пр` показали следующий обязательный слой — сохранение LaTeX/MathML/AST-представления для расчётного use-case, а не только линейного текста.
+74. Добавлен machine-readable formula block для DOCX formulas и обратный Markdown exporter: формула 1.1 из реального `421/пр` теперь сохраняется в `document.v1.json` как `formula.display_latex` + `formula.calc_expr`, а `scripts/export_human_readable.py` выводит её в `human-readable.md` как KaTeX-compatible `$$...$$` и code block для расчётного слоя.
+75. Стабилизированы повторяющиеся MathType WMF formulas из `421/пр`: формулы 1, 1.1, 1.2, 2, 3.1, 4 и 5 теперь восстанавливаются как нормальный display LaTeX с `\sum`/`\frac` и расчётными выражениями, диапазоны `i/n/k/m/j = 1 ÷ ...` не дублируют `, где:` в math block, а старые артефакты `PPV=`, `t1Ttt`, `k1К`, `ЦСТ=` и `\mathrm{sum}` исчезли из fresh readable export.
+76. Добавлен native XLSX route: `.xlsx` теперь классифицируется как `xlsx_native`, workbook sheets сохраняются как `section`/`table`/`table_row`/`table_cell` units, каждая содержательная ячейка получает structured `cell` payload с address/value/formula/number_format, а реальный файл `Расчет стоимости этапов.xlsx` прошёл schema-valid run package: 13 sheets, 8533 cell units, 1711 formula cells, 0 missing cached formula values.
+77. Добавлен env-based provider config для future formula recognition: `ConverterOptions()` автоматически читает `.env.local`/`.env` и process env override для `FORMULA_RECOGNITION_PROVIDER`, `FORMULA_RECOGNITION_MODEL` и `FORMULA_RECOGNITION_API_KEY`, но `run.json` сохраняет только безопасный `formula_recognition` block без секрета.
+78. Env-based provider config расширен alias-совместимостью с OpenRouter workflow: loader понимает `LLM_PROVIDER=openrouter`, `OPENROUTER_MODEL=deepseek/deepseek-v4-pro`, отдельный `FORMULA_MODEL=openai/gpt-4o` и `OPENROUTER_API_KEY`, при этом formula slice в `run.json` всё равно остаётся без секрета.
+79. Добавлен formula-recognition postprocess stage в runner: если provider config включён, `formula_image` assets проходят локальный WMF hint extraction и затем OpenRouter fallback, результаты пишутся в `formula-recognition.jsonl`, а `document.v1.json` обогащается `unit.text`, `unit.formula` и `processing.formula_recognition` без сериализации API key.
+80. Для generic `docx_text_linearized` formulas добавлен heuristic `calc_expr`/`variables` fallback: простые присваивания с `+`, `-`, `x`/`×`, `÷`/`/`, скобками, кириллическими идентификаторами и base token-ами с цифрами теперь получают machine-computable expression layer; fresh real run на `812/пр` подтвердил вычислимые формулы для `ДЗ_(вП)` и `С_(Свлс) = ПЗ1_(п) + ПЗ2_(п) x S_(влс)`.
+81. Добавлен safe formula evaluator для `calc_expr`: новый CLI subcommand `evaluate-formula` считает только ограниченное арифметическое подмножество (`+`, `-`, `*`, `/`, `**`, unary `+/-`, скобки и переменные), а DOCX heuristic parser расширен на проценты `%` и степени `^`; real operator-path на Windows подтвердил расчёт `S_Svls = PZ1_p + PZ2_p * S_vls` из свежего `812/пр` run package.
+82. Для DOCX formulas с переносами строки добавлена нормализация повторённого оператора на границе line-wrap (`x`/`x` схлопывается в одно умножение), а новый CLI subcommand `evaluate-document-formulas` проходит по `document.v1.json`, считает все доступные `calc_expr` и переиспользует уже вычисленные targets как входы для зависимых формул того же документа; real run на `812/пр` показал 41 `calc_expr`, успешный расчёт `S_Svls = 1340.0` и честный partial по оставшимся 40 формулам без входных значений.
 
 ### Готовые артефакты
 
@@ -163,6 +179,24 @@
 ## 3. Что делается сейчас
 
 Текущий фокус: поддержание уже закрытого harness/eval contour для production-ready v0.3.0 scope и точечные улучшения только там, где они реально снижают operational overhead.
+
+Новый product-learning по формулам: для DOCX, где формулы сохранены картинками MathType WMF, приоритетный pipeline должен быть `direct WMF/MathType extraction -> known signature/layout recovery -> display LaTeX/MathML -> calculation AST -> renderer`, а OCR должен оставаться fallback для настоящих raster scans. Для operator review теперь есть обратный Markdown/HTML-export из `document.v1.json`, но универсальный MathType parser ещё не реализован.
+
+Новый product-learning по `docx_text_linearized` formulas: одного `display_latex` недостаточно для downstream расчёта. Для реального полезного use-case нужен второй слой `calc_expr + variables`; после текущего hotfix generic линейные формулы из DOCX уже получают этот слой heuristically, но выражения с неполной или повреждённой символикой всё ещё должны честно оставаться без `calc_expr`.
+
+Новый product-learning по document-level evaluation: оператору мало точечного `evaluate-formula`; практический контур возникает только когда `document.v1.json` можно прогнать целиком, получить per-formula status и автоматически подставить уже вычисленные targets как входы для зависимых выражений того же документа.
+
+Новый operational learning по formula evaluation на Windows: для JSON со значениями переменных безопаснее рекомендовать `--values-file`, а reader должен быть BOM-safe (`utf-8-sig`), потому что PowerShell `Set-Content -Encoding utf8` может писать BOM и ломать обычное `utf-8` чтение.
+
+Новый operational learning по DOCX formulas с переносами: если Word/linearization дублирует оператор умножения на конце и в начале соседней строки, этот артефакт нужно схлопывать до токенизации, иначе downstream получает ложный `x x` и теряет вычислимый `calc_expr`.
+
+Новый product-learning по Excel: для XLSX нужно сохранять не только текстовую проекцию таблицы, но и адреса ячеек, cached values и исходные Excel formula strings. Конвертер не должен обещать пересчёт формул через `openpyxl`; downstream расчёты требуют Excel-compatible formula engine или отдельный recalculation step.
+
+Новый operational learning по provider config: секретный ключ formula-recognition безопаснее держать в `.env.local` с process-env override, а в run metadata и diagnostics писать только provider/model/configured без утечки `api_key`.
+
+Новый operational learning по OpenRouter-схеме: если обычная модель и модель для формул отличаются, лучше хранить общую provider/mode routing через `LLM_PROVIDER` и provider-specific model key, а formula override задавать отдельной переменной `FORMULA_MODEL`, чтобы не смешивать reasoning-модель и visual/formula-модель.
+
+Новый operational learning по runtime stage: live provider calls нельзя делать частью обычного test/CI контура, потому что это внешние кредиты и сетевой риск; для репозитория безопасный baseline — mocked validation + отдельный operator run при реальной проверке качества распознавания.
 
 Последний production-audit follow-up закрыт локально и в repo contract: self-ingestion guard, truthful unsupported accounting, repo-local lint/type tooling, clean source-setup path и CI-backed release artifact validation теперь входят в штатный контур.
 
@@ -245,7 +279,7 @@
 
 ## 11. Текущий product roadmap
 
-Source of truth для прикладной реализации Windows-конвертера: docs/document-converter-roadmap.md. Первая прикладная версия ограничена DOCX, PDF-text и PDF-scan, а главный переносимый результат — `document.v1.json` со stable structural units для будущего chunking, DB ingestion и поиска.
+Source of truth для прикладной реализации Windows-конвертера: docs/document-converter-roadmap.md. Прикладной scope теперь покрывает DOCX, PDF-text, PDF-scan и XLSX-native, а главный переносимый результат — `document.v1.json` со stable structural units для будущего chunking, DB ingestion и поиска.
 
 ## 12. Sprint 0 samples
 

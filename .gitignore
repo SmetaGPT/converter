@@ -11,3 +11,5 @@ dist/
 output/
 runs/
 *.log
+.env
+.env.local

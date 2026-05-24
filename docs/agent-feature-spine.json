@@ -1,6 +1,6 @@
 {
   "schema_version": "agent-feature-spine.v1",
-  "last_updated": "2026-05-23",
+  "last_updated": "2026-05-24",
   "features": [
     {
       "feature_id": "state-layer",
@@ -246,11 +246,12 @@
       "area": "product",
       "title": "Canonical document.v1 package",
       "status": "validated",
-      "behavior": "The main product output is a portable document.v1.json package with source metadata, processing route, semantic metadata, structural units, assets and quality flags instead of plain text only.",
+      "behavior": "The main product output is a portable document.v1.json package with source metadata, processing route, semantic metadata, structural units, assets and quality flags instead of plain text only, plus root-level processed-documents-catalog JSON/XLSX indexes that map source names to output folders, statuses and operator hyperlinks.",
       "owner_docs": [
         "docs/document-converter-roadmap.md",
         "docs/document-converter-acceptance.md",
         "schemas/document.v1.schema.json",
+        "schemas/processed-documents-catalog.v1.schema.json",
         "scripts/validate_run_package.py"
       ],
       "verification": [
@@ -267,6 +268,7 @@
         "docs/document-converter-roadmap.md",
         "docs/document-converter-acceptance.md",
         "schemas/document.v1.schema.json",
+        "schemas/processed-documents-catalog.v1.schema.json",
         "scripts/validate_run_package.py"
       ],
       "residual_risk": "Advanced PDF tables, formulas and figures now have heuristic unit extraction, but pixel-perfect table geometry and multimodal figure understanding remain downstream concerns."
@@ -360,6 +362,109 @@
       "residual_risk": "Optional OCR helpers jbig2, pngquant and verapdf are not required and remain uninstalled by default."
     },
     {
+      "feature_id": "xlsx-native-route",
+      "area": "product",
+      "title": "XLSX native conversion route",
+      "status": "validated",
+      "behavior": "XLSX workbooks are processed natively with worksheet sections, inferred sheet tables, row and cell units, structured cell payloads, preserved Excel formulas and cached formula values where present.",
+      "owner_docs": [
+        "docs/document-converter-acceptance.md",
+        "docs/build-and-run.md",
+        "src/doc_converter/converters/xlsx.py",
+        "tests/test_cli_smoke.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_cli_smoke.CliSmokeTests.test_xlsx_input_creates_machine_readable_cell_units -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m doc_converter.cli convert-folder runs\\xlsx-sample-input-20260524T011906 runs\\xlsx-sample-output-20260524T011906"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_run_package.py runs\\xlsx-sample-output-20260524T011906\\runs\\20260523T221907Z"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/converters/xlsx.py",
+        "src/doc_converter/inventory.py",
+        "src/doc_converter/runner.py",
+        "schemas/document.v1.schema.json",
+        "schemas/manifest.v1.schema.json",
+        "tests/test_cli_smoke.py",
+        "docs/document-converter-acceptance.md",
+        "docs/build-and-run.md"
+      ],
+      "residual_risk": "The converter preserves Excel formulas and cached workbook values but does not recalculate formulas; downstream calculation still needs an Excel-compatible formula engine or recalculation step."
+    },
+    {
+      "feature_id": "formula-recognition-env-config",
+      "area": "product",
+      "title": "Formula recognition provider env config",
+      "status": "validated",
+      "behavior": "Converter runtime auto-loads formula recognition provider, model and API key from `.env.local`/`.env` plus process environment overrides, supporting both explicit `FORMULA_RECOGNITION_*` keys and shorthand aliases like `LLM_PROVIDER`, provider-specific model keys and `FORMULA_MODEL`, while run metadata stores only provider/model/configured and never serializes the secret itself.",
+      "owner_docs": [
+        "docs/build-and-run.md",
+        ".env.example",
+        "src/doc_converter/config.py",
+        "schemas/run.v1.schema.json"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_config tests.test_cli_smoke.CliSmokeTests.test_run_metadata_omits_formula_recognition_api_key -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m pyright src/doc_converter/config.py src/doc_converter/runner.py tests/test_config.py tests/test_cli_smoke.py"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/config.py",
+        "src/doc_converter/runner.py",
+        "schemas/run.v1.schema.json",
+        "tests/test_config.py",
+        "tests/test_cli_smoke.py",
+        "docs/build-and-run.md",
+        ".env.example"
+      ],
+      "residual_risk": "The env loader searches the current working directory and its ancestors; if the converter is launched from an unrelated directory, the operator must export the variables explicitly or start the command from the project tree. Only the formula-recognition slice is consumed so far; the generic non-formula `OPENROUTER_MODEL` is currently a fallback alias, not an independently used runtime setting elsewhere in the converter."
+    },
+    {
+      "feature_id": "formula-recognition-postprocess",
+      "area": "product",
+      "title": "Formula image recognition postprocess",
+      "status": "validated",
+      "behavior": "When formula recognition is configured, runner reopens each canonical `document.v1.json`, scans `formula_image` units, first tries local WMF/MathType hint extraction and then falls back to an OpenRouter multimodal call for unresolved assets, writing successful results back into `unit.text`, `unit.formula`, `processing.formula_recognition` and a sidecar `formula-recognition.jsonl` artifact.",
+      "owner_docs": [
+        "docs/build-and-run.md",
+        "docs/document-converter-acceptance.md",
+        "src/doc_converter/formula_recognition.py",
+        "src/doc_converter/runner.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_formula_recognition tests.test_cli_smoke.CliSmokeTests.test_runner_invokes_formula_recognition_postprocess_when_configured -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m pyright src/doc_converter/formula_recognition.py src/doc_converter/runner.py tests/test_formula_recognition.py tests/test_cli_smoke.py"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/formula_recognition.py",
+        "src/doc_converter/runner.py",
+        "tests/test_formula_recognition.py",
+        "tests/test_cli_smoke.py",
+        "docs/build-and-run.md",
+        "docs/document-converter-acceptance.md"
+      ],
+      "residual_risk": "Automated validation uses mocked provider responses and does not spend real OpenRouter credits; live quality still depends on provider availability, model behavior and successful rasterization of WMF/EMF assets on Windows."
+    },
+    {
       "feature_id": "semantic-document-metadata",
       "area": "product",
       "title": "Semantic document metadata block",
@@ -394,10 +499,11 @@
       "area": "product",
       "title": "Quality flags and review-required reporting",
       "status": "validated",
-      "behavior": "The converter emits normalized document and unit quality flags, review-required.jsonl and summary reason buckets for failed, partial and review-required cases.",
+      "behavior": "The converter emits normalized document and unit quality flags, review-required.jsonl, root-level processed-documents-catalog JSON/XLSX indexes and summary reason buckets for failed, partial and review-required cases.",
       "owner_docs": [
         "docs/document-converter-acceptance.md",
         "src/doc_converter/runner.py",
+        "schemas/processed-documents-catalog.v1.schema.json",
         "tests/test_quality.py",
         "scripts/validate_run_package.py"
       ],
@@ -414,6 +520,7 @@
       "evidence": [
         "docs/document-converter-acceptance.md",
         "src/doc_converter/runner.py",
+        "schemas/processed-documents-catalog.v1.schema.json",
         "scripts/validate_run_package.py"
       ],
       "residual_risk": "Some quality signals remain heuristic and may need threshold tuning on new corpora."

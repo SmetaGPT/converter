@@ -22,7 +22,17 @@
         },
         "workers": { "type": "integer", "minimum": 1, "deprecated": true },
         "include_originals": { "type": "boolean" },
-        "duplicate_policy": { "type": "string", "minLength": 1 }
+        "duplicate_policy": { "type": "string", "minLength": 1 },
+        "formula_recognition": {
+          "type": "object",
+          "required": ["configured"],
+          "properties": {
+            "provider": { "type": "string", "minLength": 1 },
+            "model": { "type": "string", "minLength": 1 },
+            "configured": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        }
       },
       "additionalProperties": false
     }

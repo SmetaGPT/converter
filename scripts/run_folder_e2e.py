@@ -8,6 +8,8 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from openpyxl import load_workbook
+
 from doc_converter.chunking import build_chunks_from_document
 from doc_converter.config import ConverterConfig, ConverterOptions
 from doc_converter.runner import run_convert_folder
@@ -19,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run end-to-end converter validation on an existing input folder.")
-    parser.add_argument("input", type=Path, help="Existing folder with DOCX/PDF files to convert.")
+    parser.add_argument("input", type=Path, help="Existing folder with DOCX/PDF/XLSX files to convert.")
     parser.add_argument("--output", type=Path, default=ROOT / "runs" / "folder-e2e", help="Output folder for run packages.")
     parser.add_argument("--ocr-languages", default="rus,eng", help="Comma- or plus-separated OCR language codes.")
     parser.add_argument("--clean", action="store_true", help="Remove the output folder before running.")
@@ -94,6 +96,8 @@ def _validate_run_dir(run_dir: Path) -> None:
     validate_json_file(run_dir / "run.json", "run.v1.schema.json")
     validate_json_file(run_dir / "summary.json", "summary.v1.schema.json")
     validate_json_file(run_dir / "queue-state.json", "queue-state.v1.schema.json")
+    validate_json_file(run_dir / "processed-documents-catalog.json", "processed-documents-catalog.v1.schema.json")
+    _validate_workbook(run_dir / "processed-documents-catalog.xlsx")
     _validate_jsonl(run_dir / "manifest.jsonl", "manifest.v1.schema.json")
     _validate_jsonl(run_dir / "review-required.jsonl", "review-required.v1.schema.json")
     if (run_dir / "chunks.v1.jsonl").exists():
@@ -104,6 +108,15 @@ def _validate_jsonl(path: Path, schema_filename: str) -> None:
     for line in path.read_text(encoding="utf-8").splitlines():
         if line.strip():
             validate_payload(json.loads(line), schema_filename)
+
+
+def _validate_workbook(path: Path) -> None:
+    workbook = load_workbook(path, read_only=True)
+    try:
+        if "Документы" not in workbook.sheetnames:
+            raise ValueError(f"Workbook does not contain expected worksheet: {path}")
+    finally:
+        workbook.close()
 
 
 def _remove_if_exists(path: Path) -> None:

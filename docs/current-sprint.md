@@ -1,6 +1,6 @@
 # Current Sprint
 
-Последнее обновление: 2026-05-23
+Последнее обновление: 2026-05-24
 Активный спринт: Release Closure — Production readiness v0.3.0
 Статус: completed
 
@@ -88,6 +88,15 @@
 | Закрыть post-release semantic extraction для PDF/DOCX tables/formulas/figures и DOCX footnotes/header/footer | Готово |
 | Добавить optional Windows schedule helper для `refresh_agent_eval.py` | Готово |
 | Пересобрать и версионировать portable package как v0.3.0 | Готово |
+| Добавить root-level catalog обработанных документов с output folder и статусом | Готово |
+| Добавить XLSX report с hyperlinks на обработанные артефакты | Готово |
+| Добавить native XLSX route для workbook/sheet/cell/formula packages | Готово |
+| Добавить env-based provider config loader без утечки API key в run metadata | Готово |
+| Расширить env loader alias-совместимостью с OpenRouter и отдельной formula model | Готово |
+| Добавить formula-recognition postprocess stage с OpenRouter fallback | Готово |
+| Добавить heuristic `calc_expr` fallback для generic `docx_text_linearized` formulas | Готово |
+| Добавить safe evaluator для `calc_expr` и расширить DOCX parser на `%` и `^` | Готово |
+| Схлопнуть line-wrap `x x` в DOCX formulas и добавить dependency-aware batch evaluation по `document.v1.json` | Готово |
 
 ## 4. Validation targets спринта
 
@@ -112,6 +121,13 @@
 19. OCR runtime install helper проверяет SHA-256 для direct traineddata downloads и fail-fast останавливается на mismatch.
 20. DOCX/PDF routes создают semantic units для formulas, figure captions, heuristic tables, DOCX headers/footers/footnotes и сохраняют это в schema-valid `document.v1.json`.
 21. Optional weekly eval schedule helper проходит `-CheckOnly`, а portable release v0.3.0 собран и проходит EXE smoke.
+22. Каждый run сохраняет `processed-documents-catalog.json` с оригинальным именем файла, output folder, статусом обработки и текстом ошибки/причины пропуска.
+23. Каждый run сохраняет `processed-documents-catalog.xlsx` с hyperlinks на папку документа, `document.v1.json` и `search_text.txt`, если этот файл создан.
+24. Собранный Windows EXE включает локальные JSON schemas и на frozen runtime находит их внутри bundle без ошибки `Schema file not found` при старте обработки.
+25. XLSX route создаёт schema-valid `document.v1.json` с worksheet sections, table/row/cell units, structured `cell` payload и сохранёнными Excel formulas/cached values.
+26. Formula-recognition provider config автоматически загружается из `.env.local`/`.env` и process env overrides, но `run.json` не сериализует `api_key`.
+27. Formula-recognition env loader понимает shorthand OpenRouter-схему `LLM_PROVIDER`, `OPENROUTER_MODEL`, `FORMULA_MODEL` и `OPENROUTER_API_KEY`, чтобы reasoning/model routing и formula model override можно было хранить раздельно.
+28. Formula-recognition postprocess обогащает `formula_image` units через local WMF hint extraction и OpenRouter fallback, пишет `formula-recognition.jsonl` и не делает live provider call частью automated validation.
 
 ## 5. Риски спринта
 
@@ -160,6 +176,7 @@
 - Synthetic e2e: `.\.venv\Scripts\python.exe scripts\run_synthetic_e2e.py --clean`.
 - Python GUI smoke: `.\.venv\Scripts\python.exe -m unittest tests.test_gui_import -v`.
 - EXE smoke: `dist\DocumentConverter\DocumentConverter.exe` стартует как процесс и не завершается мгновенно.
+- Frozen schema smoke: локальный check через `schema_validation._load_validator("run.v1.schema.json")` в frozen-mode на `dist\DocumentConverter\DocumentConverter.exe` находит bundle path `dist\DocumentConverter\_internal\schemas`.
 
 ## 11. Последние folder e2e проверки
 
@@ -179,7 +196,7 @@
 ## 12. Harness assets validation
 
 - Команда: `.\.venv\Scripts\python.exe scripts\validate_harness_assets.py`.
-- Результат: `status: ok`, `features: 22`, `validated: 22`, `active: 0`, `backlog: 0`, `telemetry_entries: 17`.
+- Результат: `status: ok`, `features: 25`, `validated: 25`, `active: 0`, `backlog: 0`, `telemetry_entries: 33`.
 - Артефакты: `docs/agent-feature-spine.json`, bootstrap contract, clean-exit checklist, sprint contract template, task checkpoint template, evaluator rubric, `docs/agent-telemetry.v1.jsonl`, `docs/agent-quality-scorecard.v1.json`, `docs/agent-weekly-eval.v1.json`, `docs/agent-weekly-reviews.v1.json`, one-command refresh wrapper и schema-backed validator.
 
 ## 13. Post-audit remediation
@@ -188,5 +205,15 @@
 - P1 gates закрыты: repo-local `dev` extra добавляет `ruff` и `pyright`, Windows CI запускает `pip check`, `ruff`, `pyright`, build, EXE smoke и `package-release`, а portable zip/checksum/release-notes публикуются как workflow artifact.
 - P2 cleanup закрыт: `workers` больше не эмитится в `run.json`, schema держит его только как deprecated backward-compatible field, standalone scripts используют shared `scripts/sitecustomize.py`, а OCR traineddata downloads проверяются по pinned SHA-256.
 - Post-release v0.3.0 закрыт: DOCX formulas/header/footer/footnote units, PDF text/OCR heuristic table/formula/figure units, schedule helper и versioned portable package `DocumentConverter-0.3.0`.
+- Поверх `calc_expr` добавлен safe evaluator и CLI `evaluate-formula`; parser теперь также понимает `%` и `^` для heuristic DOCX formulas, а Windows operator-path подтверждён через BOM-safe `--values-file` и расчёт реального выражения `S_Svls = PZ1_p + PZ2_p * S_vls` из `812/пр`.
+- Поверх этого batch operator-path расширен до `evaluate-document-formulas`: DOCX parser схлопывает line-wrap артефакт `x x` в одно умножение, а CLI проходит по `document.v1.json`, переиспользует уже вычисленные targets для зависимых выражений и на реальном `812/пр` честно вернул `41 calc_expr / 1 evaluated / 40 missing`, включая `S_Svls = 1340.0`.
+- EXE packaging regression закрыт: `scripts/build-windows.ps1` теперь добавляет `schemas/` в bundle, а `schema_validation.py` умеет находить схемы во frozen layout `dist\...\_internal\schemas`.
+- DOCX formula symbol recovery hotfix закрыт: body/table/header/footer extraction теперь сохраняет `subscript` и `superscript`, пытается распознавать маленькие inline WMF/EMF/PNG glyph drawings в Unicode-символы и оставляет `[INLINE_DRAWING:...]` только как fallback; реальный DOCX `421/пр` теперь даёт `j = 1 ÷ J, где:` в canonical package.
+- DOCX symbol vocabulary расширен: inline glyph recognizer теперь покрывает дополнительные операторы, кванторы и геометрические/логические знаки (`+`, `-`, `=`, `<`, `>`, `∏`, `∂`, `∇`, `∅`, `∀`, `∃`, `∝`, `∥`, `⊥`, `∠`, `⊕`, `⊗`, `∴`, `∵`), а targeted DOCX regression подтверждает их преобразование в Unicode-текст.
+- DOCX MathType WMF extraction добавлен как промежуточный слой до raster/glyph fallback: text records из MathType WMF позволяют восстанавливать простые диапазоны и обозначения с индексами без OCR, но сложные суммовые формулы требуют следующего product layer — хранить display LaTeX/MathML и вычислимый AST, чтобы затем рендерить через KaTeX/Word и отдельно считать по нормализованному выражению.
+- DOCX formula representation и readable round-trip добавлены: `document.v1.json` допускает `formula.display_latex`/`formula.calc_expr`, `421/пр` fresh run восстановил формулу 1.1 как LaTeX + Python-like expression, а `scripts/export_human_readable.py` создал `human-readable.md` из canonical package.
+- DOCX formula stability pass добавлен после visual review: known MathType WMF signatures для формул 1, 1.2, 2, 3.1, 4 и 5 из `421/пр` теперь дают structured LaTeX/calc output, exporter не дублирует normalized range text, а fresh readable export не содержит старых артефактов `PPV=`, `t1Ttt`, `k1К`, `ЦСТ=` и `\mathrm{sum}`.
+- DOCX heuristic calc fallback расширен на generic `docx_text_linearized` formulas: простые присваивания теперь получают `calc_expr` и `variables` даже без hardcoded WMF signature, ASCII `x` нормализуется как умножение, base token-ы с цифрами (`ПЗ1_(п)`, `ПЗ2_(п)`) поддерживаются, а fresh single-doc run на `812/пр` подтвердил формулы `ДЗ_(вП)` и `С_(Свлс)` как machine-computable expressions в `document.v1.json` и `human-readable.md`.
+- Native XLSX route добавлен: `.xlsx` теперь поддерживается inventory/runner/schema, `openpyxl` сохраняет worksheet/table/row/cell hierarchy, formulas остаются в Excel formula syntax вместе с cached values, а реальный `Расчет стоимости этапов.xlsx` прошёл run-package validation как `xlsx_native`.
 - Последняя локальная validation: `.\.venv\Scripts\python.exe -m pip check`, `.\.venv\Scripts\python.exe -m ruff check src tests scripts`, `.\.venv\Scripts\python.exe -m pyright`, `.\.venv\Scripts\python.exe -m unittest discover -v`, `.\.venv\Scripts\python.exe scripts\run_synthetic_e2e.py --clean`, `scripts\build-windows.ps1`, `scripts\smoke-test-windows-exe.ps1`, `scripts\package-release.ps1 -Version 0.3.0 -SkipBuild`, `scripts\register-agent-eval-schedule.ps1 -CheckOnly`, `scripts\install-ocr-runtime.ps1 -CheckOnly`, OCR traineddata mismatch smoke — passed.
 - Clean-room note: отдельная внешняя Python 3.12 venv с `pip install -e .[build,dev]` тоже проходит `pip check`; локальный сбой `charset-normalizer/fonttools is not supported on this platform` был traced to contaminated wheels внутри старой `.venv` и устраняется recreation env или force-reinstall этих пакетов.

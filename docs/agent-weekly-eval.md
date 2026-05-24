@@ -1,27 +1,27 @@
 # Agent Weekly Eval
 
-Дата среза: 2026-05-23
-Окно: 2026-05-17 .. 2026-05-23 (7 дней)
+Дата среза: 2026-05-24
+Окно: 2026-05-18 .. 2026-05-24 (7 дней)
 Статус: strong
 
 Этот отчёт generated из `docs/agent-quality-scorecard.v1.json`, `docs/agent-telemetry.v1.jsonl` и `docs/agent-weekly-reviews.v1.json`.
 
 ## 1. Snapshot
 
-- telemetry entries in window: `17`;
-- state updates in window: `17`;
-- feature-traceable entries in window: `17`;
-- validated features in spine: `22`;
-- referenced features in telemetry: `22`.
+- telemetry entries in window: `33`;
+- state updates in window: `33`;
+- feature-traceable entries in window: `33`;
+- validated features in spine: `25`;
+- referenced features in telemetry: `25`.
 
 ## 2. Observed signals
 
 | Signal | Score | Basis |
 | --- | ---: | --- |
-| Validation discipline | 5/5 | 17/17 telemetry entries have pass-like validation results. |
-| State hygiene | 5/5 | 17/17 telemetry entries report state_update=true. |
-| Feature traceability | 5/5 | 17/17 telemetry entries reference at least one feature_id. |
-| Feature coverage in telemetry | 5/5 | 22/22 validated features are referenced by structured telemetry. |
+| Validation discipline | 5/5 | 33/33 telemetry entries have pass-like validation results. |
+| State hygiene | 5/5 | 33/33 telemetry entries report state_update=true. |
+| Feature traceability | 5/5 | 33/33 telemetry entries reference at least one feature_id. |
+| Feature coverage in telemetry | 5/5 | 25/25 validated features are referenced by structured telemetry. |
 
 ## 3. Findings
 

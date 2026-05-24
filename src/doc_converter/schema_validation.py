@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Mapping
@@ -12,12 +13,46 @@ class SchemaValidationError(ValueError):
     """Raised when a JSON payload does not match its schema."""
 
 
-_SCHEMAS_DIR = Path(__file__).resolve().parents[2] / "schemas"
+_SOURCE_SCHEMAS_DIR = Path(__file__).resolve().parents[2] / "schemas"
+
+
+@lru_cache(maxsize=1)
+def _schemas_dir() -> Path:
+    candidates: list[Path] = []
+    if getattr(sys, "frozen", False):
+        executable_dir = Path(sys.executable).resolve().parent
+        candidates.extend(
+            [
+                executable_dir / "schemas",
+                executable_dir / "_internal" / "schemas",
+            ]
+        )
+        meipass = getattr(sys, "_MEIPASS", None)
+        if meipass:
+            candidates.append(Path(meipass) / "schemas")
+
+    candidates.append(_SOURCE_SCHEMAS_DIR)
+
+    seen: set[Path] = set()
+    unique_candidates: list[Path] = []
+    for candidate in candidates:
+        resolved = candidate.resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        unique_candidates.append(resolved)
+
+    for candidate in unique_candidates:
+        if candidate.exists():
+            return candidate
+
+    checked_paths = ", ".join(str(path) for path in unique_candidates)
+    raise SchemaValidationError(f"Schema directory not found. Tried: {checked_paths}")
 
 
 @lru_cache(maxsize=None)
 def _load_validator(schema_filename: str) -> Draft202012Validator:
-    schema_path = _SCHEMAS_DIR / schema_filename
+    schema_path = _schemas_dir() / schema_filename
     if not schema_path.exists():
         raise SchemaValidationError(f"Schema file not found: {schema_path}")
     schema = json.loads(schema_path.read_text(encoding="utf-8"))

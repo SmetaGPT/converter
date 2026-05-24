@@ -82,6 +82,8 @@ class StructuralUnit:
     parent_id: str | None = None
     text: str | None = None
     asset_ref: str | None = None
+    formula: dict[str, Any] | None = None
+    cell: dict[str, Any] | None = None
     quality: dict[str, Any] = field(default_factory=lambda: {"flags": [], "warnings": []})
 
     def to_dict(self) -> dict[str, Any]:
@@ -92,6 +94,8 @@ class StructuralUnit:
             "order": self.order,
             "text": self.text,
             "asset_ref": self.asset_ref,
+            "formula": self.formula,
+            "cell": self.cell,
             "source_ref": self.source_ref.to_dict(),
             "quality": self.quality,
         }

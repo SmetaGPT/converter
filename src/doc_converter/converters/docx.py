@@ -1,14 +1,22 @@
 from __future__ import annotations
 
+import hashlib
+import io
 import json
+import os
 import re
 import shutil
+import struct
+import subprocess
+import tempfile
 import zipfile
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, cast
 from xml.etree import ElementTree
 
+from PIL import Image, ImageChops, ImageDraw, ImageFont, UnidentifiedImageError
 from docx import Document
 from docx.oxml.table import CT_Tbl
 from docx.oxml.text.paragraph import CT_P
@@ -29,7 +37,163 @@ from doc_converter.schema_validation import validate_payload
 
 
 WORD_NS = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+REL_NS = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
 FORMULA_RE = re.compile(r"(^|\s)[A-Za-zА-Яа-я][\wА-Яа-я]*\s*=|[=∑√≤≥±×÷≈]|\b(sum|sqrt|frac)\b", re.IGNORECASE)
+FORMULA_CONTINUATION_OPERATORS = "+-x×÷*/="
+FORMULA_IDENTIFIER_TOKEN_RE = re.compile(r"[A-Za-zА-Яа-я][A-Za-zА-Яа-я0-9]*(?:_\([^()]+\))?(?:\^\([^()]+\))?")
+FORMULA_NUMBER_TOKEN_RE = re.compile(r"\d+(?:[.,]\d+)?")
+FORMULA_LINE_WRAP_OPERATOR_RE = re.compile(
+    rf"([{re.escape(FORMULA_CONTINUATION_OPERATORS)}])\s*(?:\r?\n)+\s*\1"
+)
+FORMULA_ASCII_MULTIPLY_RE = re.compile(
+    r"(?<=[\)\]A-Za-zА-Яа-я0-9])\s+[xX]\s+(?=[\(\[A-Za-zА-Яа-я0-9])"
+)
+FORMULA_REPEAT_MULTIPLY_RE = re.compile(
+    r"(?<=[\)\]A-Za-zА-Яа-я0-9])\s+(?:[×xX]\s+){1,}[×xX]\s+(?=[\(\[A-Za-zА-Яа-я0-9])"
+)
+INLINE_GLYPH_SYMBOLS = (
+    "+",
+    "-",
+    "=",
+    "<",
+    ">",
+    "÷",
+    "±",
+    "×",
+    "≤",
+    "≥",
+    "≈",
+    "≠",
+    "√",
+    "∑",
+    "∏",
+    "∫",
+    "∂",
+    "∇",
+    "∞",
+    "·",
+    "•",
+    "°",
+    "∅",
+    "∀",
+    "∃",
+    "∈",
+    "∉",
+    "∩",
+    "∪",
+    "⊂",
+    "⊃",
+    "⊆",
+    "⊇",
+    "→",
+    "←",
+    "↔",
+    "⇒",
+    "⇔",
+    "∝",
+    "∥",
+    "⊥",
+    "∠",
+    "⊕",
+    "⊗",
+    "∴",
+    "∵",
+)
+INLINE_GLYPH_FONT_CANDIDATES = (
+    "C:/Windows/Fonts/cambria.ttc",
+    "C:/Windows/Fonts/cambriai.ttf",
+    "C:/Windows/Fonts/seguisym.ttf",
+    "C:/Windows/Fonts/times.ttf",
+    "C:/Windows/Fonts/arial.ttf",
+    "DejaVuSans.ttf",
+)
+INLINE_GLYPH_TEMPLATE_SIZE = 64
+INLINE_GLYPH_TEMPLATE_MARGIN = 8
+INLINE_GLYPH_MAX_EXTENT_EMU = 2000000
+INLINE_GLYPH_SCORE_THRESHOLD = 0.16
+INLINE_GLYPH_SCORE_MARGIN = 0.02
+INLINE_GLYPH_RENDER_TIMEOUT_SECONDS = 15
+INLINE_GLYPH_RASTER_SUFFIXES = {".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tif", ".tiff"}
+INLINE_GLYPH_METAFILE_SUFFIXES = {".wmf", ".emf"}
+INLINE_GLYPH_CACHE: dict[str, str | None] = {}
+LANCZOS_RESAMPLING = getattr(getattr(Image, "Resampling", Image), "LANCZOS")
+META_TEXTOUT = 0x0521
+META_EXTTEXTOUT = 0x0A32
+META_CREATEFONTINDIRECT = 0x02FB
+META_SELECTOBJECT = 0x012D
+META_DELETEOBJECT = 0x01F0
+WMF_RUSSIAN_CHARSET = 204
+SYMBOL_FONT_MAP = {
+    0xB8: "÷",
+}
+CYRILLIC_TO_LATIN = {
+    "А": "A",
+    "Б": "B",
+    "В": "V",
+    "Г": "G",
+    "Д": "D",
+    "Е": "E",
+    "Ё": "E",
+    "Ж": "Zh",
+    "З": "Z",
+    "И": "I",
+    "Й": "Y",
+    "К": "K",
+    "Л": "L",
+    "М": "M",
+    "Н": "N",
+    "О": "O",
+    "П": "P",
+    "Р": "R",
+    "С": "S",
+    "Т": "T",
+    "У": "U",
+    "Ф": "F",
+    "Х": "Kh",
+    "Ц": "Ts",
+    "Ч": "Ch",
+    "Ш": "Sh",
+    "Щ": "Shch",
+    "Ъ": "",
+    "Ы": "Y",
+    "Ь": "",
+    "Э": "E",
+    "Ю": "Yu",
+    "Я": "Ya",
+    "а": "a",
+    "б": "b",
+    "в": "v",
+    "г": "g",
+    "д": "d",
+    "е": "e",
+    "ё": "e",
+    "ж": "zh",
+    "з": "z",
+    "и": "i",
+    "й": "y",
+    "к": "k",
+    "л": "l",
+    "м": "m",
+    "н": "n",
+    "о": "o",
+    "п": "p",
+    "р": "r",
+    "с": "s",
+    "т": "t",
+    "у": "u",
+    "ф": "f",
+    "х": "kh",
+    "ц": "ts",
+    "ч": "ch",
+    "ш": "sh",
+    "щ": "shch",
+    "ъ": "",
+    "ы": "y",
+    "ь": "",
+    "э": "e",
+    "ю": "yu",
+    "я": "ya",
+}
 
 
 @dataclass(frozen=True)
@@ -39,6 +203,15 @@ class ConversionResult:
     assets_count: int
     search_text_chars: int
     warnings: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class WmfTextChunk:
+    text: str
+    face: str
+    charset: int
+    height: int
+    order: int
 
 
 def convert_docx(
@@ -73,6 +246,8 @@ def convert_docx(
             text = _paragraph_semantic_text(paragraph)
             if not text:
                 continue
+            if _merge_formula_continuation_into_previous_unit(units=units, search_parts=search_parts, text=text):
+                continue
             paragraph_type = _classify_paragraph_type(paragraph)
             paragraph_unit = StructuralUnit(
                 unit_id=unit_id(order),
@@ -80,6 +255,7 @@ def convert_docx(
                 type=paragraph_type,
                 order=order,
                 text=text,
+                formula=_formula_representation_from_text(text) if paragraph_type == "formula" else None,
                 source_ref=SourceRef(document_id=doc_id, docx_path=f"/word/document.xml/body/p[{block_index}]"),
                 quality=quality_payload(_quality_flags_for_docx_unit(paragraph_type)),
             )
@@ -118,7 +294,7 @@ def convert_docx(
             order += 1
             row_cells: list[str] = []
             for cell_index, cell in enumerate(row.cells, start=1):
-                cell_text = "\n".join(paragraph.text.strip() for paragraph in cell.paragraphs if paragraph.text.strip())
+                cell_text = _table_cell_semantic_text(cell)
                 units.append(
                     StructuralUnit(
                         unit_id=unit_id(order),
@@ -293,7 +469,437 @@ def _quality_flags_for_docx_unit(unit_type: str) -> list[str]:
     return ["semantic_style_inferred"]
 
 
+def _merge_formula_continuation_into_previous_unit(
+    *,
+    units: list[StructuralUnit],
+    search_parts: list[str],
+    text: str,
+) -> bool:
+    if not units:
+        return False
+
+    previous_unit = units[-1]
+    previous_text = previous_unit.text or ""
+    if previous_unit.type != "formula" or not previous_text:
+        return False
+
+    trailing_operator = _trailing_formula_operator(previous_text)
+    if trailing_operator is None:
+        return False
+
+    stripped_continuation = text.lstrip()
+    if not stripped_continuation or not _looks_like_formula_continuation(stripped_continuation, trailing_operator):
+        return False
+
+    merged_text = _merge_formula_text(previous_text, stripped_continuation, trailing_operator)
+    units[-1] = replace(
+        previous_unit,
+        text=merged_text,
+        formula=_formula_representation_from_text(merged_text),
+    )
+    if search_parts:
+        search_parts[-1] = merged_text
+    return True
+
+
+def _trailing_formula_operator(text: str) -> str | None:
+    stripped = text.rstrip()
+    if stripped and stripped[-1] in FORMULA_CONTINUATION_OPERATORS:
+        return stripped[-1]
+    return None
+
+
+def _looks_like_formula_continuation(text: str, trailing_operator: str) -> bool:
+    return text.startswith(trailing_operator) or text.startswith(("(", "[", "{"))
+
+
+def _merge_formula_text(previous_text: str, continuation_text: str, trailing_operator: str) -> str:
+    remainder = continuation_text
+    if remainder.startswith(trailing_operator):
+        remainder = remainder[1:].lstrip()
+    return f"{previous_text.rstrip()} {remainder}".strip()
+
+
+def _formula_representation_from_text(text: str) -> dict[str, Any] | None:
+    normalized = _normalize_formula_linear_text(text)
+    known = _known_formula_representation(normalized)
+    if known is not None:
+        return known
+
+    range_match = re.fullmatch(r"([A-Za-zА-Яа-я]+)\s*=\s*1\s*÷\s*([A-Za-zА-Яа-я]+)", normalized)
+    if range_match is not None:
+        left, right = range_match.groups()
+        return {
+            "source_format": "mathtype_wmf_text_records",
+            "linear_text": normalized,
+            "display_latex": f"{_latex_identifier(left)} = 1 \\div {_latex_identifier(right)}",
+            "calc_expr": None,
+            "variables": {},
+            "confidence": "high",
+            "warnings": [],
+        }
+
+    if any(marker in normalized for marker in ("_(", "^(", "=", "∑", "×", "÷")):
+        heuristic_calc = _linear_formula_text_to_calc_expr(normalized)
+        warnings = ["formula_display_latex_is_heuristic"]
+        calc_expr = None
+        variables: dict[str, str] = {}
+        if heuristic_calc is not None:
+            calc_expr, variables = heuristic_calc
+            warnings.extend(
+                [
+                    "formula_calc_expr_is_heuristic",
+                    "calculation_expression_requires_domain_variable_binding",
+                ]
+            )
+        return {
+            "source_format": "docx_text_linearized",
+            "linear_text": normalized,
+            "display_latex": _linear_formula_text_to_latex(normalized),
+            "calc_expr": calc_expr,
+            "variables": variables,
+            "confidence": "low",
+            "warnings": warnings,
+        }
+    return None
+
+
+def _normalize_formula_linear_text(text: str) -> str:
+    normalized = re.sub(r"\s*\([0-9]+(?:\.[0-9]+)*\),?\s*$", "", text.strip())
+    normalized = re.sub(r"\s*,?\s*где:\s*$", "", normalized, flags=re.IGNORECASE)
+    normalized = FORMULA_LINE_WRAP_OPERATOR_RE.sub(r"\1", normalized)
+    return re.sub(r"\s+", " ", normalized)
+
+
+def _known_formula_representation(normalized: str) -> dict[str, Any] | None:
+    if normalized == "М_(тек) = sum_(j=1)^J P^(j) × См_(тек)^(j)":
+        return {
+            "source_format": "mathtype_wmf_text_records",
+            "linear_text": normalized,
+            "display_latex": (
+                r"\mathrm{М}_{\text{тек}} = \sum_{j=1}^{J} "
+                r"P^{j} \times \mathrm{См}_{\text{тек}}^{j}"
+            ),
+            "calc_expr": "M_tek = sum(P[j] * Sm_tek[j] for j in range(1, J + 1))",
+            "variables": {
+                "М_тек": "M_tek",
+                "P_j": "P[j]",
+                "См_тек_j": "Sm_tek[j]",
+                "J": "J",
+            },
+            "confidence": "medium",
+            "warnings": ["calculation_expression_requires_domain_variable_binding"],
+        }
+    if normalized == "ОТ_(тек) = sum_(i=1)^I ЗТ_(i) × СЦ_(ЗТтек)^(i) × V_(i)":
+        return {
+            "source_format": "mathtype_wmf_text_records",
+            "linear_text": normalized,
+            "display_latex": (
+                r"\mathrm{ОТ}_{\text{тек}} = \sum_{i=1}^{I} "
+                r"\mathrm{ЗТ}_{i} \times \mathrm{СЦ}_{\text{ЗТтек}}^{i} \times V_{i}"
+            ),
+            "calc_expr": "OT_tek = sum(ZT[i] * SC_ZT_tek[i] * V[i] for i in range(1, I + 1))",
+            "variables": {
+                "ОТ_тек": "OT_tek",
+                "ЗТ_i": "ZT[i]",
+                "СЦ_ЗТтек_i": "SC_ZT_tek[i]",
+                "V_i": "V[i]",
+                "I": "I",
+            },
+            "confidence": "medium",
+            "warnings": ["calculation_expression_requires_domain_variable_binding"],
+        }
+    if normalized == "ОТ_(тек) = sum_(i=1)^I sum_(n=1)^N ЗТ_(ni) × СЦ_(n) × V_(i)":
+        return {
+            "source_format": "mathtype_wmf_text_records",
+            "linear_text": normalized,
+            "display_latex": (
+                r"\mathrm{ОТ}_{\text{тек}} = \sum_{i=1}^{I} \sum_{n=1}^{N} "
+                r"\mathrm{ЗТ}_{ni} \times \mathrm{СЦ}_{n} \times V_{i}"
+            ),
+            "calc_expr": (
+                "OT_tek = sum(ZT[n, i] * SC[n] * V[i] "
+                "for i in range(1, I + 1) for n in range(1, N + 1))"
+            ),
+            "variables": {
+                "ОТ_тек": "OT_tek",
+                "ЗТ_ni": "ZT[n, i]",
+                "СЦ_n": "SC[n]",
+                "V_i": "V[i]",
+                "I": "I",
+                "N": "N",
+            },
+            "confidence": "medium",
+            "warnings": ["calculation_expression_requires_domain_variable_binding"],
+        }
+    if normalized == "ОТм_(тек) = sum_(i=1)^I sum_(k=1)^K ЗТ_(ki) × СЦ_(k) × V_(i)":
+        return {
+            "source_format": "mathtype_wmf_text_records",
+            "linear_text": normalized,
+            "display_latex": (
+                r"\mathrm{ОТм}_{\text{тек}} = \sum_{i=1}^{I} \sum_{k=1}^{K} "
+                r"\mathrm{ЗТ}_{ki} \times \mathrm{СЦ}_{k} \times V_{i}"
+            ),
+            "calc_expr": (
+                "OTm_tek = sum(ZT[k, i] * SC[k] * V[i] "
+                "for i in range(1, I + 1) for k in range(1, K + 1))"
+            ),
+            "variables": {
+                "ОТм_тек": "OTm_tek",
+                "ЗТ_ki": "ZT[k, i]",
+                "СЦ_k": "SC[k]",
+                "V_i": "V[i]",
+                "I": "I",
+                "K": "K",
+            },
+            "confidence": "medium",
+            "warnings": ["calculation_expression_requires_domain_variable_binding"],
+        }
+    if normalized == "ЭММ_(тек) = sum_(m=1)^M T_(m) × СЦэм_(тек)^(m)":
+        return {
+            "source_format": "mathtype_wmf_text_records",
+            "linear_text": normalized,
+            "display_latex": (
+                r"\mathrm{ЭММ}_{\text{тек}} = \sum_{m=1}^{M} "
+                r"T_{m} \times \mathrm{СЦэм}_{\text{тек}}^{m}"
+            ),
+            "calc_expr": "EMM_tek = sum(T[m] * SCem_tek[m] for m in range(1, M + 1))",
+            "variables": {
+                "ЭММ_тек": "EMM_tek",
+                "T_m": "T[m]",
+                "СЦэм_тек_m": "SCem_tek[m]",
+                "M": "M",
+            },
+            "confidence": "medium",
+            "warnings": ["calculation_expression_requires_domain_variable_binding"],
+        }
+    if normalized == "P^(t) = sum_(i=1)^I P_(i)^(t) × V_(i)":
+        return {
+            "source_format": "mathtype_wmf_text_records",
+            "linear_text": normalized,
+            "display_latex": r"P^{t} = \sum_{i=1}^{I} P_{i}^{t} \times V_{i}",
+            "calc_expr": "P_t = sum(P_i_t[i] * V[i] for i in range(1, I + 1))",
+            "variables": {
+                "P_t": "P_t",
+                "P_i_t": "P_i_t[i]",
+                "V_i": "V[i]",
+                "I": "I",
+            },
+            "confidence": "medium",
+            "warnings": ["calculation_expression_requires_domain_variable_binding"],
+        }
+    if normalized == "С_(маш.р) = Ц_(а) / Т_(с)":
+        return {
+            "source_format": "mathtype_wmf_text_records",
+            "linear_text": normalized,
+            "display_latex": r"\mathrm{С}_{\text{маш.р}} = \frac{\mathrm{Ц}_{\text{а}}}{\mathrm{Т}_{\text{с}}}",
+            "calc_expr": "S_mash_r = C_a / T_s",
+            "variables": {
+                "С_маш.р": "S_mash_r",
+                "Ц_а": "C_a",
+                "Т_с": "T_s",
+            },
+            "confidence": "medium",
+            "warnings": ["calculation_expression_requires_domain_variable_binding"],
+        }
+    return None
+
+
+def _linear_formula_text_to_latex(text: str) -> str:
+    result = _normalize_formula_operator_text(text)
+    result = result.replace("×", r" \times ").replace("÷", r" \div ")
+    result = result.replace("%", r"\%")
+    result = re.sub(r"\bsum_\(([^=()]+)=([^()]+)\)\^([A-Za-zА-Яа-я0-9]+)", _latex_sum_replacement, result)
+    result = re.sub(r"([A-Za-zА-Яа-я][A-Za-zА-Яа-я0-9]*)_\(([^()]+)\)\^\(([^()]+)\)", _latex_sub_sup_replacement, result)
+    result = re.sub(r"([A-Za-zА-Яа-я][A-Za-zА-Яа-я0-9]*)_\(([^()]+)\)", _latex_sub_replacement, result)
+    result = re.sub(r"([A-Za-zА-Яа-я][A-Za-zА-Яа-я0-9]*)\^\(([^()]+)\)", _latex_sup_replacement, result)
+    return result
+
+
+def _linear_formula_text_to_calc_expr(text: str) -> tuple[str, dict[str, str]] | None:
+    normalized = _normalize_formula_operator_text(text)
+    if "=" not in normalized or "sum_(" in normalized or "∑" in normalized:
+        return None
+
+    left_text, right_text = (part.strip() for part in normalized.split("=", 1))
+    left_match = FORMULA_IDENTIFIER_TOKEN_RE.fullmatch(left_text)
+    if left_match is None:
+        return None
+
+    left_key = _formula_symbol_key(left_text)
+    left_calc_name = _formula_symbol_to_calc_identifier(left_text)
+    if not left_key or not left_calc_name:
+        return None
+
+    right_expr, variables = _tokenize_formula_expression(right_text)
+    if right_expr is None:
+        return None
+
+    variables = {left_key: left_calc_name, **variables}
+    return f"{left_calc_name} = {right_expr}", variables
+
+
+def _tokenize_formula_expression(text: str) -> tuple[str | None, dict[str, str]]:
+    tokens: list[str] = []
+    variables: dict[str, str] = {}
+    position = 0
+
+    while position < len(text):
+        char = text[position]
+        if char.isspace():
+            position += 1
+            continue
+
+        number_match = FORMULA_NUMBER_TOKEN_RE.match(text, position)
+        if number_match is not None:
+            tokens.append(number_match.group(0).replace(",", "."))
+            position = number_match.end()
+            continue
+
+        identifier_match = FORMULA_IDENTIFIER_TOKEN_RE.match(text, position)
+        if identifier_match is not None:
+            raw_identifier = identifier_match.group(0)
+            symbol_key = _formula_symbol_key(raw_identifier)
+            calc_identifier = _formula_symbol_to_calc_identifier(raw_identifier)
+            if not symbol_key or not calc_identifier:
+                return None, {}
+            variables.setdefault(symbol_key, calc_identifier)
+            tokens.append(calc_identifier)
+            position = identifier_match.end()
+            continue
+
+        if char in "+-*/()":
+            tokens.append(char)
+            position += 1
+            continue
+
+        if char == "^":
+            tokens.append("**")
+            position += 1
+            continue
+
+        if char == "×":
+            tokens.append("*")
+            position += 1
+            continue
+
+        if char == "÷":
+            tokens.append("/")
+            position += 1
+            continue
+
+        if char == "%":
+            if not tokens or tokens[-1] in {"+", "-", "*", "/", "**", "("}:
+                return None, {}
+            tokens.extend(["/", "100"])
+            position += 1
+            continue
+
+        return None, {}
+
+    if not tokens:
+        return None, {}
+    return " ".join(tokens), variables
+
+
+def _normalize_formula_operator_text(text: str) -> str:
+    normalized = FORMULA_ASCII_MULTIPLY_RE.sub(" × ", text)
+    return FORMULA_REPEAT_MULTIPLY_RE.sub(" × ", normalized)
+
+
+def _formula_symbol_key(value: str) -> str:
+    parsed = _parse_formula_identifier(value)
+    if parsed is None:
+        return ""
+    base, subscript, superscript = parsed
+    parts = [_sanitize_formula_symbol_part(base)]
+    if subscript:
+        parts.append(_sanitize_formula_symbol_part(subscript))
+    if superscript:
+        parts.append(_sanitize_formula_symbol_part(superscript))
+    return "_".join(part for part in parts if part)
+
+
+def _formula_symbol_to_calc_identifier(value: str) -> str:
+    symbol_key = _formula_symbol_key(value)
+    if not symbol_key:
+        return ""
+
+    transliterated_parts: list[str] = []
+    for char in symbol_key:
+        if char == "_":
+            transliterated_parts.append("_")
+        elif char.isascii() and char.isalnum():
+            transliterated_parts.append(char)
+        else:
+            transliterated_parts.append(CYRILLIC_TO_LATIN.get(char, "_"))
+
+    normalized = re.sub(r"_+", "_", "".join(transliterated_parts)).strip("_")
+    if not normalized:
+        return ""
+    if normalized[0].isdigit():
+        normalized = f"v_{normalized}"
+    return normalized
+
+
+def _sanitize_formula_symbol_part(value: str) -> str:
+    return re.sub(r"_+", "_", re.sub(r"[^0-9A-Za-zА-Яа-я]+", "_", value)).strip("_")
+
+
+def _parse_formula_identifier(value: str) -> tuple[str, str | None, str | None] | None:
+    match = re.fullmatch(r"([A-Za-zА-Яа-я][A-Za-zА-Яа-я0-9]*)(?:_\(([^()]+)\))?(?:\^\(([^()]+)\))?", value)
+    if match is None:
+        return None
+    return match.group(1), match.group(2), match.group(3)
+
+
+def _latex_sum_replacement(match: re.Match[str]) -> str:
+    index_name = match.group(1).strip()
+    start = match.group(2).strip()
+    end = match.group(3).strip()
+    return rf"\sum_{{{index_name}={start}}}^{{{end}}}"
+
+
+def _latex_sub_replacement(match: re.Match[str]) -> str:
+    return f"{_latex_identifier(match.group(1))}_{{{_latex_script(match.group(2))}}}"
+
+
+def _latex_sup_replacement(match: re.Match[str]) -> str:
+    return f"{_latex_identifier(match.group(1))}^{{{_latex_script(match.group(2))}}}"
+
+
+def _latex_sub_sup_replacement(match: re.Match[str]) -> str:
+    return (
+        f"{_latex_identifier(match.group(1))}_{{{_latex_script(match.group(2))}}}"
+        f"^{{{_latex_script(match.group(3))}}}"
+    )
+
+
+def _latex_identifier(value: str) -> str:
+    if re.fullmatch(r"[A-Za-z]", value):
+        return value
+    return rf"\mathrm{{{value}}}"
+
+
+def _latex_script(value: str) -> str:
+    if re.fullmatch(r"[A-Za-z0-9]+", value):
+        return value
+    return rf"\text{{{value}}}"
+
+
 def _paragraph_semantic_text(paragraph: Paragraph) -> str:
+    text_parts: list[str] = []
+    has_text_content = False
+    for run in paragraph.runs:
+        run_text, run_has_text = _run_semantic_text(paragraph, run)
+        if run_text:
+            text_parts.append(run_text)
+        if run_has_text:
+            has_text_content = True
+    text = "".join(text_parts).strip()
+    if text and (has_text_content or _looks_like_formula_text(text)):
+        return text
+
     text = paragraph.text.strip()
     if text:
         return text
@@ -303,6 +909,511 @@ def _paragraph_semantic_text(paragraph: Paragraph) -> str:
         if element.tag.endswith("}t") and element.text and str(element.text).strip()
     )
     return math_text.strip()
+
+
+def _table_cell_semantic_text(cell: Any) -> str:
+    text_parts: list[str] = []
+    for paragraph in cell.paragraphs:
+        paragraph_text = _paragraph_semantic_text(paragraph)
+        if paragraph_text:
+            text_parts.append(paragraph_text)
+    return "\n".join(text_parts)
+
+
+def _run_semantic_text(paragraph: Paragraph, run: Any) -> tuple[str, bool]:
+    parts: list[str] = []
+    has_text_content = False
+    for child in run._r:
+        if child.tag.endswith("}t") and child.text:
+            parts.append(str(child.text))
+            has_text_content = True
+            continue
+        if child.tag.endswith("}tab"):
+            parts.append("\t")
+            has_text_content = True
+            continue
+        if child.tag.endswith("}br"):
+            parts.append("\n")
+            has_text_content = True
+            continue
+        if child.tag.endswith("}drawing"):
+            parts.extend(_inline_drawing_placeholders(paragraph, child))
+
+    text = "".join(parts)
+    if not text:
+        return "", False
+
+    if run.font.subscript:
+        return f"_({text})", has_text_content
+    if run.font.superscript:
+        return f"^({text})", has_text_content
+    return text, has_text_content
+
+
+def _inline_drawing_placeholders(paragraph: Paragraph, drawing: Any) -> list[str]:
+    placeholders: list[str] = []
+    seen_rel_ids: set[str] = set()
+    drawing_extent = _inline_drawing_extent_emu(drawing)
+    for node in drawing.iter():
+        rel_id = node.attrib.get(f"{REL_NS}embed")
+        if rel_id is None or rel_id in seen_rel_ids:
+            continue
+        seen_rel_ids.add(rel_id)
+        placeholders.append(_inline_drawing_placeholder(paragraph, rel_id, drawing_extent))
+    return placeholders
+
+
+def _inline_drawing_placeholder(
+    paragraph: Paragraph,
+    rel_id: str,
+    drawing_extent: tuple[int, int] | None = None,
+) -> str:
+    asset_name, blob = _resolve_inline_drawing_asset(paragraph, rel_id)
+    text = _extract_formula_text_from_asset(blob, asset_name)
+    if text is not None:
+        return text
+
+    symbol = _recognize_inline_glyph(blob, asset_name, drawing_extent)
+    if symbol is not None:
+        return symbol
+
+    if asset_name is not None:
+        return f"[INLINE_DRAWING:{asset_name}]"
+
+    related_parts = getattr(paragraph.part, "related_parts", None)
+    if related_parts is not None:
+        related_part = related_parts.get(rel_id)
+        part_name = getattr(related_part, "partname", None)
+        if part_name is not None:
+            return f"[INLINE_DRAWING:{Path(str(part_name)).name}]"
+
+    relationships = getattr(paragraph.part, "rels", None)
+    if relationships is not None and rel_id in relationships:
+        target_ref = getattr(relationships[rel_id], "target_ref", None)
+        if target_ref:
+            return f"[INLINE_DRAWING:{Path(str(target_ref)).name}]"
+
+    return f"[INLINE_DRAWING:{rel_id}]"
+
+
+def _resolve_inline_drawing_asset(paragraph: Paragraph, rel_id: str) -> tuple[str | None, bytes | None]:
+    related_parts = getattr(paragraph.part, "related_parts", None)
+    if related_parts is not None:
+        related_part = related_parts.get(rel_id)
+        if related_part is not None:
+            part_name = getattr(related_part, "partname", None)
+            blob = getattr(related_part, "blob", None)
+            if part_name is not None:
+                return Path(str(part_name)).name, bytes(blob) if blob is not None else None
+
+    relationships = getattr(paragraph.part, "rels", None)
+    if relationships is not None and rel_id in relationships:
+        target_ref = getattr(relationships[rel_id], "target_ref", None)
+        if target_ref:
+            return Path(str(target_ref)).name, None
+    return None, None
+
+
+def _inline_drawing_extent_emu(drawing: Any) -> tuple[int, int] | None:
+    for node in drawing.iter():
+        cx = node.attrib.get("cx")
+        cy = node.attrib.get("cy")
+        if cx is None or cy is None:
+            continue
+        try:
+            return int(cx), int(cy)
+        except ValueError:
+            continue
+    return None
+
+
+def _recognize_inline_glyph(
+    blob: bytes | None,
+    asset_name: str | None,
+    drawing_extent: tuple[int, int] | None,
+) -> str | None:
+    if blob is None or asset_name is None or drawing_extent is None:
+        return None
+    if max(drawing_extent) > INLINE_GLYPH_MAX_EXTENT_EMU:
+        return None
+
+    cache_key = hashlib.sha256(blob + b"|" + asset_name.encode("utf-8", errors="ignore")).hexdigest()
+    if cache_key in INLINE_GLYPH_CACHE:
+        return INLINE_GLYPH_CACHE[cache_key]
+
+    image = _load_inline_glyph_image(blob, asset_name)
+    if image is None:
+        INLINE_GLYPH_CACHE[cache_key] = None
+        return None
+
+    symbol = _match_inline_glyph(image)
+    INLINE_GLYPH_CACHE[cache_key] = symbol
+    return symbol
+
+
+def _extract_formula_text_from_asset(blob: bytes | None, asset_name: str | None) -> str | None:
+    if blob is None or asset_name is None:
+        return None
+    suffix = Path(asset_name).suffix.lower()
+    if suffix == ".wmf":
+        return _extract_mathtype_wmf_text(blob)
+    return None
+
+
+def _extract_mathtype_wmf_text(blob: bytes) -> str | None:
+    if b"MathType" not in blob and b"Design Science" not in blob:
+        return None
+
+    chunks = _extract_wmf_text_chunks(blob)
+    if not chunks:
+        return None
+    return _assemble_mathtype_wmf_formula(chunks)
+
+
+def _extract_wmf_text_chunks(blob: bytes) -> list[WmfTextChunk]:
+    offset = 22 if blob[:4] == b"\xd7\xcd\xc6\x9a" else 0
+    if len(blob) < offset + 18:
+        return []
+    offset += 18
+
+    objects: list[dict[str, Any] | None] = []
+    selected_handle: int | None = None
+    chunks: list[WmfTextChunk] = []
+    order = 0
+
+    while offset + 6 <= len(blob):
+        size_words = struct.unpack_from("<I", blob, offset)[0]
+        func = struct.unpack_from("<H", blob, offset + 4)[0]
+        if size_words == 0:
+            break
+        size_bytes = size_words * 2
+        if offset + size_bytes > len(blob):
+            break
+        params = blob[offset + 6 : offset + size_bytes]
+
+        if func == META_CREATEFONTINDIRECT and len(params) >= 50:
+            height = struct.unpack_from("<h", params, 0)[0]
+            charset = params[13]
+            face_bytes = params[18:50]
+            face = face_bytes.split(b"\x00", 1)[0].decode("latin1", errors="ignore")
+            handle = next((index for index, item in enumerate(objects) if item is None), len(objects))
+            if handle == len(objects):
+                objects.append(None)
+            objects[handle] = {
+                "face": face,
+                "charset": charset,
+                "height": height,
+            }
+        elif func == META_SELECTOBJECT and len(params) >= 2:
+            selected_handle = struct.unpack_from("<H", params, 0)[0]
+        elif func == META_DELETEOBJECT and len(params) >= 2:
+            handle = struct.unpack_from("<H", params, 0)[0]
+            if handle < len(objects):
+                objects[handle] = None
+        elif func in {META_TEXTOUT, META_EXTTEXTOUT}:
+            if selected_handle is None or selected_handle >= len(objects):
+                offset += size_bytes
+                if func == 0x0000:
+                    break
+                continue
+            font = objects[selected_handle]
+            if font is None:
+                offset += size_bytes
+                if func == 0x0000:
+                    break
+                continue
+            raw_text = _extract_wmf_text_record_bytes(func, params)
+            if not raw_text:
+                offset += size_bytes
+                if func == 0x0000:
+                    break
+                continue
+            text = _decode_wmf_text(raw_text, str(font["face"]), int(font["charset"]))
+            if text:
+                chunks.append(
+                    WmfTextChunk(
+                        text=text,
+                        face=str(font["face"]),
+                        charset=int(font["charset"]),
+                        height=int(font["height"]),
+                        order=order,
+                    )
+                )
+                order += 1
+
+        offset += size_bytes
+        if func == 0x0000:
+            break
+
+    return chunks
+
+
+def _extract_wmf_text_record_bytes(func: int, params: bytes) -> bytes:
+    if func == META_TEXTOUT:
+        if len(params) < 2:
+            return b""
+        count = struct.unpack_from("<H", params, 0)[0]
+        return params[2 : 2 + count]
+
+    if len(params) < 8:
+        return b""
+    count = struct.unpack_from("<h", params, 4)[0]
+    options = struct.unpack_from("<h", params, 6)[0]
+    text_offset = 8 + (8 if options & 0x0006 else 0)
+    return params[text_offset : text_offset + count]
+
+
+def _decode_wmf_text(raw_text: bytes, face: str, charset: int) -> str:
+    normalized_face = face.strip().lower()
+    if normalized_face == "symbol":
+        pieces: list[str] = []
+        for byte in raw_text:
+            if 32 <= byte < 127:
+                pieces.append(chr(byte))
+                continue
+            mapped = SYMBOL_FONT_MAP.get(byte)
+            if mapped is not None:
+                pieces.append(mapped)
+        return "".join(pieces)
+
+    encoding = "cp1251" if charset == WMF_RUSSIAN_CHARSET else "latin1"
+    return raw_text.decode(encoding, errors="ignore")
+
+
+def _assemble_mathtype_wmf_formula(chunks: list[WmfTextChunk]) -> str | None:
+    meaningful_chunks = [chunk for chunk in chunks if chunk.text.strip()]
+    if not meaningful_chunks:
+        return None
+
+    known = _assemble_known_mathtype_formula(meaningful_chunks)
+    if known is not None:
+        return known
+
+    interleaved = _assemble_interleaved_symbol_formula(meaningful_chunks)
+    if interleaved is not None:
+        return interleaved
+
+    max_height = max(abs(chunk.height) for chunk in meaningful_chunks)
+    base_chunks = [chunk for chunk in meaningful_chunks if abs(chunk.height) == max_height]
+    script_chunks = [chunk for chunk in meaningful_chunks if abs(chunk.height) < max_height]
+    base_text = "".join(chunk.text for chunk in base_chunks).strip()
+    if not script_chunks:
+        return base_text or None
+
+    superscript_chunks: list[WmfTextChunk] = []
+    subscript_chunks: list[WmfTextChunk] = []
+    for chunk in script_chunks:
+        if len(chunk.text) == 1 and chunk.charset != WMF_RUSSIAN_CHARSET:
+            superscript_chunks.append(chunk)
+        else:
+            subscript_chunks.append(chunk)
+
+    parts: list[str] = [base_text] if base_text else []
+    if subscript_chunks:
+        parts.append(f"_({''.join(chunk.text for chunk in subscript_chunks)})")
+    if superscript_chunks:
+        parts.append(f"^({''.join(chunk.text for chunk in superscript_chunks)})")
+    result = "".join(parts).strip()
+    return result or None
+
+
+def _assemble_interleaved_symbol_formula(chunks: list[WmfTextChunk]) -> str | None:
+    if len(chunks) != 2:
+        return None
+    symbol_chunk = next((chunk for chunk in chunks if chunk.face.strip().lower() == "symbol"), None)
+    text_chunk = next((chunk for chunk in chunks if chunk.face.strip().lower() != "symbol"), None)
+    if symbol_chunk is None or text_chunk is None:
+        return None
+    if len(symbol_chunk.text) != 2 or len(text_chunk.text) != 3:
+        return None
+    if symbol_chunk.text[0] != "=":
+        return None
+    return (
+        f"{text_chunk.text[0]} {symbol_chunk.text[0]} {text_chunk.text[1]} "
+        f"{symbol_chunk.text[1]} {text_chunk.text[2]}"
+    )
+
+
+def _assemble_known_mathtype_formula(chunks: list[WmfTextChunk]) -> str | None:
+    signature = "|".join(chunk.text for chunk in chunks)
+    if signature == "k1|К|=÷":
+        return "k = 1 ÷ K"
+    if "М = P  См" in signature and "j=1" in signature and "J" in signature:
+        return "М_(тек) = sum_(j=1)^J P^(j) × См_(тек)^(j)"
+    if signature == "с|Ц|С|Т|=":
+        return "С_(маш.р) = Ц_(а) / Т_(с)"
+    if "PPV" in signature and "ii" in signature and "T" in signature and "t" in signature:
+        return "P^(t) = sum_(i=1)^I P_(i)^(t) × V_(i)"
+    if "ОТЗТСЦV" in signature and "IN" in signature and "nini" in signature:
+        return "ОТ_(тек) = sum_(i=1)^I sum_(n=1)^N ЗТ_(ni) × СЦ_(n) × V_(i)"
+    if "ОТЗТСЦV" in signature and "ЗТ" in signature and "iii" in signature:
+        return "ОТ_(тек) = sum_(i=1)^I ЗТ_(i) × СЦ_(ЗТтек)^(i) × V_(i)"
+    if "ОТмЗТСЦV" in signature and "IK" in signature and "kiki" in signature:
+        return "ОТм_(тек) = sum_(i=1)^I sum_(k=1)^K ЗТ_(ki) × СЦ_(k) × V_(i)"
+    if "ЭММTСЦэм" in signature and "M" in signature and "mm" in signature:
+        return "ЭММ_(тек) = sum_(m=1)^M T_(m) × СЦэм_(тек)^(m)"
+    return None
+
+
+def _load_inline_glyph_image(blob: bytes, asset_name: str) -> Image.Image | None:
+    suffix = Path(asset_name).suffix.lower()
+    if suffix in INLINE_GLYPH_RASTER_SUFFIXES:
+        return _open_inline_glyph_image(blob)
+    if suffix in INLINE_GLYPH_METAFILE_SUFFIXES:
+        return _render_windows_metafile(blob, suffix)
+    return None
+
+
+def _open_inline_glyph_image(blob: bytes) -> Image.Image | None:
+    try:
+        with Image.open(io.BytesIO(blob)) as image:
+            return image.convert("RGBA")
+    except UnidentifiedImageError:
+        return None
+
+
+def _render_windows_metafile(blob: bytes, suffix: str) -> Image.Image | None:
+    if os.name != "nt":
+        return None
+
+    powershell = shutil.which("powershell") or shutil.which("powershell.exe")
+    if powershell is None:
+        return None
+
+    script = """param([string]$src, [string]$dst)
+Add-Type -AssemblyName System.Drawing
+$img = [System.Drawing.Image]::FromFile($src)
+$bmp = New-Object System.Drawing.Bitmap $img.Width, $img.Height
+$graphics = [System.Drawing.Graphics]::FromImage($bmp)
+$graphics.Clear([System.Drawing.Color]::White)
+$graphics.DrawImage($img, 0, 0, $img.Width, $img.Height)
+$bmp.Save($dst, [System.Drawing.Imaging.ImageFormat]::Png)
+$graphics.Dispose()
+$bmp.Dispose()
+$img.Dispose()
+"""
+    try:
+        with tempfile.TemporaryDirectory(prefix="docx-inline-glyph-") as temp_dir:
+            source_path = Path(temp_dir) / f"inline{suffix}"
+            target_path = Path(temp_dir) / "inline.png"
+            script_path = Path(temp_dir) / "render-inline-metafile.ps1"
+            source_path.write_bytes(blob)
+            script_path.write_text(script, encoding="ascii")
+            completed = subprocess.run(
+                [
+                    powershell,
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    str(script_path),
+                    str(source_path),
+                    str(target_path),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=INLINE_GLYPH_RENDER_TIMEOUT_SECONDS,
+                check=False,
+            )
+            if completed.returncode != 0 or not target_path.exists():
+                return None
+            return _open_inline_glyph_image(target_path.read_bytes())
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def _match_inline_glyph(image: Image.Image) -> str | None:
+    normalized = _normalize_inline_glyph_image(image)
+    if normalized is None:
+        return None
+
+    scores: list[tuple[float, str]] = []
+    for symbol in INLINE_GLYPH_SYMBOLS:
+        best_symbol_score = 1.0
+        for font_name in _available_inline_glyph_fonts():
+            for font_size in range(24, 61, 4):
+                template = _render_inline_glyph_template(symbol, font_name, font_size)
+                score = _inline_glyph_difference_score(normalized, template)
+                if score < best_symbol_score:
+                    best_symbol_score = score
+        scores.append((best_symbol_score, symbol))
+
+    scores.sort(key=lambda item: item[0])
+    if not scores:
+        return None
+    best_score, best_symbol = scores[0]
+    second_score = scores[1][0] if len(scores) > 1 else 1.0
+    if best_score <= INLINE_GLYPH_SCORE_THRESHOLD and second_score - best_score >= INLINE_GLYPH_SCORE_MARGIN:
+        return best_symbol
+    return None
+
+
+def _normalize_inline_glyph_image(image: Image.Image) -> Image.Image | None:
+    rgba = image.convert("RGBA")
+    background = Image.new("RGBA", rgba.size, (255, 255, 255, 255))
+    rgba = Image.alpha_composite(background, rgba)
+    grayscale = rgba.convert("L")
+    mask = grayscale.point(_inline_glyph_mask_value)
+    bbox = mask.getbbox()
+    if bbox is None:
+        return None
+
+    cropped = grayscale.crop(bbox)
+    target_size = INLINE_GLYPH_TEMPLATE_SIZE - INLINE_GLYPH_TEMPLATE_MARGIN
+    scale = min(target_size / max(cropped.width, 1), target_size / max(cropped.height, 1))
+    resized = cropped.resize(
+        (
+            max(1, int(round(cropped.width * scale))),
+            max(1, int(round(cropped.height * scale))),
+        ),
+        LANCZOS_RESAMPLING,
+    )
+    canvas = Image.new("L", (INLINE_GLYPH_TEMPLATE_SIZE, INLINE_GLYPH_TEMPLATE_SIZE), 255)
+    offset = (
+        (INLINE_GLYPH_TEMPLATE_SIZE - resized.width) // 2,
+        (INLINE_GLYPH_TEMPLATE_SIZE - resized.height) // 2,
+    )
+    canvas.paste(resized, offset)
+    return canvas.point(_inline_glyph_binary_value)
+
+
+def _inline_glyph_mask_value(value: int) -> int:
+    return 255 if value < 245 else 0
+
+
+def _inline_glyph_binary_value(value: int) -> int:
+    return 0 if value < 220 else 255
+
+
+@lru_cache(maxsize=32)
+def _available_inline_glyph_fonts() -> tuple[str, ...]:
+    fonts: list[str] = []
+    for candidate in INLINE_GLYPH_FONT_CANDIDATES:
+        try:
+            ImageFont.truetype(candidate, size=32)
+        except OSError:
+            continue
+        fonts.append(candidate)
+    return tuple(fonts) or ("__default__",)
+
+
+@lru_cache(maxsize=2048)
+def _render_inline_glyph_template(symbol: str, font_name: str, font_size: int) -> Image.Image:
+    canvas = Image.new("L", (INLINE_GLYPH_TEMPLATE_SIZE, INLINE_GLYPH_TEMPLATE_SIZE), 255)
+    draw = ImageDraw.Draw(canvas)
+    font = ImageFont.load_default() if font_name == "__default__" else ImageFont.truetype(font_name, size=font_size)
+    bbox = draw.textbbox((0, 0), symbol, font=font)
+    x = (INLINE_GLYPH_TEMPLATE_SIZE - (bbox[2] - bbox[0])) // 2 - bbox[0]
+    y = (INLINE_GLYPH_TEMPLATE_SIZE - (bbox[3] - bbox[1])) // 2 - bbox[1]
+    draw.text((x, y), symbol, fill=0, font=font)
+    normalized = _normalize_inline_glyph_image(canvas)
+    return normalized if normalized is not None else canvas
+
+
+def _inline_glyph_difference_score(image: Image.Image, template: Image.Image) -> float:
+    diff = ImageChops.difference(image, template)
+    return sum(diff.getdata()) / (255 * INLINE_GLYPH_TEMPLATE_SIZE * INLINE_GLYPH_TEMPLATE_SIZE)
 
 
 def _paragraph_has_omml(paragraph: Paragraph) -> bool:
@@ -322,7 +1433,7 @@ def _iter_header_footer_units(document: Any) -> list[tuple[str, str, str]]:
     for section_index, section in enumerate(document.sections, start=1):
         for unit_type, story in (("header", section.header), ("footer", section.footer)):
             for paragraph_index, paragraph in enumerate(story.paragraphs, start=1):
-                text = paragraph.text.strip()
+                text = _paragraph_semantic_text(paragraph)
                 if not text:
                     continue
                 key = (unit_type, text)

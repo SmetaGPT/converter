@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "processed-documents-catalog.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "documents"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "processed-documents-catalog.v1"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "relative_input_path",
+          "original_filename",
+          "output_dir",
+          "output_folder_name",
+          "status",
+          "status_label",
+          "issue"
+        ],
+        "properties": {
+          "relative_input_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "original_filename": {
+            "type": "string",
+            "minLength": 1
+          },
+          "output_dir": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "output_folder_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "partial_success",
+              "failed",
+              "skipped_duplicate",
+              "skipped_unsupported"
+            ]
+          },
+          "status_label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "issue": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

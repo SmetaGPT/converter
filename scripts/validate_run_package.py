@@ -1,10 +1,10 @@
-# pyright: reportMissingTypeStubs=false
-
 from __future__ import annotations
 
 import argparse
 import json
 from pathlib import Path
+
+from openpyxl import load_workbook
 
 from doc_converter.schema_validation import validate_json_file, validate_payload
 
@@ -18,6 +18,8 @@ def main(argv: list[str] | None = None) -> int:
     validate_json_file(run_dir / "run.json", "run.v1.schema.json")
     validate_json_file(run_dir / "summary.json", "summary.v1.schema.json")
     validate_json_file(run_dir / "queue-state.json", "queue-state.v1.schema.json")
+    validate_json_file(run_dir / "processed-documents-catalog.json", "processed-documents-catalog.v1.schema.json")
+    _validate_workbook(run_dir / "processed-documents-catalog.xlsx")
     _validate_jsonl(run_dir / "manifest.jsonl", "manifest.v1.schema.json")
     _validate_jsonl(run_dir / "review-required.jsonl", "review-required.v1.schema.json")
 
@@ -40,6 +42,15 @@ def _validate_jsonl(path: Path, schema_filename: str) -> None:
         if not line.strip():
             continue
         validate_payload(json.loads(line), schema_filename)
+
+
+def _validate_workbook(path: Path) -> None:
+    workbook = load_workbook(path, read_only=True)
+    try:
+        if "Документы" not in workbook.sheetnames:
+            raise ValueError(f"Workbook does not contain expected worksheet: {path}")
+    finally:
+        workbook.close()
 
 
 if __name__ == "__main__":

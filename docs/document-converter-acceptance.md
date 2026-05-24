@@ -5,7 +5,7 @@
 
 ## 1. Назначение
 
-Этот документ фиксирует стартовый набор эталонных DOCX/PDF и критерии приёмки для Windows Document Converter.
+Этот документ фиксирует стартовый набор эталонных DOCX/PDF и критерии приёмки для Windows Document Converter, а также post-v0.3.0 acceptance для native XLSX route.
 
 Цель Sprint 0 — до начала реализации GUI и EXE определить, какой результат считается корректным машиночитаемым документом.
 
@@ -61,13 +61,22 @@
 - `schema_version` равен `document.v1`;
 - `document_id` стабилен и строится от SHA-256 исходного файла;
 - `source` содержит исходный путь, `relative_input_path`, имя, формат, размер и SHA-256;
-- `processing.route` содержит один из маршрутов `docx_native`, `pdf_text`, `pdf_scan`;
+- `processing.route` содержит один из маршрутов `docx_native`, `pdf_text`, `pdf_scan`, `xlsx_native`;
 - `processing.status` содержит `success`, `partial_success`, `failed` или `skipped_duplicate`;
 - `metadata` содержит `title`, `document_type`, `short_summary`, `confidence`, `method`;
 - `units` содержит structural units с `unit_id`, `type`, `order`, `parent_id`, `source_ref`;
 - `assets` содержит ссылки на выделенные изображения, страницы, формулы и графику, а также `sha256`, `size_bytes`, `filename`, `media_type`, где asset физически сохранён;
 - `quality` содержит flags и warnings;
 - все ссылки на assets являются относительными к папке документа.
+
+Обязательные root-level run artifacts:
+
+- `processed-documents-catalog.json` лежит в корне `run_dir`;
+- `processed-documents-catalog.xlsx` лежит в корне `run_dir` и содержит operator-friendly tabular view поверх того же каталога;
+- для каждого поддержанного или явно пропущенного input file catalog содержит `original_filename`, `relative_input_path`, `output_dir`, `output_folder_name`, `status`, `status_label`, `issue`;
+- `output_dir`/`output_folder_name` позволяют быстро найти папку документа внутри `documents/`, а при ошибке или unsupported input честно допускают `null`;
+- при `failed` в `issue` попадает текст ошибки extractor/runtime, а не только код статуса.
+- XLSX report содержит локальные hyperlinks как минимум на папку документа и `document.v1.json`; если `search_text.txt` создан, hyperlink на него тоже присутствует.
 
 Semantic metadata minimum:
 
@@ -92,7 +101,8 @@ Semantic metadata minimum:
 - подписи к таблицам и рисункам сохраняются как отдельные units;
 - изображения, графики и формулы получают собственные units;
 - для PDF units по возможности имеют `page`, `bbox`, `coordinate_system`, `page_width`, `page_height`;
-- для DOCX units по возможности имеют ссылку на OOXML-позицию или порядковый индекс исходного элемента.
+- для DOCX units по возможности имеют ссылку на OOXML-позицию или порядковый индекс исходного элемента;
+- для XLSX `table_cell` units имеют optional `cell` payload с worksheet, address, row, column, value, formula, data_type, number_format и hyperlink.
 - `quality` доступен на уровне документа и отдельных units в формате `flags` + `warnings`.
 
 ## 6. DOCX route acceptance
@@ -105,7 +115,9 @@ Semantic metadata minimum:
 - таблицы имеют units `table`, `table_row`, `table_cell`;
 - embedded images сохранены в `assets/`;
 - формулы выделяются как `formula` там, где они представлены OMML или устойчивым text pattern;
+- если DOCX formula восстановлена из MathType WMF/text records или устойчивой линейной формы, `formula` unit может содержать machine-readable блок `formula.display_latex`, `formula.calc_expr`, `formula.variables`, `formula.confidence` и `formula.warnings`;
 - embedded images сохраняются как `figure` или `formula_image` units/assets по доступной metadata;
+- если включён formula-recognition provider config, `formula_image` units могут быть post-enriched после базового extraction: успешное распознавание заполняет `unit.text` и `unit.formula`, а рядом создаётся `formula-recognition.jsonl` с per-asset результатами;
 - headers, footers и footnotes выделяются как отдельные semantic units;
 - создан `search_text.txt`;
 - создан `extractor_raw.json`;
@@ -116,6 +128,21 @@ Semantic metadata minimum:
 - `sample_001` как крупный нормативный DOCX;
 - `sample_003` как DOCX с потенциально сложной структурой;
 - `sample_006` как малый DOCX.
+
+## 6.1. XLSX route acceptance
+
+Маршрут `xlsx_native` считается успешным, если:
+
+- `.xlsx` файл классифицируется как поддержанный input, а `manifest.jsonl` содержит `route: xlsx_native`;
+- workbook sheets сохраняются как `section` units, а используемые диапазоны листов как `table` units;
+- непустые ячейки сохраняются как `table_cell` units с текстовой проекцией вида `A1: значение` или `B2: =FORMULA -> cached_value`;
+- `cell` payload сохраняет worksheet, address, row, column, value, formula, data_type, number_format и hyperlink;
+- Excel-формулы сохраняются как исходные Excel formula strings, а значения берутся из cached workbook values, если они есть;
+- `extractor_raw.json` содержит per-sheet metadata: title, state, dimension, non_empty_cells, formula_cells, merged_ranges, freeze_panes и print_area;
+- `search_text.txt` создаётся для быстрого поиска/проверки;
+- `document.v1.json` проходит schema validation.
+
+Ограничение: `openpyxl` не пересчитывает формулы. Если cached values отсутствуют, формулы всё равно сохраняются, но расчёт нужно выполнять downstream Excel-compatible движком или отдельным recalculation step.
 
 ## 7. PDF route acceptance
 
@@ -158,8 +185,10 @@ PDF route делится на два подмаршрута после пров�
 
 - DOCX tables сохраняются как `table`/`table_row`/`table_cell`;
 - DOCX formulas, headers, footers и footnotes сохраняются как отдельные semantic units там, где доступны в package XML;
+- DOCX formulas, пригодные для восстановления, сохраняют display LaTeX для human-readable rendering и отдельное расчётное выражение там, где оно может быть построено без доменной подстановки значений;
 - embedded DOCX media сохраняется как assets и `figure`/`formula_image` units;
 - PDF text и OCR routes создают heuristic `table`, `formula` и `figure` units из layout text blocks;
+- XLSX route сохраняет workbook tables/cells/formulas нативно, без OCR и без превращения таблиц только в plain text;
 - если семантическое распознавание графики или формулы ненадёжно в конкретном документе, это помечается как review concern, а не как потеря исходного content;
 - quality contract обязан помечать сомнительные случаи через `review_required`.
 
@@ -181,6 +210,12 @@ PDF route делится на два подмаршрута после пров�
 | `semantic_style_inferred` | Unit type для DOCX выведен из style или numbering mapping |
 | `semantic_structure_inferred` | Unit type выведен эвристикой из OOXML/PDF/OCR structure или text pattern |
 | `repeated_edge_block` | PDF header/footer выделен эвристикой повторяющегося edge-блока |
+| `spreadsheet_table_inferred` | XLSX sheet/use-range представлен как table structure |
+| `sheet_hidden` | XLSX sheet скрыт в исходной workbook |
+
+Дополнительная warning для XLSX: `formula_cached_values_missing`, если формулы сохранены, но workbook не содержит cached result values.
+
+Дополнительные warning для formula-recognition postprocess: `formula_recognition_applied`, `formula_recognition_provider_failed`, `formula_recognition_asset_missing`, `formula_recognition_postprocess_failed`.
 
 ## 10. Representative pilot validation
 
@@ -201,6 +236,6 @@ Sprint 0 можно закрыть, когда:
 
 1. `samples/manifest.sample.jsonl` содержит representative DOCX/PDF для всех трёх маршрутов.
 2. Для 3-5 документов заведены expected structural units в `samples/expected/`.
-3. Acceptance criteria покрывают DOCX, PDF-text и PDF-scan.
+3. Acceptance criteria покрывают DOCX, PDF-text, PDF-scan и XLSX-native.
 4. Quality flags первой версии зафиксированы.
 5. Roadmap и state layer синхронизированы.

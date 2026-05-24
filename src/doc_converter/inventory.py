@@ -6,7 +6,7 @@ from pathlib import Path
 from .canonical import sha256_file
 
 
-SUPPORTED_SUFFIXES = {".docx", ".pdf"}
+SUPPORTED_SUFFIXES = {".docx", ".pdf", ".xlsx"}
 
 
 @dataclass(frozen=True)
@@ -76,6 +76,8 @@ def classify_route(path: Path) -> tuple[str, tuple[str, ...]]:
     suffix = path.suffix.lower()
     if suffix == ".docx":
         return "docx_native", ()
+    if suffix == ".xlsx":
+        return "xlsx_native", ()
     if suffix == ".pdf":
         return _classify_pdf_route(path)
     return "not_classified", ("unsupported_suffix",)

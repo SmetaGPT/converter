@@ -13,6 +13,8 @@ dependencies = [
 	"python-docx>=1.1",
 	"ocrmypdf>=17.4",
 	"jsonschema>=4.23",
+	"pillow>=11.0",
+	"openpyxl>=3.1",
 ]
 
 [project.optional-dependencies]
@@ -22,6 +24,8 @@ build = [
 dev = [
 	"ruff>=0.12.0",
 	"pyright>=1.1.400",
+	"types-jsonschema>=4.26",
+	"types-openpyxl>=3.1",
 ]
 
 [project.urls]

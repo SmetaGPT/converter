@@ -81,7 +81,7 @@ class ConverterApp(tk.Tk):
         self.log.grid(row=8, column=0, columnspan=3, sticky="nsew")
 
     def _choose_input(self) -> None:
-        value = filedialog.askdirectory(title="Выберите папку с DOCX/PDF")
+        value = filedialog.askdirectory(title="Выберите папку с DOCX/PDF/XLSX")
         if value:
             self.input_var.set(value)
 
