@@ -65,6 +65,15 @@ D:\converter-output\runs\<run_id>\
 
 Скрипт создаёт `human-readable.md` рядом с `document.v1.json`. Если у `formula` unit есть `formula.display_latex`, он выводится как KaTeX-compatible block `$$...$$`; если есть `formula.calc_expr`, рядом добавляется code block для расчётного слоя.
 
+Для first-class HTML QC-экспорта из canonical package или целого `run_dir`:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\export_human_readable_html.py "D:\converter-output\runs\<run_id>\documents\<document_folder>\document.v1.json"
+.\.venv\Scripts\python.exe scripts\export_human_readable_html.py "D:\converter-output\runs\<run_id>"
+```
+
+Если передан `document.v1.json`, скрипт создаёт `human-readable.html` рядом с canonical package. Если передан весь `run_dir`, скрипт пересобирает `human-readable.html` для каждого документа и создаёт run-level `human-readable-index.html` со ссылками на HTML, `document.v1.json` и `search_text.txt`, чтобы оператор мог быстро открыть QC-срез в браузере.
+
 Для прямой проверки расчётного слоя по уже нормализованному `calc_expr`:
 
 ```powershell
@@ -94,6 +103,7 @@ D:\converter-output\runs\<run_id>\
 ```
 
 GUI позволяет выбрать входную и выходную папки, OCR languages и запустить обработку.
+После завершения run кнопка `HTML QC` пересобирает `human-readable-index.html` для последнего `run_dir` и открывает этот индекс в браузере, чтобы можно было сразу проверить качество конвертации на человекочитаемом HTML-представлении.
 
 Входная и выходная папки не должны совпадать и не могут быть вложены друг в друга.
 

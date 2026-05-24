@@ -6,10 +6,12 @@ import queue
 import subprocess
 import threading
 import tkinter as tk
+import webbrowser
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
 from .config import ConverterConfig, ConverterOptions
+from .human_readable import export_run_human_readable_html
 from .runner import ConverterError, run_convert_folder, validate_run_directories
 
 
@@ -75,6 +77,8 @@ class ConverterApp(tk.Tk):
         self.cancel_button.pack(side=tk.LEFT, padx=(8, 0))
         self.open_output_button = ttk.Button(buttons, text="Открыть результат", command=self._open_output, state=tk.DISABLED)
         self.open_output_button.pack(side=tk.LEFT, padx=(8, 0))
+        self.open_html_qc_button = ttk.Button(buttons, text="HTML QC", command=self._open_html_qc, state=tk.DISABLED)
+        self.open_html_qc_button.pack(side=tk.LEFT, padx=(8, 0))
         ttk.Label(buttons, textvariable=self.status_var).pack(side=tk.LEFT, padx=12)
 
         self.log = tk.Text(root, height=16, wrap="word")
@@ -107,6 +111,7 @@ class ConverterApp(tk.Tk):
         self.start_button.configure(state=tk.DISABLED)
         self.cancel_button.configure(state=tk.NORMAL)
         self.open_output_button.configure(state=tk.DISABLED)
+        self.open_html_qc_button.configure(state=tk.DISABLED)
         self.status_var.set("Обработка...")
         self.current_file_var.set("")
         self.progress_var.set(0.0)
@@ -177,11 +182,13 @@ class ConverterApp(tk.Tk):
                 self.start_button.configure(state=tk.NORMAL)
                 self.cancel_button.configure(state=tk.DISABLED)
                 self.open_output_button.configure(state=tk.NORMAL)
+                self.open_html_qc_button.configure(state=tk.NORMAL)
             elif event["type"] == "error":
                 self.status_var.set("Ошибка")
                 self._append_log("Ошибка: " + str(event["message"]))
                 self.start_button.configure(state=tk.NORMAL)
                 self.cancel_button.configure(state=tk.DISABLED)
+                self.open_html_qc_button.configure(state=tk.DISABLED)
         self.after(100, self._drain_events)
 
     def _handle_progress_event(self, event: dict[str, object]) -> None:
@@ -210,6 +217,16 @@ class ConverterApp(tk.Tk):
                 subprocess.Popen(["explorer", str(self.last_run_dir)])
         except OSError as exc:
             messagebox.showerror("Ошибка", f"Не удалось открыть папку результата: {exc}")
+
+    def _open_html_qc(self) -> None:
+        if self.last_run_dir is None:
+            return
+        try:
+            index_path = export_run_human_readable_html(self.last_run_dir)
+            self._append_log(f"HTML QC: {index_path}")
+            webbrowser.open(index_path.resolve().as_uri())
+        except (FileNotFoundError, OSError, ValueError, json.JSONDecodeError) as exc:
+            messagebox.showerror("Ошибка", f"Не удалось подготовить HTML QC: {exc}")
 
     def _append_log(self, message: str) -> None:
         self.log.insert(tk.END, message + "\n")

@@ -246,12 +246,16 @@
       "area": "product",
       "title": "Canonical document.v1 package",
       "status": "validated",
-      "behavior": "The main product output is a portable document.v1.json package with source metadata, processing route, semantic metadata, structural units, assets and quality flags instead of plain text only, plus root-level processed-documents-catalog JSON/XLSX indexes that map source names to output folders, statuses and operator hyperlinks.",
+      "behavior": "The main product output is a portable document.v1.json package with source metadata, processing route, semantic metadata, structural units, assets and quality flags instead of plain text only, plus root-level processed-documents-catalog JSON/XLSX indexes that map source names to output folders, statuses and operator hyperlinks, and first-class human-readable Markdown/HTML exports for operator QC.",
       "owner_docs": [
         "docs/document-converter-roadmap.md",
         "docs/document-converter-acceptance.md",
+        "docs/build-and-run.md",
         "schemas/document.v1.schema.json",
         "schemas/processed-documents-catalog.v1.schema.json",
+        "src/doc_converter/human_readable.py",
+        "scripts/export_human_readable.py",
+        "scripts/export_human_readable_html.py",
         "scripts/validate_run_package.py"
       ],
       "verification": [
@@ -262,13 +266,21 @@
         {
           "type": "command",
           "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_run_package.py runs\\synthetic-e2e-output\\runs\\<run_id>"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\export_human_readable_html.py runs\\single-812-e2e\\runs\\<run_id>"
         }
       ],
       "evidence": [
         "docs/document-converter-roadmap.md",
         "docs/document-converter-acceptance.md",
+        "docs/build-and-run.md",
         "schemas/document.v1.schema.json",
         "schemas/processed-documents-catalog.v1.schema.json",
+        "src/doc_converter/human_readable.py",
+        "scripts/export_human_readable.py",
+        "scripts/export_human_readable_html.py",
         "scripts/validate_run_package.py"
       ],
       "residual_risk": "Advanced PDF tables, formulas and figures now have heuristic unit extraction, but pixel-perfect table geometry and multimodal figure understanding remain downstream concerns."
@@ -588,10 +600,12 @@
       "area": "product",
       "title": "Operator GUI and Windows release packaging",
       "status": "validated",
-      "behavior": "Operators can run the converter through a GUI with progress, current file, cancel, open output and summary counts, while Windows packaging produces a portable EXE and release zip.",
+      "behavior": "Operators can run the converter through a GUI with progress, current file, cancel, open output, HTML QC and summary counts, while Windows packaging produces a portable EXE and release zip.",
       "owner_docs": [
         "docs/build-and-run.md",
         "src/doc_converter/gui.py",
+        "src/doc_converter/human_readable.py",
+        "scripts/export_human_readable_html.py",
         "tests/test_gui_import.py",
         "scripts/build-windows.ps1",
         "scripts/package-release.ps1"
@@ -609,6 +623,8 @@
       "evidence": [
         "docs/build-and-run.md",
         "src/doc_converter/gui.py",
+        "src/doc_converter/human_readable.py",
+        "scripts/export_human_readable_html.py",
         "tests/test_gui_import.py",
         "scripts/build-windows.ps1",
         "scripts/package-release.ps1"

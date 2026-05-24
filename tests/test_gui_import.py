@@ -29,6 +29,7 @@ class GuiImportTests(unittest.TestCase):
             self.assertTrue(app.start_button.winfo_exists())
             self.assertTrue(app.cancel_button.winfo_exists())
             self.assertTrue(app.open_output_button.winfo_exists())
+            self.assertTrue(app.open_html_qc_button.winfo_exists())
             self.assertTrue(app.progress_bar.winfo_exists())
         finally:
             app.destroy()
@@ -98,6 +99,53 @@ class GuiImportTests(unittest.TestCase):
                 showerror.assert_called_once()
                 self.assertIsNone(app.worker)
                 self.assertEqual(app.status_var.get(), "Готово")
+        finally:
+            app.destroy()
+
+    def test_success_event_enables_html_qc_button(self) -> None:
+        import doc_converter.gui as gui
+
+        try:
+            app = gui.ConverterApp()
+        except tk.TclError as exc:
+            self.skipTest(f"Tk is not available: {exc}")
+
+        try:
+            app.events.put(
+                {
+                    "type": "success",
+                    "status": "success",
+                    "run_dir": "D:/converter-output/runs/example",
+                    "supported_files": 1,
+                    "summary": {"review_required_files": 0, "partial_files": 0, "failed_files": 0},
+                }
+            )
+            app._drain_events()
+
+            self.assertEqual(str(app.open_html_qc_button["state"]), tk.NORMAL)
+        finally:
+            app.destroy()
+
+    def test_open_html_qc_exports_index_and_opens_browser(self) -> None:
+        import doc_converter.gui as gui
+
+        try:
+            app = gui.ConverterApp()
+        except tk.TclError as exc:
+            self.skipTest(f"Tk is not available: {exc}")
+
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                run_dir = Path(temp_dir)
+                index_path = run_dir / "human-readable-index.html"
+                app.last_run_dir = run_dir
+
+                with patch.object(gui, "export_run_human_readable_html", return_value=index_path) as exporter:
+                    with patch.object(gui.webbrowser, "open") as browser_open:
+                        app._open_html_qc()
+
+                exporter.assert_called_once_with(run_dir)
+                browser_open.assert_called_once_with(index_path.resolve().as_uri())
         finally:
             app.destroy()
 

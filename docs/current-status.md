@@ -104,6 +104,7 @@
 80. Для generic `docx_text_linearized` formulas добавлен heuristic `calc_expr`/`variables` fallback: простые присваивания с `+`, `-`, `x`/`×`, `÷`/`/`, скобками, кириллическими идентификаторами и base token-ами с цифрами теперь получают machine-computable expression layer; fresh real run на `812/пр` подтвердил вычислимые формулы для `ДЗ_(вП)` и `С_(Свлс) = ПЗ1_(п) + ПЗ2_(п) x S_(влс)`.
 81. Добавлен safe formula evaluator для `calc_expr`: новый CLI subcommand `evaluate-formula` считает только ограниченное арифметическое подмножество (`+`, `-`, `*`, `/`, `**`, unary `+/-`, скобки и переменные), а DOCX heuristic parser расширен на проценты `%` и степени `^`; real operator-path на Windows подтвердил расчёт `S_Svls = PZ1_p + PZ2_p * S_vls` из свежего `812/пр` run package.
 82. Для DOCX formulas с переносами строки добавлена нормализация повторённого оператора на границе line-wrap (`x`/`x` схлопывается в одно умножение), а новый CLI subcommand `evaluate-document-formulas` проходит по `document.v1.json`, считает все доступные `calc_expr` и переиспользует уже вычисленные targets как входы для зависимых формул того же документа; real run на `812/пр` показал 41 `calc_expr`, успешный расчёт `S_Svls = 1340.0` и честный partial по оставшимся 40 формулам без входных значений.
+83. Добавлен first-class HTML QC export: `src/doc_converter/human_readable.py` стал shared renderer для Markdown/HTML, `scripts/export_human_readable_html.py` умеет экспортировать как отдельный `document.v1.json`, так и целый `run_dir` в `human-readable-index.html`, а GUI получил кнопку `HTML QC` для немедленной проверки качества конвертации в браузере.
 
 ### Готовые артефакты
 
@@ -180,7 +181,7 @@
 
 Текущий фокус: поддержание уже закрытого harness/eval contour для production-ready v0.3.0 scope и точечные улучшения только там, где они реально снижают operational overhead.
 
-Новый product-learning по формулам: для DOCX, где формулы сохранены картинками MathType WMF, приоритетный pipeline должен быть `direct WMF/MathType extraction -> known signature/layout recovery -> display LaTeX/MathML -> calculation AST -> renderer`, а OCR должен оставаться fallback для настоящих raster scans. Для operator review теперь есть обратный Markdown/HTML-export из `document.v1.json`, но универсальный MathType parser ещё не реализован.
+Новый product-learning по формулам: для DOCX, где формулы сохранены картинками MathType WMF, приоритетный pipeline должен быть `direct WMF/MathType extraction -> known signature/layout recovery -> display LaTeX/MathML -> calculation AST -> renderer`, а OCR должен оставаться fallback для настоящих raster scans. Для operator review теперь есть tracked first-class Markdown/HTML-export из `document.v1.json` и run-level GUI HTML QC path, но универсальный MathType parser ещё не реализован.
 
 Новый product-learning по `docx_text_linearized` formulas: одного `display_latex` недостаточно для downstream расчёта. Для реального полезного use-case нужен второй слой `calc_expr + variables`; после текущего hotfix generic линейные формулы из DOCX уже получают этот слой heuristically, но выражения с неполной или повреждённой символикой всё ещё должны честно оставаться без `calc_expr`.
 
