@@ -133,8 +133,8 @@
 2. Вести structured telemetry companion на следующих нетривиальных задачах без пропусков.
 3. Использовать `scripts/refresh_agent_eval.py` как штатную weekly discipline для scorecard и weekly eval companions.
 4. При необходимости добавить schedule поверх `scripts/refresh_agent_eval.py`.
-5. Расширить advanced semantic extraction для PDF tables/figures/formulas.
-6. Добавить DOCX footnotes/header/footer semantic pass при наличии product need.
+5. Точечно тюнить heuristic semantic extraction для PDF tables/figures/formulas по результатам новых production-like пакетов.
+6. Уточнять DOCX footnotes/header/footer semantics только при наблюдаемой product need или quality gap.
 7. Решить, нужны ли optional OCR helpers `jbig2`, `pngquant`, `verapdf` по эксплуатационным метрикам.
 
 ## 8. Последняя representative проверка
