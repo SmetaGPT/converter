@@ -143,28 +143,31 @@ def build_human_readable_html(payload: dict[str, Any]) -> str:
         "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
         f"  <title>{escape(title)}</title>\n"
         "  <script>\n"
-        "    window.MathJax = {tex: {displayMath: [['$$', '$$']], inlineMath: [['\\(', '\\)']]}, options: {skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']}};\n"
+        "    window.MathJax = {tex: {displayMath: [['$$', '$$']], inlineMath: []}, options: {skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']}};\n"
         "  </script>\n"
         "  <script async src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js\"></script>\n"
         "  <style>\n"
         "    :root { --page:#f7f3eb; --paper:#fffdf8; --ink:#1f2933; --line:#d9cbb7; --accent:#7a3f24; --soft:#f2dfc8; --code:#183044; }\n"
         "    * { box-sizing:border-box; }\n"
-        "    body { margin:0; background:linear-gradient(180deg,#efe3d1 0,var(--page) 320px,#f9f5ed 100%); color:var(--ink); font:17px/1.62 Georgia,'Times New Roman',serif; }\n"
-        "    main { width:min(1040px,calc(100% - 32px)); margin:32px auto; padding:clamp(24px,4vw,56px); background:var(--paper); border:1px solid var(--line); box-shadow:0 18px 50px rgba(55,42,28,.13); }\n"
+        "    body { margin:0; background:linear-gradient(180deg,#efe3d1 0,var(--page) 320px,#f9f5ed 100%); color:var(--ink); font:18px/1.72 Georgia,'Times New Roman',serif; }\n"
+        "    main { width:min(980px,calc(100% - 32px)); margin:32px auto; padding:clamp(28px,4vw,56px); background:var(--paper); border:1px solid var(--line); box-shadow:0 18px 50px rgba(55,42,28,.13); }\n"
         "    h1 { margin:0 0 28px; color:#24170f; font-size:clamp(25px,4vw,40px); line-height:1.16; text-transform:uppercase; }\n"
         "    h2,h3,h4,h5,h6 { margin:2rem 0 .75rem; color:#332018; line-height:1.25; }\n"
-        "    p { margin:.74rem 0; }\n"
+        "    p { margin:.82rem 0; text-indent:1.6em; text-align:justify; overflow-wrap:anywhere; hyphens:auto; }\n"
         "    code { font-family:Consolas,'Cascadia Mono',monospace; font-size:.93em; color:var(--code); background:#f2ede3; border-radius:4px; padding:.05rem .25rem; }\n"
         "    pre { overflow:auto; padding:16px 18px; background:#102131; color:#edf6ff; border-radius:6px; border:1px solid #243b51; line-height:1.48; font-size:14px; }\n"
         "    pre code { background:transparent; color:inherit; padding:0; }\n"
         "    img { max-width:100%; height:auto; display:block; margin:1rem auto; border:1px solid var(--line); border-radius:6px; background:white; }\n"
-        "    .formula-block { margin:1.25rem 0; padding:18px 20px; overflow-x:auto; background:linear-gradient(90deg,#fff7eb,#fffdf8); border-left:4px solid var(--accent); border-radius:6px; text-align:center; }\n"
-        "    .formula-label { margin-top:10px; font-size:14px; color:#6b4a39; }\n"
+        "    .formula-block { margin:1.25rem 0; padding:18px 20px; overflow-x:auto; background:linear-gradient(90deg,#fff7eb,#fffdf8); border-left:4px solid var(--accent); border-radius:6px; text-align:center; white-space:normal; overflow-wrap:anywhere; }\n"
+        "    .formula-block p { margin:.35rem 0 0; text-indent:0; text-align:center; }\n"
+        "    .formula-block.formula-plain { text-align:left; }\n"
+        "    .formula-plain-text { margin:0; font:17px/1.6 'Times New Roman',Georgia,serif; white-space:normal; overflow-wrap:anywhere; }\n"
+        "    .formula-label { margin-top:10px; font-size:14px; color:#6b4a39; text-indent:0; }\n"
         "    .table-wrap { width:100%; overflow-x:auto; margin:1rem 0 1.35rem; border:1px solid var(--line); border-radius:6px; background:#fffaf1; }\n"
         "    table { width:100%; min-width:680px; border-collapse:collapse; font-size:14.5px; line-height:1.42; }\n"
         "    th,td { border-bottom:1px solid var(--line); border-right:1px solid var(--line); padding:8px 10px; vertical-align:top; }\n"
         "    th { background:var(--soft); color:#2d1d13; font-weight:700; text-align:left; }\n"
-        "    .asset-link { font-size:14px; color:#6b4a39; text-align:center; }\n"
+        "    .asset-link { font-size:14px; color:#6b4a39; text-align:center; text-indent:0; }\n"
         "    @media print { body { background:white; } main { margin:0; width:100%; box-shadow:none; border:0; } .table-wrap,.formula-block,pre { break-inside:avoid; } }\n"
         "  </style>\n"
         "</head>\n"
@@ -314,7 +317,7 @@ def _render_unit_markdown(unit: dict[str, Any]) -> list[str]:
     text = _string_value(unit.get("text"))
     if unit_type == "section" and text:
         return [f"## {text}", ""]
-    if unit_type == "formula":
+    if unit_type in {"formula", "formula_image"} and isinstance(unit.get("formula"), dict):
         return _render_formula_markdown(unit)
     if unit_type == "formula_image":
         asset_ref = _string_value(unit.get("asset_ref"))
@@ -359,7 +362,7 @@ def _render_unit_html(unit: dict[str, Any]) -> str:
     text = _string_value(unit.get("text"))
     if unit_type == "section" and text:
         return f"<h2>{_html_with_breaks(text)}</h2>"
-    if unit_type == "formula":
+    if unit_type in {"formula", "formula_image"} and isinstance(unit.get("formula"), dict):
         return _render_formula_html(unit)
     if unit_type in {"figure", "formula_image"}:
         asset_ref = _string_value(unit.get("asset_ref"))
@@ -385,22 +388,45 @@ def _render_formula_html(unit: dict[str, Any]) -> str:
     calc_expr = _string_value(formula.get("calc_expr"))
     linear_text = _string_value(formula.get("linear_text")) or text
     formula_number = _formula_number(text)
+    asset_ref = _string_value(unit.get("asset_ref"))
+    render_as_math = _should_render_formula_as_math(formula, display_latex)
 
     blocks: list[str] = []
-    if display_latex:
+    if render_as_math and display_latex:
         latex_block = [f'<div class="formula-block">$$\n{escape(display_latex)}\n$$']
         if formula_number:
             latex_block.append(f'<div class="formula-label">Формула {escape(formula_number)}</div>')
         latex_block.append("</div>")
         blocks.append("".join(latex_block))
-    elif text:
-        blocks.append(f"<p>{_html_with_breaks(text)}</p>")
+    elif linear_text or text:
+        plain_text = linear_text or text
+        plain_block = [f'<div class="formula-block formula-plain"><div class="formula-plain-text">{_html_with_breaks(plain_text)}</div>']
+        if formula_number:
+            plain_block.append(f'<div class="formula-label">Формула {escape(formula_number)}</div>')
+        plain_block.append("</div>")
+        blocks.append("".join(plain_block))
 
     if calc_expr:
         blocks.append(f"<pre><code>{escape(calc_expr)}</code></pre>")
-    elif not display_latex and linear_text and linear_text != text:
-        blocks.append(f"<p>{_html_with_breaks(linear_text)}</p>")
+    if asset_ref:
+        href = _href_value(asset_ref)
+        blocks.append(f'<p class="asset-link"><a href="{href}">{escape(asset_ref)}</a></p>')
     return "\n".join(blocks)
+
+
+def _should_render_formula_as_math(formula: dict[str, Any], display_latex: str) -> bool:
+    if not display_latex:
+        return False
+    confidence = _string_value(formula.get("confidence"))
+    if confidence == "low":
+        return False
+    source_format = _string_value(formula.get("source_format"))
+    warnings = formula.get("warnings")
+    if source_format in {"docx_text_linearized", "heuristic_latex"} and confidence != "high":
+        return False
+    if isinstance(warnings, list) and any("heuristic" in _string_value(item) for item in warnings):
+        return False
+    return True
 
 
 def _render_table_markdown(

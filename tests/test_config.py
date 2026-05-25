@@ -62,6 +62,29 @@ class FormulaRecognitionConfigTests(unittest.TestCase):
             self.assertEqual(config.api_key, "router-secret")
             self.assertTrue(config.is_configured())
 
+    def test_load_formula_recognition_from_executable_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            exe_dir = root / "dist" / "DocumentConverter"
+            exe_dir.mkdir(parents=True)
+            (exe_dir / ".env.local").write_text(
+                "OPENROUTER_API_KEY=router-secret\n",
+                encoding="utf-8",
+            )
+            unrelated_cwd = root / "outside"
+            unrelated_cwd.mkdir()
+
+            with patch("doc_converter.config.Path.cwd", return_value=unrelated_cwd), patch(
+                "doc_converter.config.sys.executable",
+                str(exe_dir / "DocumentConverter.exe"),
+            ):
+                config = load_formula_recognition_config()
+
+            self.assertEqual(config.provider, "openrouter")
+            self.assertEqual(config.model, "openai/gpt-4o")
+            self.assertEqual(config.api_key, "router-secret")
+            self.assertTrue(config.is_configured())
+
     def test_general_openrouter_model_does_not_override_default_formula_model(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

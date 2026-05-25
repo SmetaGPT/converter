@@ -107,6 +107,7 @@
 83. Добавлен first-class HTML QC export: `src/doc_converter/human_readable.py` стал shared renderer для Markdown/HTML, `scripts/export_human_readable_html.py` умеет экспортировать как отдельный `document.v1.json`, так и целый `run_dir` в `human-readable-index.html`, а GUI получил кнопку `HTML QC` для немедленной проверки качества конвертации в браузере.
 84. GUI теперь автоматически предлагает sibling output path вида `<input>_output` при выборе входной папки и сохраняет вручную заданный отдельный output без перезаписи; это снижает операторские ошибки на nested output path, не снимая intentional self-ingestion guard.
 85. LLM formula recognition теперь включается по умолчанию безопаснее: при наличии `OPENROUTER_API_KEY` formula slice автоматически использует `openrouter` + `openai/gpt-4o` даже без `FORMULA_MODEL`, а OpenRouter request переведён на strict `json_schema`, чтобы `linear_text`/`display_latex`/`calc_expr` стабильно возвращались как machine-readable JSON.
+86. Закрыт follow-up по реальному operator feedback для формул и HTML QC: formula-recognition postprocess теперь покрывает не только `formula_image`, но и low-confidence `formula` units, HTML renderer не отправляет в MathJax low-confidence heuristic `display_latex`, распознаванные `formula_image` units показываются как формульные блоки со ссылкой на исходный asset, обычные абзацы получают отступ/переносы, а env loader ищет `.env.local` также рядом с `sys.executable`, чтобы EXE видел formula config даже при другом `cwd`.
 
 ### Готовые артефакты
 

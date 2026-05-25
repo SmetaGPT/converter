@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Mapping
@@ -126,6 +127,9 @@ def _discover_env_dir(start_dir: Path | None) -> Path | None:
     cwd = Path.cwd().resolve()
     if cwd not in search_roots:
         search_roots.append(cwd)
+    executable_dir = Path(sys.executable).resolve().parent
+    if executable_dir not in search_roots:
+        search_roots.append(executable_dir)
 
     seen: set[Path] = set()
     for root in search_roots:

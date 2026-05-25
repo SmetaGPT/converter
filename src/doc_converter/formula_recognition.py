@@ -85,40 +85,47 @@ def run_formula_recognition_postprocess(
     warning_set: set[str] = set()
 
     for unit in units:
-        if not _is_formula_image_candidate(unit):
+        candidate = _formula_recognition_candidate(unit)
+        if candidate is None:
             continue
 
         attempted += 1
-        asset_ref = str(unit["asset_ref"])
-        asset_path = document_dir / asset_ref
-        if not asset_path.exists():
-            warning_set.add("formula_recognition_asset_missing")
-            records.append(
-                {
-                    "unit_id": unit.get("unit_id"),
-                    "asset_ref": asset_ref,
-                    "status": "asset_missing",
-                }
-            )
-            continue
+        asset_ref = candidate.get("asset_ref")
+        source_text = candidate.get("source_text")
+        local_hint_text = None
+        if isinstance(asset_ref, str) and asset_ref:
+            asset_path = document_dir / asset_ref
+            if not asset_path.exists():
+                warning_set.add("formula_recognition_asset_missing")
+                records.append(
+                    {
+                        "unit_id": unit.get("unit_id"),
+                        "asset_ref": asset_ref,
+                        "status": "asset_missing",
+                    }
+                )
+                continue
 
-        blob = asset_path.read_bytes()
-        local_hint_text = _extract_formula_text_from_asset(blob, asset_path.name)
-        local_formula = _formula_representation_from_text(local_hint_text) if local_hint_text else None
-        if _local_formula_is_sufficient(local_formula):
-            assert local_formula is not None
-            _apply_formula_to_unit(unit, local_formula)
-            recognized += 1
-            records.append(
-                {
-                    "unit_id": unit.get("unit_id"),
-                    "asset_ref": asset_ref,
-                    "status": "recognized_local",
-                    "source_format": local_formula.get("source_format"),
-                    "confidence": local_formula.get("confidence"),
-                }
-            )
-            continue
+            blob = asset_path.read_bytes()
+            local_hint_text = _extract_formula_text_from_asset(blob, asset_path.name)
+            local_formula = _formula_representation_from_text(local_hint_text) if local_hint_text else None
+            if _local_formula_is_sufficient(local_formula):
+                assert local_formula is not None
+                _apply_formula_to_unit(unit, local_formula)
+                recognized += 1
+                records.append(
+                    {
+                        "unit_id": unit.get("unit_id"),
+                        "asset_ref": asset_ref,
+                        "status": "recognized_local",
+                        "source_format": local_formula.get("source_format"),
+                        "confidence": local_formula.get("confidence"),
+                    }
+                )
+                continue
+        else:
+            asset_path = None
+            blob = None
 
         provider_calls += 1
         try:
@@ -127,6 +134,7 @@ def run_formula_recognition_postprocess(
                 blob=blob,
                 config=config,
                 local_hint_text=local_hint_text,
+                source_text=source_text,
             )
             _apply_formula_to_unit(unit, provider_formula)
             recognized += 1
@@ -135,6 +143,7 @@ def run_formula_recognition_postprocess(
                     "unit_id": unit.get("unit_id"),
                     "asset_ref": asset_ref,
                     "status": "recognized_provider",
+                    "candidate_kind": candidate.get("kind"),
                     "provider": config.provider,
                     "model": config.model,
                     "confidence": provider_formula.get("confidence"),
@@ -147,6 +156,7 @@ def run_formula_recognition_postprocess(
                     "unit_id": unit.get("unit_id"),
                     "asset_ref": asset_ref,
                     "status": "provider_failed",
+                    "candidate_kind": candidate.get("kind"),
                     "provider": config.provider,
                     "model": config.model,
                     "error": type(exc).__name__,
@@ -191,10 +201,38 @@ def run_formula_recognition_postprocess(
     )
 
 
-def _is_formula_image_candidate(unit: object) -> bool:
+def _formula_recognition_candidate(unit: object) -> dict[str, Any] | None:
     if not isinstance(unit, dict):
-        return False
-    return bool(unit.get("type") == "formula_image" and unit.get("asset_ref") and unit.get("formula") is None)
+        return None
+
+    unit_type = unit.get("type")
+    asset_ref = unit.get("asset_ref")
+    formula = unit.get("formula") if isinstance(unit.get("formula"), dict) else None
+    text = unit.get("text") if isinstance(unit.get("text"), str) else None
+
+    if unit_type == "formula_image" and isinstance(asset_ref, str) and asset_ref:
+        if _formula_needs_provider_review(formula):
+            return {"kind": "formula_image", "asset_ref": asset_ref, "source_text": text}
+
+    if unit_type == "formula" and text and _formula_needs_provider_review(formula):
+        return {"kind": "formula_text", "asset_ref": None, "source_text": text}
+
+    return None
+
+
+def _formula_needs_provider_review(formula: dict[str, Any] | None) -> bool:
+    if formula is None:
+        return True
+    confidence = str(formula.get("confidence"))
+    if confidence == "low":
+        return True
+    source_format = str(formula.get("source_format"))
+    if source_format in {"docx_text_linearized", "heuristic_latex"}:
+        return True
+    warnings = formula.get("warnings")
+    if isinstance(warnings, list) and any("heuristic" in str(item) for item in warnings):
+        return True
+    return False
 
 
 def _local_formula_is_sufficient(formula: dict[str, Any] | None) -> bool:
@@ -214,16 +252,17 @@ def _apply_formula_to_unit(unit: dict[str, Any], formula: dict[str, Any]) -> Non
 
 def _recognize_formula_with_openrouter(
     *,
-    asset_path: Path,
-    blob: bytes,
+    asset_path: Path | None,
+    blob: bytes | None,
     config: FormulaRecognitionConfig,
     local_hint_text: str | None,
+    source_text: str | None,
 ) -> dict[str, Any]:
     if (config.provider or "").lower() != "openrouter":
         raise RuntimeError(f"Unsupported formula recognition provider: {config.provider}")
 
-    image_url = _build_image_data_url(asset_path, blob)
-    prompt = _formula_recognition_prompt(asset_path.name, local_hint_text)
+    image_url = _build_image_data_url(asset_path, blob) if asset_path is not None and blob is not None else None
+    prompt = _formula_recognition_prompt(asset_name=asset_path.name if asset_path is not None else None, local_hint_text=local_hint_text, source_text=source_text)
     response_payload = _request_openrouter_completion(
         api_key=str(config.api_key),
         model=str(config.model),
@@ -252,7 +291,7 @@ def _build_image_data_url(asset_path: Path, blob: bytes) -> str:
     return f"data:{media_type};base64,{encoded}"
 
 
-def _formula_recognition_prompt(asset_name: str, local_hint_text: str | None) -> str:
+def _formula_recognition_prompt(asset_name: str | None, local_hint_text: str | None, source_text: str | None) -> str:
     lines = [
         "Распознай формулу на изображении и верни только JSON-объект.",
         "Сохраняй кириллические обозначения и индексы, если они есть на изображении.",
@@ -261,14 +300,21 @@ def _formula_recognition_prompt(asset_name: str, local_hint_text: str | None) ->
         "confidence должно быть одним из: high, medium, low.",
         "warnings должно быть массивом коротких snake_case строк.",
         "Не добавляй markdown, комментарии или поясняющий текст вне JSON.",
-        f"asset_name: {asset_name}",
     ]
+    if asset_name:
+        lines.append(f"asset_name: {asset_name}")
     if local_hint_text:
         lines.append(f"partial_local_hint: {local_hint_text}")
+    if source_text:
+        lines.append(f"raw_extracted_text: {source_text}")
     return "\n".join(lines)
 
 
-def _request_openrouter_completion(*, api_key: str, model: str, image_url: str, prompt: str) -> dict[str, Any]:
+def _request_openrouter_completion(*, api_key: str, model: str, image_url: str | None, prompt: str) -> dict[str, Any]:
+    content: list[dict[str, Any]] = [{"type": "text", "text": prompt}]
+    if image_url is not None:
+        content.append({"type": "image_url", "image_url": {"url": image_url, "detail": "high"}})
+
     body = {
         "model": model,
         "temperature": 0,
@@ -288,10 +334,7 @@ def _request_openrouter_completion(*, api_key: str, model: str, image_url: str, 
             },
             {
                 "role": "user",
-                "content": [
-                    {"type": "text", "text": prompt},
-                    {"type": "image_url", "image_url": {"url": image_url, "detail": "high"}},
-                ],
+                "content": content,
             },
         ],
     }

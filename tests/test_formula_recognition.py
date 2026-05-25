@@ -139,6 +139,51 @@ class FormulaRecognitionPostprocessTests(unittest.TestCase):
         self.assertEqual(request_body["messages"][1]["content"][1]["type"], "image_url")
         self.assertEqual(request_body["messages"][1]["content"][1]["image_url"]["url"], "data:image/png;base64,AAAA")
 
+    def test_formula_recognition_updates_low_confidence_formula_text_unit(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            document_dir = Path(temp_dir)
+            payload = _minimal_formula_text_document_payload()
+            (document_dir / "document.v1.json").write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            with patch(
+                "doc_converter.formula_recognition._request_openrouter_completion",
+                return_value={
+                    "choices": [
+                        {
+                            "message": {
+                                "content": json.dumps(
+                                    {
+                                        "linear_text": "З_ч = t_i * З_чj",
+                                        "display_latex": r"З_{ч} = t_{i} \times З_{чj}",
+                                        "calc_expr": "Z_ch = t_i * Z_chj",
+                                        "confidence": "high",
+                                        "warnings": [],
+                                    },
+                                    ensure_ascii=False,
+                                )
+                            }
+                        }
+                    ]
+                },
+            ):
+                result = run_formula_recognition_postprocess(
+                    document_dir,
+                    FormulaRecognitionConfig(provider="openrouter", model="openai/gpt-4o", api_key="secret"),
+                )
+
+            self.assertEqual(result.attempted, 1)
+            self.assertEqual(result.recognized, 1)
+            self.assertEqual(result.provider_calls, 1)
+            updated_payload = json.loads((document_dir / "document.v1.json").read_text(encoding="utf-8"))
+            formula_unit = updated_payload["units"][1]
+            self.assertEqual(formula_unit["formula"]["confidence"], "high")
+            self.assertEqual(formula_unit["formula"]["calc_expr"], "Z_ch = t_i * Z_chj")
+            artifact_record = json.loads((document_dir / "formula-recognition.jsonl").read_text(encoding="utf-8").splitlines()[0])
+            self.assertEqual(artifact_record["candidate_kind"], "formula_text")
+
 
 def _minimal_document_payload(asset_path: Path) -> dict[str, object]:
     sha256 = "0" * 64
@@ -231,3 +276,52 @@ def _source_ref_payload(*, document_id: str, docx_path: str) -> dict[str, object
 
 def _quality_payload() -> dict[str, list[str]]:
     return {"flags": [], "warnings": []}
+
+
+def _minimal_formula_text_document_payload() -> dict[str, object]:
+    sha256 = "1" * 64
+    document_id = f"sha256:{sha256}"
+    return {
+        "schema_version": "document.v1",
+        "document_id": document_id,
+        "source": {
+            "original_path": "D:/input/example.docx",
+            "relative_input_path": None,
+            "filename": "sample.docx",
+            "format": "docx",
+            "sha256": sha256,
+            "size_bytes": 1,
+        },
+        "processing": {"route": "docx_native", "status": "success", "warnings": []},
+        "metadata": {
+            "title": "sample",
+            "document_type": "приказ",
+            "short_summary": "sample",
+            "confidence": "low",
+            "method": "filename_fallback",
+        },
+        "units": [
+            _document_unit_payload(document_id=document_id),
+            {
+                "unit_id": "u_000001",
+                "parent_id": "u_000000",
+                "type": "formula",
+                "order": 1,
+                "text": "З_ч = (ч. раб.мес.)",
+                "asset_ref": None,
+                "formula": {
+                    "source_format": "docx_text_linearized",
+                    "linear_text": "З_ч = (ч. раб.мес.)",
+                    "display_latex": r"З_ч = (ч. раб.мес.)",
+                    "calc_expr": None,
+                    "confidence": "low",
+                    "warnings": ["formula_display_latex_is_heuristic"],
+                },
+                "cell": None,
+                "source_ref": _source_ref_payload(document_id=document_id, docx_path="/word/document.xml/body/p[1]"),
+                "quality": _quality_payload(),
+            },
+        ],
+        "assets": [],
+        "quality": {"flags": [], "warnings": []},
+    }

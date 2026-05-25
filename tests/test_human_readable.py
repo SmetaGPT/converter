@@ -100,6 +100,54 @@ def _sample_payload() -> dict[str, object]:
     }
 
 
+def _low_confidence_formula_payload() -> dict[str, object]:
+    payload = _sample_payload()
+    payload["units"] = [
+        {
+            "unit_id": "u_000001",
+            "type": "paragraph",
+            "order": 0,
+            "text": "Абзац перед формулой",
+            "source_ref": {"document_id": DOCUMENT_ID},
+            "quality": {"flags": [], "warnings": []},
+        },
+        {
+            "unit_id": "u_000002",
+            "type": "formula",
+            "order": 1,
+            "text": "k_з.п - коэффициент, устанавливающий долю зарплаты",
+            "formula": {
+                "source_format": "docx_text_linearized",
+                "linear_text": "k_з.п - коэффициент, устанавливающий долю зарплаты",
+                "display_latex": r"k_з.п - коэффициент, устанавливающий долю зарплаты",
+                "calc_expr": None,
+                "confidence": "low",
+                "warnings": ["formula_display_latex_is_heuristic"],
+            },
+            "source_ref": {"document_id": DOCUMENT_ID},
+            "quality": {"flags": [], "warnings": []},
+        },
+        {
+            "unit_id": "u_000003",
+            "type": "formula_image",
+            "order": 2,
+            "text": "C = A + B",
+            "asset_ref": "assets/formula.png",
+            "formula": {
+                "source_format": "heuristic_latex",
+                "linear_text": "C = A + B",
+                "display_latex": r"C = A + B",
+                "calc_expr": "C = A + B",
+                "confidence": "high",
+                "warnings": [],
+            },
+            "source_ref": {"document_id": DOCUMENT_ID},
+            "quality": {"flags": [], "warnings": []},
+        },
+    ]
+    return payload
+
+
 class HumanReadableExportTests(unittest.TestCase):
     def test_build_markdown_renders_formula_and_table(self) -> None:
         markdown = build_human_readable_markdown(_sample_payload())
@@ -115,9 +163,24 @@ class HumanReadableExportTests(unittest.TestCase):
 
         self.assertIn("MathJax", html)
         self.assertIn("<div class=\"formula-block\">", html)
+        self.assertIn("inlineMath: []", html)
         self.assertIn("C = A + B", html)
         self.assertIn("<table>", html)
         self.assertIn("Тестовый документ", html)
+
+    def test_build_html_renders_low_confidence_formula_as_plain_text(self) -> None:
+        html = build_human_readable_html(_low_confidence_formula_payload())
+
+        self.assertIn("text-indent:1.6em", html)
+        self.assertIn("formula-plain", html)
+        self.assertIn("k_з.п - коэффициент", html)
+        self.assertNotIn("$$\nk_з.п - коэффициент", html)
+
+    def test_build_html_renders_recognized_formula_image_as_formula_block(self) -> None:
+        html = build_human_readable_html(_low_confidence_formula_payload())
+
+        self.assertIn("assets/formula.png", html)
+        self.assertIn("C = A + B", html)
 
     def test_export_document_html_writes_next_to_document(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
