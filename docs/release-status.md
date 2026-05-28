@@ -65,6 +65,7 @@
 - first-class human-readable QC export: shared renderer `src/doc_converter/human_readable.py` now emits both `human-readable.md` and `human-readable.html`; dedicated `scripts/export_human_readable_html.py` can export a single canonical package or an entire `run_dir` into `human-readable-index.html`, and the GUI exposes this path via an `HTML QC` button for immediate browser-based quality review.
 - root-level processed documents catalog: каждый run сохраняет `processed-documents-catalog.json` и `processed-documents-catalog.xlsx` с исходным именем файла, папкой документа, итоговым статусом/issue и hyperlinks на основные обработанные артефакты.
 - frozen schema packaging: Windows EXE теперь получает локальный каталог `schemas` в bundle, а runtime schema resolver ищет схемы и в `dist\...\_internal\schemas`, поэтому operator GUI больше не падает на старте обработки из-за missing `run.v1.schema.json`.
+- production roadmap S0.1 baseline stabilization: DOCX inline-glyph unittest flake закрыт на уровне тестового cache discipline и canonical variant assertions; `ruff check src tests scripts`, `pyright` и 5 подряд `unittest discover` проходят зелёно.
 
 Следующий backlog:
 

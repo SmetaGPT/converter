@@ -40,3 +40,23 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 doc_converter = ["py.typed"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 140
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+# quality.lint-strict: legacy formatting debt is tracked for later formatting-only cleanup;
+# S0.1 keeps semantic E/F failures blocking while avoiding broad unrelated reflow.
+ignore = ["E501", "W191", "W292"]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/export_formula_gold.py" = ["E402"]
+"scripts/run_formula_benchmark.py" = ["E402"]
+
+[tool.pyright]
+include = ["src", "scripts", "tests"]
+executionEnvironments = [
+	{ root = ".", extraPaths = ["src"] },
+]

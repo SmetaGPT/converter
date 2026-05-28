@@ -136,6 +136,9 @@
 112. Добавлен executable contour для representative sample expectations: новый `src/doc_converter/sample_expectations.py` и `scripts/validate_sample_expectations.py` валидируют expected structural/table specs по реальному `run_dir`, поддерживают subset по `sample_id` и проверяют как canonical unit counts, так и aggregate table metrics и processing state.
 113. Собран и подтверждён table anchor baseline на реальных `sample_009`, `sample_018` и `sample_020`: добавлены `samples/manifest.table-anchors.jsonl`, table-aware expected specs для `sample_009`/`sample_018`, blocked-scan baseline для `sample_020`, а fresh run `runs\table-anchors\runs\20260528T092227Z` проходит новый validator без drift.
 114. Измеримый baseline показал, что `sample_009` и `sample_018` уже держат row/cell integrity (`wide_row_ratio = 1.0`, `single_cell_row_ratio = 0.0`), но warning density остаётся высокой (`162/166` и `22/26` tables c `table_structure_warning`), тогда как `sample_020` пока остаётся OCR-blocked (`partial_success`, `OCRmyPDF failed.`, `0` table units), что делает следующий scan-table backlog явным и проверяемым.
+115. Добавлена `docs/production-roadmap.md`: v1.0 roadmap разложен на waves/sprints с dependencies, feature_ids, artifacts и machine-checkable exit criteria для автономных агентов.
+116. Добавлен reusable prompt `.github/prompts/execute-production-roadmap-autonomous.prompt.md`: агент получает end-to-end инструкцию для исполнения production roadmap, запуска проверок, state/telemetry updates, commit и push без остановки на планировании.
+117. Закрыт production roadmap Sprint S0.1: DOCX inline-glyph тесты очищают `INLINE_GLYPH_CACHE` перед каждым кейсом, flaky additional-symbol assertions стабилизированы через допустимые canonical variants, ruff/pyright конфиг зафиксирован в `pyproject.toml`, `ruff check`, `pyright` и 5 подряд `unittest discover` проходят зелёно.
 
 ### Готовые артефакты
 
@@ -174,6 +177,7 @@
 - docs/agent-self-review-template.md
 - docs/document-converter-roadmap.md
 - docs/document-converter-acceptance.md
+- docs/production-roadmap.md
 - docs/formula-production-plan.md
 - samples/formula-benchmark.manifest.jsonl
 - samples/expected/formulas/
@@ -181,6 +185,7 @@
 - docs/ocr-runtime-windows.md
 - docs/downstream-handoff.md
 - .github/prompts/production-readiness-hardening.prompt.md
+- .github/prompts/execute-production-roadmap-autonomous.prompt.md
 - .vscode/extensions.json
 - .vscode/mcp.json
 - .vscode/settings.json

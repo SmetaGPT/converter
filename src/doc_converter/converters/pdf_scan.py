@@ -21,7 +21,6 @@ from doc_converter.converters.pdf_text import (
     _is_formula_block,
     _is_table_block,
     _parse_table_block,
-    _parse_table_rows,
     _quality_flags_for_pdf_unit,
     _split_pdf_text,
 )

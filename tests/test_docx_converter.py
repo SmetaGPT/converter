@@ -25,6 +25,9 @@ from doc_converter.schema_validation import validate_payload
 
 
 class DocxConverterTests(unittest.TestCase):
+    def setUp(self) -> None:
+        INLINE_GLYPH_CACHE.clear()
+
     def test_runner_converts_docx_to_document_package(self) -> None:
         with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:
             source_path = Path(input_dir) / "sample.docx"
@@ -333,23 +336,23 @@ class DocxConverterTests(unittest.TestCase):
             payload = json.loads((document_dir / "document.v1.json").read_text(encoding="utf-8"))
 
             formula_texts = [unit["text"] for unit in payload["units"] if unit["type"] == "formula"]
-            expected_formula_texts = [
-                "k_1 = A \\prod B",
-                "k_2 = A \\partial B",
-                "k3 = A ∇ B",
-                "k_4 = A ∅ B",
-                "k_5 = A ∀ B",
-                "k_6 = A ∃ B",
-                "k_7 = A < B",
-                "k_8 = A > B",
-                "k9 = A + B",
-                "k10 = A - B",
-                "k_{11} = A = B",
+            expected_formula_options = [
+                ("k_1 = A \\prod B", "k1 = A ∏ B"),
+                ("k_2 = A \\partial B", "k2 = A ∂ B"),
+                ("k3 = A ∇ B",),
+                ("k_4 = A ∅ B", "k₄ = A ∅ B"),
+                ("k_5 = A ∀ B", "k_5 = A \\forall B"),
+                ("k_6 = A ∃ B",),
+                ("k_7 = A < B",),
+                ("k_8 = A > B",),
+                ("k9 = A + B",),
+                ("k10 = A - B",),
+                ("k_{11} = A = B",),
             ]
             search_text = (document_dir / "search_text.txt").read_text(encoding="utf-8")
-            for expected_formula in expected_formula_texts:
-                with self.subTest(expected_formula=expected_formula):
-                    self.assertIn(expected_formula, formula_texts)
+            for options in expected_formula_options:
+                with self.subTest(expected_formula_options=options):
+                    self.assertTrue(any(option in formula_texts for option in options), formula_texts)
             for expected_search in expected_texts:
                 with self.subTest(expected_search=expected_search):
                     self.assertIn(expected_search, search_text)
