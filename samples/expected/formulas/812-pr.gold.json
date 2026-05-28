@@ -1,0 +1,753 @@
+{
+  "schema_version": "formula-gold.v1",
+  "document_label": "812/пр",
+  "document_expectations": {
+    "formula_units": 44,
+    "calc_expr_units": 41,
+    "banned_substrings_absent": []
+  },
+  "unit_expectations": [
+    {
+      "formula_index": 0,
+      "type": "formula",
+      "order": 97,
+      "text": "С_(ИГДИ) = С_(П) + С_(К) (1),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(ИГДИ) = С_(П) + С_(К)",
+      "display_latex": "\\mathrm{С}_{\\text{ИГДИ}} = \\mathrm{С}_{\\text{П}} + \\mathrm{С}_{\\text{К}}",
+      "calc_expr": "S_IGDI = S_P + S_K",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 1,
+      "type": "formula",
+      "order": 117,
+      "text": "С_(П) = С_(Ппз) + ДЗ_(п) (2),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(П) = С_(Ппз) + ДЗ_(п)",
+      "display_latex": "\\mathrm{С}_{\\text{П}} = \\mathrm{С}_{\\text{Ппз}} + \\mathrm{ДЗ}_{\\text{п}}",
+      "calc_expr": "S_P = S_Ppz + DZ_p",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 2,
+      "type": "formula",
+      "order": 136,
+      "text": "ДЗ_(п) = ДЗ_(НП) + ДЗ_(ноч) + ДЗ_(режим) + ДЗ_(внеш) + ДЗ_(орг) + ДЗ_(вП) + ДЗ_(районП) + ДЗ_(севП) (3),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "ДЗ_(п) = ДЗ_(НП) + ДЗ_(ноч) + ДЗ_(режим) + ДЗ_(внеш) + ДЗ_(орг) + ДЗ_(вП) + ДЗ_(районП) + ДЗ_(севП)",
+      "display_latex": "\\mathrm{ДЗ}_{\\text{п}} = \\mathrm{ДЗ}_{\\text{НП}} + \\mathrm{ДЗ}_{\\text{ноч}} + \\mathrm{ДЗ}_{\\text{режим}} + \\mathrm{ДЗ}_{\\text{внеш}} + \\mathrm{ДЗ}_{\\text{орг}} + \\mathrm{ДЗ}_{\\text{вП}} + \\mathrm{ДЗ}_{\\text{районП}} + \\mathrm{ДЗ}_{\\text{севП}}",
+      "calc_expr": "DZ_p = DZ_NP + DZ_noch + DZ_rezhim + DZ_vnesh + DZ_org + DZ_vP + DZ_rayonP + DZ_sevP",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 3,
+      "type": "formula",
+      "order": 179,
+      "text": "ДЗ_(НП) = С_(Ппз) x П_(ДЗнп) (4),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "ДЗ_(НП) = С_(Ппз) x П_(ДЗнп)",
+      "display_latex": "\\mathrm{ДЗ}_{\\text{НП}} = \\mathrm{С}_{\\text{Ппз}}  \\times  \\mathrm{П}_{\\text{ДЗнп}}",
+      "calc_expr": "DZ_NP = S_Ppz * P_DZnp",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 4,
+      "type": "formula",
+      "order": 241,
+      "text": "ДЗ_(ноч) = (С_(Ппз) + ДЗ_(НП)) x П_(ДЗноч) (5),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "ДЗ_(ноч) = (С_(Ппз) + ДЗ_(НП)) x П_(ДЗноч)",
+      "display_latex": "\\mathrm{ДЗ}_{\\text{ноч}} = (\\mathrm{С}_{\\text{Ппз}} + \\mathrm{ДЗ}_{\\text{НП}})  \\times  \\mathrm{П}_{\\text{ДЗноч}}",
+      "calc_expr": "DZ_noch = ( S_Ppz + DZ_NP ) * P_DZnoch",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 5,
+      "type": "formula",
+      "order": 266,
+      "text": "ДЗ_(режим) = (С_(Ппз) + ДЗ_(НП)) x П_(ДЗрежим) (6),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "ДЗ_(режим) = (С_(Ппз) + ДЗ_(НП)) x П_(ДЗрежим)",
+      "display_latex": "\\mathrm{ДЗ}_{\\text{режим}} = (\\mathrm{С}_{\\text{Ппз}} + \\mathrm{ДЗ}_{\\text{НП}})  \\times  \\mathrm{П}_{\\text{ДЗрежим}}",
+      "calc_expr": "DZ_rezhim = ( S_Ppz + DZ_NP ) * P_DZrezhim",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 6,
+      "type": "formula",
+      "order": 312,
+      "text": "ДЗ_(внеш) = С_(Ппз) x П_(ДЗвнеш) (7),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "ДЗ_(внеш) = С_(Ппз) x П_(ДЗвнеш)",
+      "display_latex": "\\mathrm{ДЗ}_{\\text{внеш}} = \\mathrm{С}_{\\text{Ппз}}  \\times  \\mathrm{П}_{\\text{ДЗвнеш}}",
+      "calc_expr": "DZ_vnesh = S_Ppz * P_DZvnesh",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 7,
+      "type": "formula",
+      "order": 488,
+      "text": "ДЗ_(орг) = С_(Ппз) x П_(ДЗорг) (8),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "ДЗ_(орг) = С_(Ппз) x П_(ДЗорг)",
+      "display_latex": "\\mathrm{ДЗ}_{\\text{орг}} = \\mathrm{С}_{\\text{Ппз}}  \\times  \\mathrm{П}_{\\text{ДЗорг}}",
+      "calc_expr": "DZ_org = S_Ppz * P_DZorg",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 8,
+      "type": "formula",
+      "order": 580,
+      "text": "ДЗ_(вП) = (С_(Ппз) + ДЗ_(НП) + ДЗ_(режим) + ДЗ_(ноч) + ДЗ_(орг)) x (Д_(ЗПП) x П_(ДЗвыс) + Д_(прочП) - 1) (9),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "ДЗ_(вП) = (С_(Ппз) + ДЗ_(НП) + ДЗ_(режим) + ДЗ_(ноч) + ДЗ_(орг)) x (Д_(ЗПП) x П_(ДЗвыс) + Д_(прочП) - 1)",
+      "display_latex": "\\mathrm{ДЗ}_{\\text{вП}} = (\\mathrm{С}_{\\text{Ппз}} + \\mathrm{ДЗ}_{\\text{НП}} + \\mathrm{ДЗ}_{\\text{режим}} + \\mathrm{ДЗ}_{\\text{ноч}} + \\mathrm{ДЗ}_{\\text{орг}})  \\times  (\\mathrm{Д}_{\\text{ЗПП}}  \\times  \\mathrm{П}_{\\text{ДЗвыс}} + \\mathrm{Д}_{\\text{прочП}} - 1)",
+      "calc_expr": "DZ_vP = ( S_Ppz + DZ_NP + DZ_rezhim + DZ_noch + DZ_org ) * ( D_ZPP * P_DZvys + D_prochP - 1 )",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 9,
+      "type": "formula",
+      "order": 624,
+      "text": "ДЗ_(районП) = (С_(Ппз) + ДЗ_(НП) + ДЗ_(режим) + ДЗ_(ноч) + ДЗ_(орг)) x (Д_(ЗП) x П_(ДЗр) + Д_(проч) - 1) (10),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "ДЗ_(районП) = (С_(Ппз) + ДЗ_(НП) + ДЗ_(режим) + ДЗ_(ноч) + ДЗ_(орг)) x (Д_(ЗП) x П_(ДЗр) + Д_(проч) - 1)",
+      "display_latex": "\\mathrm{ДЗ}_{\\text{районП}} = (\\mathrm{С}_{\\text{Ппз}} + \\mathrm{ДЗ}_{\\text{НП}} + \\mathrm{ДЗ}_{\\text{режим}} + \\mathrm{ДЗ}_{\\text{ноч}} + \\mathrm{ДЗ}_{\\text{орг}})  \\times  (\\mathrm{Д}_{\\text{ЗП}}  \\times  \\mathrm{П}_{\\text{ДЗр}} + \\mathrm{Д}_{\\text{проч}} - 1)",
+      "calc_expr": "DZ_rayonP = ( S_Ppz + DZ_NP + DZ_rezhim + DZ_noch + DZ_org ) * ( D_ZP * P_DZr + D_proch - 1 )",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 10,
+      "type": "formula",
+      "order": 668,
+      "text": "ДЗ_(севП) = (С_(Ппз) + ДЗ_(режим) + ДЗ_(ноч) + ДЗ_(орг)) x (Д_(ЗП) x П_(ДЗр) + Д_(прочП) - 1) (11),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "ДЗ_(севП) = (С_(Ппз) + ДЗ_(режим) + ДЗ_(ноч) + ДЗ_(орг)) x (Д_(ЗП) x П_(ДЗр) + Д_(прочП) - 1)",
+      "display_latex": "\\mathrm{ДЗ}_{\\text{севП}} = (\\mathrm{С}_{\\text{Ппз}} + \\mathrm{ДЗ}_{\\text{режим}} + \\mathrm{ДЗ}_{\\text{ноч}} + \\mathrm{ДЗ}_{\\text{орг}})  \\times  (\\mathrm{Д}_{\\text{ЗП}}  \\times  \\mathrm{П}_{\\text{ДЗр}} + \\mathrm{Д}_{\\text{прочП}} - 1)",
+      "calc_expr": "DZ_sevP = ( S_Ppz + DZ_rezhim + DZ_noch + DZ_org ) * ( D_ZP * P_DZr + D_prochP - 1 )",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 11,
+      "type": "formula",
+      "order": 734,
+      "text": "ССДЗ=+_(ККпзК) (12),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "ССДЗ=+_(ККпзК)",
+      "display_latex": "ССДЗ=+_(ККпзК)",
+      "calc_expr": null,
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 12,
+      "type": "formula",
+      "order": 753,
+      "text": "ДЗ_(К) = ДЗ_(высК) + ДЗ_(районК) + ДЗ_(северК) (13),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "ДЗ_(К) = ДЗ_(высК) + ДЗ_(районК) + ДЗ_(северК)",
+      "display_latex": "\\mathrm{ДЗ}_{\\text{К}} = \\mathrm{ДЗ}_{\\text{высК}} + \\mathrm{ДЗ}_{\\text{районК}} + \\mathrm{ДЗ}_{\\text{северК}}",
+      "calc_expr": "DZ_K = DZ_vysK + DZ_rayonK + DZ_severK",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 13,
+      "type": "formula",
+      "order": 776,
+      "text": "ДЗ_(высК) = С_(Кпз) x (Д_(ЗПК) x П_(ДЗвыс) + Д_(прочК) - 1) (14),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "ДЗ_(высК) = С_(Кпз) x (Д_(ЗПК) x П_(ДЗвыс) + Д_(прочК) - 1)",
+      "display_latex": "\\mathrm{ДЗ}_{\\text{высК}} = \\mathrm{С}_{\\text{Кпз}}  \\times  (\\mathrm{Д}_{\\text{ЗПК}}  \\times  \\mathrm{П}_{\\text{ДЗвыс}} + \\mathrm{Д}_{\\text{прочК}} - 1)",
+      "calc_expr": "DZ_vysK = S_Kpz * ( D_ZPK * P_DZvys + D_prochK - 1 )",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 14,
+      "type": "formula",
+      "order": 803,
+      "text": "ДЗ_(районК) = С_(Кпз) x (Д_(ЗПК) x П_(ДЗрайон) + Д_(прочК) - 1) (15),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "ДЗ_(районК) = С_(Кпз) x (Д_(ЗПК) x П_(ДЗрайон) + Д_(прочК) - 1)",
+      "display_latex": "\\mathrm{ДЗ}_{\\text{районК}} = \\mathrm{С}_{\\text{Кпз}}  \\times  (\\mathrm{Д}_{\\text{ЗПК}}  \\times  \\mathrm{П}_{\\text{ДЗрайон}} + \\mathrm{Д}_{\\text{прочК}} - 1)",
+      "calc_expr": "DZ_rayonK = S_Kpz * ( D_ZPK * P_DZrayon + D_prochK - 1 )",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 15,
+      "type": "formula",
+      "order": 830,
+      "text": "ДЗ_(северК) = С_(Кпз) x (Д_(ЗПК) x П_(ДЗсев) + Д_(прочК) - 1) (16),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "ДЗ_(северК) = С_(Кпз) x (Д_(ЗПК) x П_(ДЗсев) + Д_(прочК) - 1)",
+      "display_latex": "\\mathrm{ДЗ}_{\\text{северК}} = \\mathrm{С}_{\\text{Кпз}}  \\times  (\\mathrm{Д}_{\\text{ЗПК}}  \\times  \\mathrm{П}_{\\text{ДЗсев}} + \\mathrm{Д}_{\\text{прочК}} - 1)",
+      "calc_expr": "DZ_severK = S_Kpz * ( D_ZPK * P_DZsev + D_prochK - 1 )",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 16,
+      "type": "formula",
+      "order": 1704,
+      "text": "С_(Пвлс) = С_(Псгс) + С_(Пго) + С_(Свлс) + С_(Синстр) + С_(Пдешифр) (17),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(Пвлс) = С_(Псгс) + С_(Пго) + С_(Свлс) + С_(Синстр) + С_(Пдешифр)",
+      "display_latex": "\\mathrm{С}_{\\text{Пвлс}} = \\mathrm{С}_{\\text{Псгс}} + \\mathrm{С}_{\\text{Пго}} + \\mathrm{С}_{\\text{Свлс}} + \\mathrm{С}_{\\text{Синстр}} + \\mathrm{С}_{\\text{Пдешифр}}",
+      "calc_expr": "S_Pvls = S_Psgs + S_Pgo + S_Svls + S_Sinstr + S_Pdeshifr",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 17,
+      "type": "formula",
+      "order": 1735,
+      "text": "С_(Свлс) = ПЗ1_(п) + ПЗ2_(п) x S_(влс) (18),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(Свлс) = ПЗ1_(п) + ПЗ2_(п) x S_(влс)",
+      "display_latex": "\\mathrm{С}_{\\text{Свлс}} = \\mathrm{ПЗ1}_{\\text{п}} + \\mathrm{ПЗ2}_{\\text{п}}  \\times  S_{\\text{влс}}",
+      "calc_expr": "S_Svls = PZ1_p + PZ2_p * S_vls",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 18,
+      "type": "formula",
+      "order": 2572,
+      "text": "С_(Квлс) = С_(Ксгс) + С_(Кго) + С_(Квлс) + С_(Кфото) (19),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(Квлс) = С_(Ксгс) + С_(Кго) + С_(Квлс) + С_(Кфото)",
+      "display_latex": "\\mathrm{С}_{\\text{Квлс}} = \\mathrm{С}_{\\text{Ксгс}} + \\mathrm{С}_{\\text{Кго}} + \\mathrm{С}_{\\text{Квлс}} + \\mathrm{С}_{\\text{Кфото}}",
+      "calc_expr": "S_Kvls = S_Ksgs + S_Kgo + S_Kvls + S_Kfoto",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 19,
+      "type": "formula",
+      "order": 2599,
+      "text": "С_(Квлс)(С_(Кфото)) = ПЗ1_(к) + ПЗ2_(к) x S_(съемки) (20),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(Квлс)(С_(Кфото)) = ПЗ1_(к) + ПЗ2_(к) x S_(съемки)",
+      "display_latex": "\\mathrm{С}_{\\text{Квлс}}(\\mathrm{С}_{\\text{Кфото}}) = \\mathrm{ПЗ1}_{\\text{к}} + \\mathrm{ПЗ2}_{\\text{к}}  \\times  S_{\\text{съемки}}",
+      "calc_expr": null,
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 20,
+      "type": "formula",
+      "order": 4145,
+      "text": "С_(Кцафс) = С_(Ксгс) + С_(Кго) + С_(Кфотос) (21),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(Кцафс) = С_(Ксгс) + С_(Кго) + С_(Кфотос)",
+      "display_latex": "\\mathrm{С}_{\\text{Кцафс}} = \\mathrm{С}_{\\text{Ксгс}} + \\mathrm{С}_{\\text{Кго}} + \\mathrm{С}_{\\text{Кфотос}}",
+      "calc_expr": "S_Ktsafs = S_Ksgs + S_Kgo + S_Kfotos",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 21,
+      "type": "formula",
+      "order": 4168,
+      "text": "С_(Пмлс) = С_(Псгс) + С_(Пго) + С_(Смлс) + С_(Синстр) (22),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(Пмлс) = С_(Псгс) + С_(Пго) + С_(Смлс) + С_(Синстр)",
+      "display_latex": "\\mathrm{С}_{\\text{Пмлс}} = \\mathrm{С}_{\\text{Псгс}} + \\mathrm{С}_{\\text{Пго}} + \\mathrm{С}_{\\text{Смлс}} + \\mathrm{С}_{\\text{Синстр}}",
+      "calc_expr": "S_Pmls = S_Psgs + S_Pgo + S_Smls + S_Sinstr",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 22,
+      "type": "formula",
+      "order": 4195,
+      "text": "С_(Смлс) = ПЗ1_(п) + ПЗ2_(п) x L_(млс) (23),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(Смлс) = ПЗ1_(п) + ПЗ2_(п) x L_(млс)",
+      "display_latex": "\\mathrm{С}_{\\text{Смлс}} = \\mathrm{ПЗ1}_{\\text{п}} + \\mathrm{ПЗ2}_{\\text{п}}  \\times  L_{\\text{млс}}",
+      "calc_expr": "S_Smls = PZ1_p + PZ2_p * L_mls",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 23,
+      "type": "formula",
+      "order": 4316,
+      "text": "С_(Кмлс) = С_(Ксгс) + С_(Кго) + С_(Кмлс) (24),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(Кмлс) = С_(Ксгс) + С_(Кго) + С_(Кмлс)",
+      "display_latex": "\\mathrm{С}_{\\text{Кмлс}} = \\mathrm{С}_{\\text{Ксгс}} + \\mathrm{С}_{\\text{Кго}} + \\mathrm{С}_{\\text{Кмлс}}",
+      "calc_expr": "S_Kmls = S_Ksgs + S_Kgo + S_Kmls",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 24,
+      "type": "formula",
+      "order": 4339,
+      "text": "С_(Кмлс) = ПЗ1_(к) + ПЗ2_(к) x L_(млс) (25),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(Кмлс) = ПЗ1_(к) + ПЗ2_(к) x L_(млс)",
+      "display_latex": "\\mathrm{С}_{\\text{Кмлс}} = \\mathrm{ПЗ1}_{\\text{к}} + \\mathrm{ПЗ2}_{\\text{к}}  \\times  L_{\\text{млс}}",
+      "calc_expr": "S_Kmls = PZ1_k + PZ2_k * L_mls",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 25,
+      "type": "formula",
+      "order": 4414,
+      "text": "С_(Пнлс) = С_(Псгс) + С_(Пго) + С_(Снлс) (26),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(Пнлс) = С_(Псгс) + С_(Пго) + С_(Снлс)",
+      "display_latex": "\\mathrm{С}_{\\text{Пнлс}} = \\mathrm{С}_{\\text{Псгс}} + \\mathrm{С}_{\\text{Пго}} + \\mathrm{С}_{\\text{Снлс}}",
+      "calc_expr": "S_Pnls = S_Psgs + S_Pgo + S_Snls",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 26,
+      "type": "formula",
+      "order": 4437,
+      "text": "С_(Снлс) = ПЗ1_(п) + ПЗ2_(п) x S_(нлс) (27),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(Снлс) = ПЗ1_(п) + ПЗ2_(п) x S_(нлс)",
+      "display_latex": "\\mathrm{С}_{\\text{Снлс}} = \\mathrm{ПЗ1}_{\\text{п}} + \\mathrm{ПЗ2}_{\\text{п}}  \\times  S_{\\text{нлс}}",
+      "calc_expr": "S_Snls = PZ1_p + PZ2_p * S_nls",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 27,
+      "type": "formula",
+      "order": 4555,
+      "text": "С_(КСнлс) = С_(Ксгс) + С_(Кго) + С_(Кнлс) (28),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(КСнлс) = С_(Ксгс) + С_(Кго) + С_(Кнлс)",
+      "display_latex": "\\mathrm{С}_{\\text{КСнлс}} = \\mathrm{С}_{\\text{Ксгс}} + \\mathrm{С}_{\\text{Кго}} + \\mathrm{С}_{\\text{Кнлс}}",
+      "calc_expr": "S_KSnls = S_Ksgs + S_Kgo + S_Knls",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 28,
+      "type": "formula",
+      "order": 4578,
+      "text": "С_(Кнлс) = ПЗ1_(к) + ПЗ2_(к) x S_(нлс) (29),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(Кнлс) = ПЗ1_(к) + ПЗ2_(к) x S_(нлс)",
+      "display_latex": "\\mathrm{С}_{\\text{Кнлс}} = \\mathrm{ПЗ1}_{\\text{к}} + \\mathrm{ПЗ2}_{\\text{к}}  \\times  S_{\\text{нлс}}",
+      "calc_expr": "S_Knls = PZ1_k + PZ2_k * S_nls",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 29,
+      "type": "formula",
+      "order": 4787,
+      "text": "С_(план) = ПЗ1_(к) + ПЗ2_(к) x S_(съемки) (30),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(план) = ПЗ1_(к) + ПЗ2_(к) x S_(съемки)",
+      "display_latex": "\\mathrm{С}_{\\text{план}} = \\mathrm{ПЗ1}_{\\text{к}} + \\mathrm{ПЗ2}_{\\text{к}}  \\times  S_{\\text{съемки}}",
+      "calc_expr": "S_plan = PZ1_k + PZ2_k * S_semki",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 30,
+      "type": "formula",
+      "order": 6480,
+      "text": "С_(Птрасс) = С_(Ктрасс) + С_(Погс) + С_(Псгс) + С_(Пвынос) + С_(ПОПОтрасс) + С_(пикет) + С_(КАМтрасс) (31),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(Птрасс) = С_(Ктрасс) + С_(Погс) + С_(Псгс) + С_(Пвынос) + С_(ПОПОтрасс) + С_(пикет) + С_(КАМтрасс)",
+      "display_latex": "\\mathrm{С}_{\\text{Птрасс}} = \\mathrm{С}_{\\text{Ктрасс}} + \\mathrm{С}_{\\text{Погс}} + \\mathrm{С}_{\\text{Псгс}} + \\mathrm{С}_{\\text{Пвынос}} + \\mathrm{С}_{\\text{ПОПОтрасс}} + \\mathrm{С}_{\\text{пикет}} + \\mathrm{С}_{\\text{КАМтрасс}}",
+      "calc_expr": "S_Ptrass = S_Ktrass + S_Pogs + S_Psgs + S_Pvynos + S_POPOtrass + S_piket + S_KAMtrass",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 31,
+      "type": "formula",
+      "order": 7134,
+      "text": "С_(ОСИдо1000) = ПЗ1_(п) + ПЗ1_(п) x L_(оси) (32),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(ОСИдо1000) = ПЗ1_(п) + ПЗ1_(п) x L_(оси)",
+      "display_latex": "\\mathrm{С}_{\\text{ОСИдо1000}} = \\mathrm{ПЗ1}_{\\text{п}} + \\mathrm{ПЗ1}_{\\text{п}}  \\times  L_{\\text{оси}}",
+      "calc_expr": "S_OSIdo1000 = PZ1_p + PZ1_p * L_osi",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 32,
+      "type": "formula",
+      "order": 7153,
+      "text": "LС(ПЗ1ПЗ21000)1000=+ (33),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "LС(ПЗ1ПЗ21000)1000=+",
+      "display_latex": "LС(ПЗ1ПЗ21000)1000=+",
+      "calc_expr": null,
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 33,
+      "type": "formula",
+      "order": 7359,
+      "text": "С_(Знлс) = ПЗ1_(п) + ПЗ2_(п) x Sз_(нлс) (34),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(Знлс) = ПЗ1_(п) + ПЗ2_(п) x Sз_(нлс)",
+      "display_latex": "\\mathrm{С}_{\\text{Знлс}} = \\mathrm{ПЗ1}_{\\text{п}} + \\mathrm{ПЗ2}_{\\text{п}}  \\times  \\mathrm{Sз}_{\\text{нлс}}",
+      "calc_expr": "S_Znls = PZ1_p + PZ2_p * Sz_nls",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 34,
+      "type": "formula",
+      "order": 7512,
+      "text": "С_(Зкамилс) = ПЗ1_(к) + ПЗ2_(к) x S_(Зкамилс) (35),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(Зкамилс) = ПЗ1_(к) + ПЗ2_(к) x S_(Зкамилс)",
+      "display_latex": "\\mathrm{С}_{\\text{Зкамилс}} = \\mathrm{ПЗ1}_{\\text{к}} + \\mathrm{ПЗ2}_{\\text{к}}  \\times  S_{\\text{Зкамилс}}",
+      "calc_expr": "S_Zkamils = PZ1_k + PZ2_k * S_Zkamils",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 35,
+      "type": "formula",
+      "order": 7664,
+      "text": "С_(ПЗнлс) = ПЗ1_(п) + ПЗ2_(п) x V_(ПЗнлс) (36),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(ПЗнлс) = ПЗ1_(п) + ПЗ2_(п) x V_(ПЗнлс)",
+      "display_latex": "\\mathrm{С}_{\\text{ПЗнлс}} = \\mathrm{ПЗ1}_{\\text{п}} + \\mathrm{ПЗ2}_{\\text{п}}  \\times  V_{\\text{ПЗнлс}}",
+      "calc_expr": "S_PZnls = PZ1_p + PZ2_p * V_PZnls",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 36,
+      "type": "formula",
+      "order": 7740,
+      "text": "С_(Пкамнлс) = ПЗ1_(к) + ПЗ2_(к) x V_(нлс) (38),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(Пкамнлс) = ПЗ1_(к) + ПЗ2_(к) x V_(нлс)",
+      "display_latex": "\\mathrm{С}_{\\text{Пкамнлс}} = \\mathrm{ПЗ1}_{\\text{к}} + \\mathrm{ПЗ2}_{\\text{к}}  \\times  V_{\\text{нлс}}",
+      "calc_expr": "S_Pkamnls = PZ1_k + PZ2_k * V_nls",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 37,
+      "type": "formula",
+      "order": 7810,
+      "text": "С_(ПСООРнлс) = С_(Псгс) + С_(Пго) + С_(СООРнлс) (39),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(ПСООРнлс) = С_(Псгс) + С_(Пго) + С_(СООРнлс)",
+      "display_latex": "\\mathrm{С}_{\\text{ПСООРнлс}} = \\mathrm{С}_{\\text{Псгс}} + \\mathrm{С}_{\\text{Пго}} + \\mathrm{С}_{\\text{СООРнлс}}",
+      "calc_expr": "S_PSOORnls = S_Psgs + S_Pgo + S_SOORnls",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 38,
+      "type": "formula",
+      "order": 7833,
+      "text": "С_(СООРнлс) = ПЗ1_(п) + ПЗ2_(п) x V_(нлс) (40),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(СООРнлс) = ПЗ1_(п) + ПЗ2_(п) x V_(нлс)",
+      "display_latex": "\\mathrm{С}_{\\text{СООРнлс}} = \\mathrm{ПЗ1}_{\\text{п}} + \\mathrm{ПЗ2}_{\\text{п}}  \\times  V_{\\text{нлс}}",
+      "calc_expr": "S_SOORnls = PZ1_p + PZ2_p * V_nls",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 39,
+      "type": "formula",
+      "order": 7917,
+      "text": "С_(КССнлс) = С_(Ксгс) + С_(Кго) + С_(КСООРнлс) (41),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(КССнлс) = С_(Ксгс) + С_(Кго) + С_(КСООРнлс)",
+      "display_latex": "\\mathrm{С}_{\\text{КССнлс}} = \\mathrm{С}_{\\text{Ксгс}} + \\mathrm{С}_{\\text{Кго}} + \\mathrm{С}_{\\text{КСООРнлс}}",
+      "calc_expr": "S_KSSnls = S_Ksgs + S_Kgo + S_KSOORnls",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 40,
+      "type": "formula",
+      "order": 7940,
+      "text": "С_(КСООРнлс) = ПЗ1_(к) + ПЗ2_(к) x V_(нлс) (42),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(КСООРнлс) = ПЗ1_(к) + ПЗ2_(к) x V_(нлс)",
+      "display_latex": "\\mathrm{С}_{\\text{КСООРнлс}} = \\mathrm{ПЗ1}_{\\text{к}} + \\mathrm{ПЗ2}_{\\text{к}}  \\times  V_{\\text{нлс}}",
+      "calc_expr": "S_KSOORnls = PZ1_k + PZ2_k * V_nls",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 41,
+      "type": "formula",
+      "order": 8020,
+      "text": "С_(ЦМЗ) = ПЗ1_(к) + ПЗ2_(к) x S_(Знлс) (43),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(ЦМЗ) = ПЗ1_(к) + ПЗ2_(к) x S_(Знлс)",
+      "display_latex": "\\mathrm{С}_{\\text{ЦМЗ}} = \\mathrm{ПЗ1}_{\\text{к}} + \\mathrm{ПЗ2}_{\\text{к}}  \\times  S_{\\text{Знлс}}",
+      "calc_expr": "S_TsMZ = PZ1_k + PZ2_k * S_Znls",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 42,
+      "type": "formula",
+      "order": 8168,
+      "text": "С_(ЦМЗ) = ПЗ1_(к) + ПЗ2_(к) x V_(нлс) (44),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(ЦМЗ) = ПЗ1_(к) + ПЗ2_(к) x V_(нлс)",
+      "display_latex": "\\mathrm{С}_{\\text{ЦМЗ}} = \\mathrm{ПЗ1}_{\\text{к}} + \\mathrm{ПЗ2}_{\\text{к}}  \\times  V_{\\text{нлс}}",
+      "calc_expr": "S_TsMZ = PZ1_k + PZ2_k * V_nls",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 43,
+      "type": "formula",
+      "order": 8502,
+      "text": "С_(конв) = ПЗ1_(к) + ПЗ2_(к) x S_(плана) (45),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(конв) = ПЗ1_(к) + ПЗ2_(к) x S_(плана)",
+      "display_latex": "\\mathrm{С}_{\\text{конв}} = \\mathrm{ПЗ1}_{\\text{к}} + \\mathrm{ПЗ2}_{\\text{к}}  \\times  S_{\\text{плана}}",
+      "calc_expr": "S_konv = PZ1_k + PZ2_k * S_plana",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    }
+  ]
+}

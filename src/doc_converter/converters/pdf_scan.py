@@ -20,6 +20,7 @@ from doc_converter.converters.pdf_text import (
     _is_figure_caption,
     _is_formula_block,
     _is_table_block,
+    _parse_table_block,
     _parse_table_rows,
     _quality_flags_for_pdf_unit,
     _split_pdf_text,
@@ -308,6 +309,7 @@ def _append_pdf_scan_text_units(
     page_index: int,
 ) -> int:
     if _is_table_block(paragraph):
+        parsed_table = _parse_table_block(paragraph)
         table_id = unit_id(order)
         units.append(
             StructuralUnit(
@@ -316,11 +318,11 @@ def _append_pdf_scan_text_units(
                 type="table",
                 order=order,
                 source_ref=SourceRef(document_id=doc_id, page=page_index),
-                quality=quality_payload(["semantic_structure_inferred"]),
+                quality=quality_payload(["semantic_structure_inferred", *parsed_table.flags]),
             )
         )
         order += 1
-        for row_cells in _parse_table_rows(paragraph):
+        for row_cells in parsed_table.rows:
             row_id = unit_id(order)
             units.append(
                 StructuralUnit(

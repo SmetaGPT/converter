@@ -1,0 +1,39 @@
+{
+  "sample_id": "sample_020",
+  "route": "pdf_scan",
+  "purpose": "scan PDF table anchor currently blocked by OCR failure",
+  "source_observation": {
+    "pages": 17,
+    "pre_ocr_text_chars": 0,
+    "filename": "PPRF1315.pdf"
+  },
+  "expected_units": {
+    "required_types": ["document", "page"],
+    "minimum_counts": {
+      "page": 17
+    }
+  },
+  "required_references": {
+    "stable_document_id": true,
+    "stable_unit_ids": true,
+    "page_refs": true,
+    "preserve_original_pdf": true,
+    "preserve_reading_order": true
+  },
+  "processing_expectations": {
+    "status": "partial_success",
+    "ocr_applied": false,
+    "warnings_include": ["OCRmyPDF failed."]
+  },
+  "quality_expectations": {
+    "ocr_required": true,
+    "ocr_failed": true,
+    "empty_text": true,
+    "review_required": true
+  },
+  "table_expectations": {
+    "table_units": { "equals": 0 },
+    "table_rows": { "equals": 0 },
+    "table_cells": { "equals": 0 }
+  }
+}

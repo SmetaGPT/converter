@@ -1,6 +1,6 @@
 # Current Status
 
-Последнее обновление: 2026-05-24
+Последнее обновление: 2026-05-28
 Статус контура: wave 1 complete, operational use ready
 
 ## 1. Краткий снимок состояния
@@ -107,7 +107,35 @@
 83. Добавлен first-class HTML QC export: `src/doc_converter/human_readable.py` стал shared renderer для Markdown/HTML, `scripts/export_human_readable_html.py` умеет экспортировать как отдельный `document.v1.json`, так и целый `run_dir` в `human-readable-index.html`, а GUI получил кнопку `HTML QC` для немедленной проверки качества конвертации в браузере.
 84. GUI теперь автоматически предлагает sibling output path вида `<input>_output` при выборе входной папки и сохраняет вручную заданный отдельный output без перезаписи; это снижает операторские ошибки на nested output path, не снимая intentional self-ingestion guard.
 85. LLM formula recognition теперь включается по умолчанию безопаснее: при наличии `OPENROUTER_API_KEY` formula slice автоматически использует `openrouter` + `openai/gpt-4o` даже без `FORMULA_MODEL`, а OpenRouter request переведён на strict `json_schema`, чтобы `linear_text`/`display_latex`/`calc_expr` стабильно возвращались как machine-readable JSON.
-86. Закрыт follow-up по реальному operator feedback для формул и HTML QC: formula-recognition postprocess теперь покрывает не только `formula_image`, но и low-confidence `formula` units, HTML renderer не отправляет в MathJax low-confidence heuristic `display_latex`, распознаванные `formula_image` units показываются как формульные блоки со ссылкой на исходный asset, обычные абзацы получают отступ/переносы, а env loader ищет `.env.local` также рядом с `sys.executable`, чтобы EXE видел formula config даже при другом `cwd`.
+86. Закрыт follow-up по реальному operator feedback для формул и HTML QC: formula-recognition postprocess теперь покрывает не только `formula_image`, но и residual `formula` units без machine-readable `calc_expr`, HTML renderer не отправляет в MathJax low-confidence heuristic `display_latex`, распознаванные `formula_image` units показываются как формульные блоки со ссылкой на исходный asset, обычные абзацы получают отступ/переносы, а env loader ищет `.env.local` также рядом с `sys.executable`, чтобы EXE видел formula config даже при другом `cwd`.
+87. Добавлен deterministic formula benchmark harness: `src/doc_converter/formula_benchmark.py`, `scripts/run_formula_benchmark.py`, `scripts/export_formula_gold.py`, versioned `samples/formula-benchmark.manifest.jsonl` и gold fixtures в `samples/expected/formulas/`; manifest/gold loaders читают BOM-safe через `utf-8-sig`, relative paths резолвятся от manifest file, а benchmark по умолчанию отключает live formula-recognition provider, чтобы baseline оставался воспроизводимым.
+88. Добавлен opt-in local formula OCR backend: `FORMULA_RECOGNITION_LOCAL_BACKEND=tesseract` теперь включает локальный raster OCR fallback между WMF hints и provider stage, `run.json` безопасно сериализует `local_backend`, а mocked tests подтверждают both local-backend-only path и provider fallback после локального miss без утечки `api_key`.
+89. В P1 generalized WMF parser сделан первый data-driven шаг: known MathType matcher теперь умеет coalesce соседние WMF chunks с одинаковыми font/charset/height перед signature matching, поэтому split tokens вроде `ОТ` + `ЗТСЦV` восстанавливаются без добавления новой exact-signature ветки; targeted WMF unittest slice зелёный.
+90. Исходный полный formula benchmark manifest по curated `metod`/`SP` set завершён зелёно: run `runs\formula-benchmark\runs\20260525T182005Z` дал `29/29` available entries, `11/11` gold checks passed, `required_failures: 0`, clean negative/control contour для `SP`, а corpus totals зафиксировали `281` formula units, `145` calc_expr units, `39` native WMF units, `242` heuristic units и `256` low-confidence units как первую full-corpus baseline перед guide/`521/пр` hardening slice.
+91. Heuristic calc parser для `docx_text_linearized` formulas расширен на narrative/chained arithmetic examples: trailing ссылки вида `, (1)`, narrative prefixes и equality-result tails теперь не блокируют `calc_expr`; narrow benchmark rerun поднял `gate-metod-guide` с `0/25` до `17/25` calc_expr units и `gate-metod-521-pr` с `0/6` до `1/6` без provider и без изменения native/control contour.
+92. Тот же heuristic `calc_expr` branch дотянут на semicolon clauses и parenthetical formulas: narrative строки вида `a = 30; b = 0,35` и пояснительные формулы в скобках теперь дают хотя бы первый machine-readable assignment; свежий guide-only rerun поднял `gate-metod-guide` уже до `21/25` calc_expr units при неизменных `native_coverage = 0` и `provider_dependency_rate = 0`.
+93. В native WMF parser добавлены structural recovery rules для formula set `(2)-(6)` из `521/пр`: known MathType signatures теперь восстанавливают `З_(ср) = З_(1) × К_(смрТ)`, `З_(пнр) = sum_(i) Т_(i) × З_(i)`, `З_(i) = З_(1) × К_(пнрТ)^(i)`, `С_(эм) = sum_(i) Э_(i) × Ц_(эмi)` и `С_(мат) = sum_(i) М_(i) × Ц_(i)`. Focused benchmark rerun `runs\formula-benchmark\runs\20260525T192109Z` поднял `gate-metod-521-pr` до `native_units: 5/6`, `native_coverage: 0.8333`, `calc_expr_units: 6/6` и `confidence medium: 5`, оставив только один heuristic formula unit.
+94. Полный formula benchmark manifest перепрогнан после guide/`521/пр` uplift и синхронизации benign gold drift в anchor `421/пр`: run `runs\formula-benchmark\runs\20260525T193008Z` снова зелёный с `29/29` available entries, `11/11` gold checks passed и `required_failures: 0`. Обновлённый corpus baseline теперь даёт `281` formula units, `181` calc_expr units, `44` native WMF units, `237` heuristic units и те же `256` low-confidence units, то есть текущий tranche поднял `calc_expr` на `+36` и native WMF recovery на `+5` относительно исходной corpus baseline.
+95. Для `gate-metod-1-pr` закрыт ещё один cheap heuristic parser barrier: expression path теперь нормализует квадратные скобки как grouping, поэтому чистые сметные formulas вида `НЗ_(п) = [ ... ] x (1 + П)` перестали терять `calc_expr`. Focused rerun `runs\formula-benchmark\runs\20260525T194430Z` поднял `1/пр` с `18/49` до `23/49` calc_expr units (`0.3673 -> 0.4694`) без изменения `native_coverage`, что подтверждает: ближайший остаток по `1/пр` уже лежит не в bracket-handling, а в более шумных structural formulas.
+96. Для `gate-metod-904-pr` подтверждён ещё один high-yield native WMF slice: визуально проверенные raw MathType signatures теперь восстанавливают formula set `(1)`, `(3)`, `(4)`, `(5)` и `(7)` как `mathtype_wmf_text_records` вместо шумного `docx_text_linearized` fallback. Focused rerun `runs\formula-benchmark\runs\runs\20260525T200228Z` поднял документ с `native_units: 1/7` до `5/7` и с `calc_expr_units: 1/7` до `6/7`, оставив unresolved только formula `(2)`, тогда как formula `(6)` уже была usable heuristic assignment.
+97. Для `gate-metod-534-pr` подтверждён ещё один high-yield native WMF slice: raw MathType signatures в сочетании с surrounding prose теперь восстанавливают formulas `(1)-(4)` как `mathtype_wmf_text_records` с корректными обозначениями `СЦ_(...)` вместо шумного `docx_text_linearized` fallback. Focused rerun `runs\formula-benchmark\runs\runs\20260525T202349Z` поднял документ с `native_units: 0/5` до `4/5` и с `calc_expr_units: 2/5` до `5/5`, оставив heuristic только formula `(5)`, которая и так была plain-text assignment.
+98. Formula benchmark переведён с narrative thresholds на executable required gate: versioned policy `samples/formula-benchmark.thresholds.json` теперь задаёт baseline floors/ceilings для `anchor`, `gate`, `control` и `overall`, `src/doc_converter/formula_benchmark.py` пишет `tier_summaries` + `required_gate` в benchmark report, а `rolling` зафиксирован как monitor-only tier до следующего полного rerun.
+99. Полный formula benchmark rerun под новым required gate прошёл зелёно: `runs\formula-benchmark\runs\20260526T054732Z` дал `29/29` available entries, `11/11` gold checks passed, `required_gate.status = passed`, `194` calc_expr units и `53` native WMF units. Новые tier aggregates подняли `gate.calc_expr_coverage` до `0.6776` и `gate.native_coverage` до `0.1858`, сохранив `control.false_positive_rate = 0.0` и `overall.provider_dependency_rate = 0.0`.
+100. `docs/formula-production-plan.md` сверён с фактическим кодом и получил явную status matrix по `P0/P1/P2`: на момент аудита P0-01/P0-02/P0-04 были закрыты, P0-03/P1-04/P1-05/P2-01/P2-02/P2-03 — частично, P1-01 и P1-03 — не закрыты, P1-02 — в работе; зафиксирован автономный порядок продолжения.
+101. Закрыт документально-кодовый tranche после аудита: benchmark теперь пишет отдельные `formula-summary.json` и `formula-summary.md` (P0-03), введён первый WMF IR слой с `formula.provenance` в schema/output и оформлен formal spike note `docs/formula-wmf-ir-spike.md` (P1-01), а `docs/downstream-handoff.md` теперь содержит явный machine-readable formula contract (`calculable/display-only/unresolved`) и stable mapping полей (P2-01).
+102. Закрыт первый rule-driven execution slice `P1-02`: raw WMF chunks и rendered asset подтвердили, что formula `(2)` в `904/пр` была structural MathType residue, а не OCR dead-end. Token-driven aggregate-price assembly в WMF IR path теперь восстанавливает её как native formula; focused rerun `runs\formula-benchmark\runs\20260526T205614Z` довёл `gate-metod-904-pr` до `native_units: 6/7` и `calc_expr_units: 7/7`, оставив heuristic только formula `(6)`.
+103. Уточнён candidate-selection для formula-recognition: LLM/local formula fallback больше не переобрабатывает formula units только из-за low confidence или heuristic provenance, если standard parser уже собрал usable `calc_expr`; AI path теперь целенаправленно применяется к residual формулам без machine-readable contract, включая display-only cases без `calc_expr`.
+104. Закрыт следующий execution slice `P1-02` для `1/пр`: inspection исходного DOCX показал, что formulas `(5)` и `(6)` в paragraph-only output были не текстовым шумом, а inline MathType WMF fractions. Native recovery rules теперь восстанавливают `ЗТ_(эСР) = sum_(i=1)^n ЗТ_(э) / n` и `ЗТ_(э) = ЗТ / V`; focused rerun `runs\formula-benchmark\runs\20260528T072055Z` поднял `gate-metod-1-pr` с `23/49` до `25/49` `calc_expr` units и дал первый `native_units: 2/49`.
+105. Follow-up execution slice для `1/пр` закрыл ещё один short-fraction native case: rendered WMF для formula `(8)` оказался формулой `К_(уст) = t_(max) / t_(min) <= 1,5`, а не остаточным text noise. Новый known-pattern rule поднял `gate-metod-1-pr` до `26/49` `calc_expr` units и `3/49` `native_units` в rerun `runs\formula-benchmark\runs\20260528T073325Z`.
+106. Ещё один cheap native slice для `1/пр` закрыл formula `(3)`: rendered WMF и where-clause согласованно показали formula-level sum case `Н_(ВрП) = Σ Н_(ВрЭ)`. Новый rule-driven recovery поднял `gate-metod-1-pr` до `27/49` `calc_expr` units и `4/49` `native_units` в rerun `runs\formula-benchmark\runs\20260528T073910Z`, после чего remaining residue документа почти полностью сместился к более сложным multi-level fractions.
+107. Закрыт и следующий structural anchor для `1/пр`: rendered WMF, where-clause и table/search artifacts согласованно показали formula `(4)` как `Н_(ВрЭ) = ЗТ_(эСР) × 100 / (Ч_(факт) × [100 - (Н_(пзр) + Н_(о) + Н_(тп))] × 60)`. Новый rule-driven recovery поднял `gate-metod-1-pr` до `28/49` `calc_expr` units и `5/49` `native_units` в rerun `runs\formula-benchmark\runs\20260528T074505Z`, поэтому следующий 1/пр backlog уже смещается с одного известного formula anchor на более общий fraction/layout residue.
+108. Следующий execution slice для `1/пр` уже закрыл не single-formula anchor, а noisy fraction family без `Н_(тп)`: where-clause для formulas `(23)` и `(31)` показал тот же denominator skeleton, что и у formula `(4)`, но с `ЗТ_(Иср)`/`ЗТ_(эСРл)` и `Ч_(общ)`. Новый known noisy-text recovery поднял `gate-metod-1-pr` до `30/49` `calc_expr` units и `7/49` `native_units` в rerun `runs\formula-benchmark\runs\20260528T080557Z`, поэтому remaining 1/пр backlog теперь смещается дальше от этой fraction family к другим noisy average/resource-cost formulas и broader parser work.
+109. Закрыт первый table hardening slice для `pdf_text`: shared parser теперь фиксирует dominant row width, склеивает single-cell continuation lines в предыдущую ячейку при стабильной ширине, дополняет unresolved ragged rows пустыми ячейками и выставляет `table_structure_warning` вместо молчаливой деградации структуры.
+110. Тот же table normalization path протянут в `pdf_scan`: OCR route теперь переиспользует shared parsed table block и тот же warning contract, поэтому row integrity и table warning behavior не расходятся между `pdf_text` и `pdf_scan`.
+111. DOCX tables получили более богатую cell semantics без расширения schema contract: multiline text в `table_cell` по-прежнему сохраняется, а ячейки с formula-like строками теперь дополнительно несут machine-readable `formula` metadata для downstream evaluation и QC.
+112. Добавлен executable contour для representative sample expectations: новый `src/doc_converter/sample_expectations.py` и `scripts/validate_sample_expectations.py` валидируют expected structural/table specs по реальному `run_dir`, поддерживают subset по `sample_id` и проверяют как canonical unit counts, так и aggregate table metrics и processing state.
+113. Собран и подтверждён table anchor baseline на реальных `sample_009`, `sample_018` и `sample_020`: добавлены `samples/manifest.table-anchors.jsonl`, table-aware expected specs для `sample_009`/`sample_018`, blocked-scan baseline для `sample_020`, а fresh run `runs\table-anchors\runs\20260528T092227Z` проходит новый validator без drift.
+114. Измеримый baseline показал, что `sample_009` и `sample_018` уже держат row/cell integrity (`wide_row_ratio = 1.0`, `single_cell_row_ratio = 0.0`), но warning density остаётся высокой (`162/166` и `22/26` tables c `table_structure_warning`), тогда как `sample_020` пока остаётся OCR-blocked (`partial_success`, `OCRmyPDF failed.`, `0` table units), что делает следующий scan-table backlog явным и проверяемым.
 
 ### Готовые артефакты
 
@@ -146,6 +174,9 @@
 - docs/agent-self-review-template.md
 - docs/document-converter-roadmap.md
 - docs/document-converter-acceptance.md
+- docs/formula-production-plan.md
+- samples/formula-benchmark.manifest.jsonl
+- samples/expected/formulas/
 - docs/build-and-run.md
 - docs/ocr-runtime-windows.md
 - docs/downstream-handoff.md
@@ -154,16 +185,24 @@
 - .vscode/mcp.json
 - .vscode/settings.json
 - samples/manifest.sample.jsonl
+- samples/manifest.table-anchors.jsonl
 - samples/pdf-text-layer-check.sample.json
 - samples/expected/README.md
 - samples/expected/sample_001.expected-units.json
 - samples/expected/sample_003.expected-units.json
 - samples/expected/sample_006.expected-units.json
 - samples/expected/sample_009.expected-units.json
+- samples/expected/sample_018.expected-units.json
 - samples/expected/sample_019.expected-units.json
+- samples/expected/sample_020.expected-units.json
 - pyproject.toml
+- sitecustomize.py
 - src/doc_converter/
+- src/doc_converter/formula_benchmark.py
+- src/doc_converter/sample_expectations.py
 - tests/
+- tests/test_formula_benchmark.py
+- tests/test_sample_expectations.py
 - schemas/
 - schemas/agent-feature-spine.v1.schema.json
 - schemas/agent-telemetry-entry.v1.schema.json
@@ -175,55 +214,48 @@
 - scripts/refresh_agent_eval.py
 - scripts/register-agent-eval-schedule.ps1
 - scripts/build-windows.ps1
+- scripts/run_formula_benchmark.py
+- scripts/export_formula_gold.py
 - scripts/install-ocr-runtime.ps1
 - scripts/run_folder_e2e.py
+- scripts/validate_sample_expectations.py
 - scripts/validate_harness_assets.py
 - AGENTS.md
 
 ## 3. Что делается сейчас
 
-Текущий фокус: поддержание уже закрытого harness/eval contour для production-ready v0.3.0 scope и точечные улучшения только там, где они реально снижают operational overhead.
+Текущий фокус: после фиксации benchmark-like table quality loop на реальных anchors `sample_009`, `sample_018` и `sample_020` следующий product slice — снизить warning-heavy residue на PDF tables, разблокировать `sample_020` как OCR/scan table anchor и затем расширить DOCX table semantics за пределы formula-in-cell coverage к header/merged-cell cases.
 
-Новый product-learning по формулам: для DOCX, где формулы сохранены картинками MathType WMF, приоритетный pipeline должен быть `direct WMF/MathType extraction -> known signature/layout recovery -> display LaTeX/MathML -> calculation AST -> renderer`, а OCR должен оставаться fallback для настоящих raster scans. Для operator review теперь есть tracked first-class Markdown/HTML-export из `document.v1.json` и run-level GUI HTML QC path, но универсальный MathType parser ещё не реализован.
+Новый product-learning по PDF tables: одного split по separator pattern недостаточно. Для устойчивого table path нужен shared parser с dominant row width, который умеет склеивать continuation lines в предыдущую ячейку при стабильной ширине и не оставляет ragged rows в молча повреждённом состоянии.
 
-Новый product-learning по `docx_text_linearized` formulas: одного `display_latex` недостаточно для downstream расчёта. Для реального полезного use-case нужен второй слой `calc_expr + variables`; после текущего hotfix generic линейные формулы из DOCX уже получают этот слой heuristically, но выражения с неполной или повреждённой символикой всё ещё должны честно оставаться без `calc_expr`.
+Новый product-learning по shared PDF routes: `pdf_text` и `pdf_scan` должны использовать один и тот же table normalization contract, иначе OCR route начинает дрейфовать от text-layer route на одних и тех же row-shape cases. Текущий sprint закрыл именно этот drift и сделал `table_structure_warning` общим сигналом качества для обоих путей.
 
-Новый product-learning по document-level evaluation: оператору мало точечного `evaluate-formula`; практический контур возникает только когда `document.v1.json` можно прогнать целиком, получить per-formula status и автоматически подставить уже вычисленные targets как входы для зависимых выражений того же документа.
+Новый product-learning по DOCX tables: полезная семантика таблицы не сводится к одному лишь `table/table_row/table_cell`. Даже без schema expansion ячейка может нести machine-readable `formula` block, если внутри есть formula-like строка, а multiline content при этом должен оставаться целым для operator QC и downstream handoff.
 
-Новый operational learning по formula evaluation на Windows: для JSON со значениями переменных безопаснее рекомендовать `--values-file`, а reader должен быть BOM-safe (`utf-8-sig`), потому что PowerShell `Set-Content -Encoding utf8` может писать BOM и ломать обычное `utf-8` чтение.
+Новый product-learning по table quality loop: после появления executable anchor contour следующий ROI лежит уже не в самом факте детекции таблиц, а в снижении warning density и в переходе от proxy-метрик (`wide_row_ratio`, `single_cell_row_ratio`) к explicit false-positive contour на control anchors. XLSX остаётся reference contract для richer cell semantics, но не является текущей зоной основного дефекта.
 
-Новый operational learning по DOCX formulas с переносами: если Word/linearization дублирует оператор умножения на конце и в начале соседней строки, этот артефакт нужно схлопывать до токенизации, иначе downstream получает ложный `x x` и теряет вычислимый `calc_expr`.
-
-Новый product-learning по Excel: для XLSX нужно сохранять не только текстовую проекцию таблицы, но и адреса ячеек, cached values и исходные Excel formula strings. Конвертер не должен обещать пересчёт формул через `openpyxl`; downstream расчёты требуют Excel-compatible formula engine или отдельный recalculation step.
-
-Новый operational learning по provider config: секретный ключ formula-recognition безопаснее держать в `.env.local` с process-env override, а в run metadata и diagnostics писать только provider/model/configured без утечки `api_key`.
-
-Новый operational learning по OpenRouter-схеме: если обычная модель и модель для формул отличаются, лучше хранить общую provider/model routing через `LLM_PROVIDER` и provider-specific model key, а formula override задавать отдельной переменной `FORMULA_MODEL`, чтобы не смешивать reasoning-модель и visual/formula-модель; если override не задан, formula slice безопаснее default-ить на отдельную multimodal structured-output модель (`openai/gpt-4o`), а не наследовать generic reasoning-модель вроде `deepseek/deepseek-v4-pro`.
-
-Новый operational learning по runtime stage: live provider calls нельзя делать частью обычного test/CI контура, потому что это внешние кредиты и сетевой риск; для репозитория безопасный baseline — mocked validation + отдельный operator run при реальной проверке качества распознавания.
-
-Последний production-audit follow-up закрыт локально и в repo contract: self-ingestion guard, truthful unsupported accounting, repo-local lint/type tooling, clean source-setup path и CI-backed release artifact validation теперь входят в штатный контур.
+Новый product-learning по scan anchors: `sample_020` не дошёл до table extraction не из-за route drift между `pdf_text` и `pdf_scan`, а из-за OCR failure внутри `pdf_scan` path при готовом preflight runtime. Теперь это не narrative suspicion, а зафиксированный benchmark baseline с reproducible `partial_success` и нулевыми table units.
 
 В работе:
 
-- поддержание product-aware feature spine и feature-traceability workflow на следующих нетривиальных задачах;
-- поддержание machine-readable telemetry companion без пропусков на следующих нетривиальных задачах;
-- поддержание generated scorecard companion, weekly eval companion и markdown drift-check как штатной части weekly checks;
-- optional historical telemetry backfill beyond the minimum coverage set, если понадобится более широкий retrospective analysis;
-- дальнейшая оценка качества rule-based `document_type`/`short_summary` и heuristic semantic extraction на новых пакетах;
-- optional OCR helper profile `jbig2`, `pngquant`, `verapdf` по мере необходимости.
+- разобрать и устранить OCR failure на `sample_020`, чтобы scan anchor начал давать измеримые table metrics, а не только blocked baseline;
+- дотянуть DOCX table semantics на header-like и merged-cell patterns;
+- решить, нужен ли отдельный table-summary artifact или хватает текущего quality/reporting layer;
+- зафиксировать explicit false-positive contour на negative/control anchors, а не только через proxy table ratios;
+- после стабилизации table metrics вернуться к remaining formula parser backlog, уже не смешивая оба hardening contour в один спринт.
 
 ## 4. Что идёт дальше
 
-Следующая последовательность после закрытия Sprint 1:
+Следующая последовательность после закрытия текущего table-hardening sprint:
 
-1. Поддерживать weekly eval loop на реальных пакетах v0.3.0 как регулярный ritual, а не как bootstrap work.
-2. Держать product-aware feature spine, sprint contract, checkpoint template и evaluator rubric обязательными на новых cross-module задачах.
-3. Не допускать пропусков в machine-readable telemetry companion на новых нетривиальных задачах.
-4. Использовать `scripts/register-agent-eval-schedule.ps1` только если weekly refresh действительно нужно перевести в Windows Scheduled Task.
-5. Поддерживать `docs/agent-weekly-reviews.v1.json` синхронно с будущими completed weekly reviews.
-6. Проверить heuristic semantic extraction на новых production-like пакетах и уточнять эвристики только по наблюдаемым ошибкам.
-7. Optional OCR helpers и installer polish только если это потребуется по эксплуатации.
+1. Разобрать и устранить `OCRmyPDF failed` path на `sample_020`, чтобы scan table anchor впервые дал реальные row/cell metrics вместо blocked baseline.
+2. Дотянуть DOCX table semantics на header-like rows, merged-cell hints и richer review signals без слома current `document.v1` contract.
+3. Проверить human-readable QC на benchmark anchors `sample_009`/`sample_018` и formula-in-cell cases, чтобы operator видел те же структурные решения, что и canonical package.
+4. Добавить explicit false-positive contour на negative/control anchors, а не только proxy thresholds по `single_cell_row_ratio` и `wide_row_ratio`.
+5. После стабилизации table metrics вернуться к generalized WMF parser для formula-rich DOCX и remaining residue в `1/пр`.
+6. Держать product-aware feature spine, sprint contract, checkpoint template и evaluator rubric обязательными на новых cross-module задачах.
+7. Не допускать пропусков в machine-readable telemetry companion на новых нетривиальных задачах.
+8. Поддерживать `scripts/refresh_agent_eval.py` и `docs/agent-weekly-reviews.v1.json` как штатный eval loop.
 
 ## 5. Открытые gaps
 

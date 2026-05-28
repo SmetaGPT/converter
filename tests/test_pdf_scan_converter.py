@@ -103,6 +103,99 @@ class PdfScanConverterTests(unittest.TestCase):
             self.assertIn("formula", unit_types)
             self.assertIn("figure", unit_types)
 
+    def test_ocr_success_merges_table_continuation_lines(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            source_path = temp_path / "scan.pdf"
+            output_dir = temp_path / "out"
+            ocr_dir = output_dir / "ocr"
+            searchable_pdf = ocr_dir / "searchable.pdf"
+            sidecar_text = ocr_dir / "sidecar.txt"
+
+            source_path.write_bytes(b"%PDF-1.4\n%stub\n")
+            ocr_dir.mkdir(parents=True)
+            searchable_pdf.write_bytes(b"%PDF-1.4\n%ocr\n")
+            sidecar_text.write_text("page 1\n", encoding="utf-8")
+
+            fake_pages = [
+                Mock(
+                    extract_text=Mock(
+                        return_value=(
+                            "Показатель  Значение  Примечание\n"
+                            "A  10  длинное описание\n"
+                            "продолжение строки\n"
+                            "B  20  короткое описание"
+                        )
+                    )
+                )
+            ]
+            fake_reader = Mock(pages=fake_pages)
+
+            with patch("doc_converter.converters.pdf_scan.PdfReader", return_value=fake_reader):
+                _write_ocr_success_result(
+                    source_path=source_path,
+                    searchable_pdf=searchable_pdf,
+                    sidecar_text=sidecar_text,
+                    output_dir=output_dir,
+                    sha256="6" * 64,
+                )
+
+            payload = json.loads((output_dir / "document.v1.json").read_text(encoding="utf-8"))
+            validate_payload(payload, "document.v1.schema.json")
+            table_cells = [unit for unit in payload["units"] if unit["type"] == "table_cell"]
+            table_unit = next(unit for unit in payload["units"] if unit["type"] == "table")
+
+            self.assertIn(
+                "длинное описание\nпродолжение строки",
+                [unit["text"] for unit in table_cells],
+            )
+            self.assertNotIn("table_structure_warning", table_unit["quality"]["flags"])
+
+    def test_ocr_success_marks_ragged_table_warning_and_pads_rows(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            source_path = temp_path / "scan.pdf"
+            output_dir = temp_path / "out"
+            ocr_dir = output_dir / "ocr"
+            searchable_pdf = ocr_dir / "searchable.pdf"
+            sidecar_text = ocr_dir / "sidecar.txt"
+
+            source_path.write_bytes(b"%PDF-1.4\n%stub\n")
+            ocr_dir.mkdir(parents=True)
+            searchable_pdf.write_bytes(b"%PDF-1.4\n%ocr\n")
+            sidecar_text.write_text("page 1\n", encoding="utf-8")
+
+            fake_pages = [
+                Mock(
+                    extract_text=Mock(
+                        return_value=(
+                            "Показатель  Значение  Примечание\n"
+                            "A  10\n"
+                            "B  20  короткое описание"
+                        )
+                    )
+                )
+            ]
+            fake_reader = Mock(pages=fake_pages)
+
+            with patch("doc_converter.converters.pdf_scan.PdfReader", return_value=fake_reader):
+                _write_ocr_success_result(
+                    source_path=source_path,
+                    searchable_pdf=searchable_pdf,
+                    sidecar_text=sidecar_text,
+                    output_dir=output_dir,
+                    sha256="7" * 64,
+                )
+
+            payload = json.loads((output_dir / "document.v1.json").read_text(encoding="utf-8"))
+            validate_payload(payload, "document.v1.schema.json")
+            table_unit = next(unit for unit in payload["units"] if unit["type"] == "table")
+            row_units = [unit for unit in payload["units"] if unit["type"] == "table_row"]
+            row_cells = [unit for unit in payload["units"] if unit.get("parent_id") == row_units[1]["unit_id"]]
+
+            self.assertIn("table_structure_warning", table_unit["quality"]["flags"])
+            self.assertEqual([unit["text"] for unit in row_cells], ["A", "10", ""])
+
     def test_runner_handles_real_pdf_scan_sample_when_available(self) -> None:
         sample = Path(r"D:\ФСНБ\Документы\Загрузка НПА\sub_law\PPRF_680.pdf")
         if not sample.exists():

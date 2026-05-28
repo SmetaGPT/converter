@@ -1,0 +1,404 @@
+{
+  "schema_version": "formula-gold.v1",
+  "document_label": "421/пр",
+  "document_expectations": {
+    "formula_units": 27,
+    "calc_expr_units": 10,
+    "banned_substrings_absent": [
+      "PPV=",
+      "t1Ttt",
+      "k1К",
+      "ЦСТ=",
+      "\\\\mathrm{sum}"
+    ]
+  },
+  "unit_expectations": [
+    {
+      "formula_index": 0,
+      "type": "formula",
+      "order": 247,
+      "text": "К = (ДК1 + ДК2 + .... + ДКn + 1),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "К = (ДК1 + ДК2 + .... + ДКn + 1)",
+      "display_latex": "К = (ДК1 + ДК2 + .... + ДКn + 1)",
+      "calc_expr": null,
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 1,
+      "type": "formula",
+      "order": 251,
+      "text": "n = 1 ÷ N, где:",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "n = 1 ÷ N",
+      "display_latex": "n = 1 \\div N",
+      "calc_expr": null,
+      "confidence": "high",
+      "warnings": [],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 2,
+      "type": "formula",
+      "order": 386,
+      "text": "ОТ_(тек) = sum_(i=1)^I ЗТ_(i) × СЦ_(ЗТтек)^(i) × V_(i) (1),",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "ОТ_(тек) = sum_(i=1)^I ЗТ_(i) × СЦ_(ЗТтек)^(i) × V_(i)",
+      "display_latex": "\\mathrm{ОТ}_{\\text{тек}} = \\sum_{i=1}^{I} \\mathrm{ЗТ}_{i} \\times \\mathrm{СЦ}_{\\text{ЗТтек}}^{i} \\times V_{i}",
+      "calc_expr": "OT_tek = sum(ZT[i] * SC_ZT_tek[i] * V[i] for i in range(1, I + 1))",
+      "confidence": "medium",
+      "warnings": [
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 3,
+      "type": "formula",
+      "order": 391,
+      "text": "i = 1 ÷ I, где:",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "i = 1 ÷ I",
+      "display_latex": "i = 1 \\div I",
+      "calc_expr": null,
+      "confidence": "high",
+      "warnings": [],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 4,
+      "type": "formula",
+      "order": 394,
+      "text": "ОТ_(тек) = sum_(i=1)^I sum_(n=1)^N ЗТ_(ni) × СЦ_(n) × V_(i) (1.1),",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "ОТ_(тек) = sum_(i=1)^I sum_(n=1)^N ЗТ_(ni) × СЦ_(n) × V_(i)",
+      "display_latex": "\\mathrm{ОТ}_{\\text{тек}} = \\sum_{i=1}^{I} \\sum_{n=1}^{N} \\mathrm{ЗТ}_{ni} \\times \\mathrm{СЦ}_{n} \\times V_{i}",
+      "calc_expr": "OT_tek = sum(ZT[n, i] * SC[n] * V[i] for i in range(1, I + 1) for n in range(1, N + 1))",
+      "confidence": "medium",
+      "warnings": [
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 5,
+      "type": "formula",
+      "order": 399,
+      "text": "i = 1 ÷ I, где:",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "i = 1 ÷ I",
+      "display_latex": "i = 1 \\div I",
+      "calc_expr": null,
+      "confidence": "high",
+      "warnings": [],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 6,
+      "type": "formula",
+      "order": 401,
+      "text": "n = 1 ÷ N, где:",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "n = 1 ÷ N",
+      "display_latex": "n = 1 \\div N",
+      "calc_expr": null,
+      "confidence": "high",
+      "warnings": [],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 7,
+      "type": "formula",
+      "order": 408,
+      "text": "ОТм_(тек) = sum_(i=1)^I sum_(k=1)^K ЗТ_(ki) × СЦ_(k) × V_(i) (1.2)",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "ОТм_(тек) = sum_(i=1)^I sum_(k=1)^K ЗТ_(ki) × СЦ_(k) × V_(i)",
+      "display_latex": "\\mathrm{ОТм}_{\\text{тек}} = \\sum_{i=1}^{I} \\sum_{k=1}^{K} \\mathrm{ЗТ}_{ki} \\times \\mathrm{СЦ}_{k} \\times V_{i}",
+      "calc_expr": "OTm_tek = sum(ZT[k, i] * SC[k] * V[i] for i in range(1, I + 1) for k in range(1, K + 1))",
+      "confidence": "medium",
+      "warnings": [
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 8,
+      "type": "formula",
+      "order": 413,
+      "text": "i = 1 ÷ I, где:",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "i = 1 ÷ I",
+      "display_latex": "i = 1 \\div I",
+      "calc_expr": null,
+      "confidence": "high",
+      "warnings": [],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 9,
+      "type": "formula",
+      "order": 415,
+      "text": "k = 1 ÷ K, где:",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "k = 1 ÷ K",
+      "display_latex": "k = 1 \\div K",
+      "calc_expr": null,
+      "confidence": "high",
+      "warnings": [],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 10,
+      "type": "formula",
+      "order": 419,
+      "text": "ЭММ_(тек) = sum_(m=1)^M T_(m) × СЦэм_(тек)^(m) (2),",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "ЭММ_(тек) = sum_(m=1)^M T_(m) × СЦэм_(тек)^(m)",
+      "display_latex": "\\mathrm{ЭММ}_{\\text{тек}} = \\sum_{m=1}^{M} T_{m} \\times \\mathrm{СЦэм}_{\\text{тек}}^{m}",
+      "calc_expr": "EMM_tek = sum(T[m] * SCem_tek[m] for m in range(1, M + 1))",
+      "confidence": "medium",
+      "warnings": [
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 11,
+      "type": "formula",
+      "order": 423,
+      "text": "m = 1 ÷ M, где:",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "m = 1 ÷ M",
+      "display_latex": "m = 1 \\div M",
+      "calc_expr": null,
+      "confidence": "high",
+      "warnings": [],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 12,
+      "type": "formula",
+      "order": 430,
+      "text": "С_(маш.р) = Ц_(а) / Т_(с) (3.1),",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "С_(маш.р) = Ц_(а) / Т_(с)",
+      "display_latex": "\\mathrm{С}_{\\text{маш.р}} = \\frac{\\mathrm{Ц}_{\\text{а}}}{\\mathrm{Т}_{\\text{с}}}",
+      "calc_expr": "S_mash_r = C_a / T_s",
+      "confidence": "medium",
+      "warnings": [
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 13,
+      "type": "formula",
+      "order": 454,
+      "text": "М_(тек) = sum_(j=1)^J P^(j) × См_(тек)^(j)",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "М_(тек) = sum_(j=1)^J P^(j) × См_(тек)^(j)",
+      "display_latex": "\\mathrm{М}_{\\text{тек}} = \\sum_{j=1}^{J} P^{j} \\times \\mathrm{См}_{\\text{тек}}^{j}",
+      "calc_expr": "M_tek = sum(P[j] * Sm_tek[j] for j in range(1, J + 1))",
+      "confidence": "medium",
+      "warnings": [
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 14,
+      "type": "formula",
+      "order": 459,
+      "text": "j = 1 ÷ J, где:",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "j = 1 ÷ J",
+      "display_latex": "j = 1 \\div J",
+      "calc_expr": null,
+      "confidence": "high",
+      "warnings": [],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 15,
+      "type": "formula",
+      "order": 463,
+      "text": "P^(t) = sum_(i=1)^I P_(i)^(t) × V_(i) (5),",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "P^(t) = sum_(i=1)^I P_(i)^(t) × V_(i)",
+      "display_latex": "P^{t} = \\sum_{i=1}^{I} P_{i}^{t} \\times V_{i}",
+      "calc_expr": "P_t = sum(P_i_t[i] * V[i] for i in range(1, I + 1))",
+      "confidence": "medium",
+      "warnings": [
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 16,
+      "type": "formula",
+      "order": 467,
+      "text": "i = 1 ÷ I, где:",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "i = 1 ÷ I",
+      "display_latex": "i = 1 \\div I",
+      "calc_expr": null,
+      "confidence": "high",
+      "warnings": [],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 17,
+      "type": "formula",
+      "order": 469,
+      "text": "t = 1 ÷ T, где:",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "t = 1 ÷ T",
+      "display_latex": "t = 1 \\div T",
+      "calc_expr": null,
+      "confidence": "high",
+      "warnings": [],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 18,
+      "type": "formula",
+      "order": 704,
+      "text": "С_(НГ) = НГ x К_(в) x L (6),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(НГ) = НГ x К_(в) x L",
+      "display_latex": "\\mathrm{С}_{\\text{НГ}} = НГ  \\times  \\mathrm{К}_{\\text{в}}  \\times  L",
+      "calc_expr": "S_NG = NG * K_v * L",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 19,
+      "type": "formula",
+      "order": 931,
+      "text": "С_(ТИМ) = З_(ТИМ) + СП (7),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "С_(ТИМ) = З_(ТИМ) + СП",
+      "display_latex": "\\mathrm{С}_{\\text{ТИМ}} = \\mathrm{З}_{\\text{ТИМ}} + СП",
+      "calc_expr": "S_TIM = Z_TIM + SP",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 20,
+      "type": "formula",
+      "order": 937,
+      "text": "З_(ТИМ) = П x (ТИМ_(с) + (К_(аТИМ) + ЗП_(ТИМ)) x Ч_(ТИМ)) + НР (8),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "З_(ТИМ) = П x (ТИМ_(с) + (К_(аТИМ) + ЗП_(ТИМ)) x Ч_(ТИМ)) + НР",
+      "display_latex": "\\mathrm{З}_{\\text{ТИМ}} = П  \\times  (\\mathrm{ТИМ}_{\\text{с}} + (\\mathrm{К}_{\\text{аТИМ}} + \\mathrm{ЗП}_{\\text{ТИМ}})  \\times  \\mathrm{Ч}_{\\text{ТИМ}}) + НР",
+      "calc_expr": "Z_TIM = P * ( TIM_s + ( K_aTIM + ZP_TIM ) * Ch_TIM ) + NR",
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic",
+        "formula_calc_expr_is_heuristic",
+        "calculation_expression_requires_domain_variable_binding"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 21,
+      "type": "formula",
+      "order": 973,
+      "text": "()_(аТИМаТИМК0,4К0,4ККЧpr)^(Rr=+=) (9),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "()_(аТИМаТИМК0,4К0,4ККЧpr)^(Rr=+=)",
+      "display_latex": "()_(аТИМаТИМК0,4К0,4ККЧpr)^(Rr=+=)",
+      "calc_expr": null,
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 22,
+      "type": "formula",
+      "order": 978,
+      "text": "r = 1 ÷ R, где:",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "r = 1 ÷ R",
+      "display_latex": "r = 1 \\div R",
+      "calc_expr": null,
+      "confidence": "high",
+      "warnings": [],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 23,
+      "type": "formula",
+      "order": 986,
+      "text": "()_(ТИМинфЗПТИМКИ0,4КИ0,4ЗПЗПКЧpprr)^(Rr=+=) (10),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "()_(ТИМинфЗПТИМКИ0,4КИ0,4ЗПЗПКЧpprr)^(Rr=+=)",
+      "display_latex": "()_(ТИМинфЗПТИМКИ0,4КИ0,4ЗПЗПКЧpprr)^(Rr=+=)",
+      "calc_expr": null,
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 24,
+      "type": "formula",
+      "order": 991,
+      "text": "r = 1 ÷ R, где:",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "r = 1 ÷ R",
+      "display_latex": "r = 1 \\div R",
+      "calc_expr": null,
+      "confidence": "high",
+      "warnings": [],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 25,
+      "type": "formula",
+      "order": 1002,
+      "text": "НР100= (11),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "НР100=",
+      "display_latex": "НР100=",
+      "calc_expr": null,
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic"
+      ],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 26,
+      "type": "formula",
+      "order": 1012,
+      "text": "СП100= (12),",
+      "source_format": "docx_text_linearized",
+      "linear_text": "СП100=",
+      "display_latex": "СП100=",
+      "calc_expr": null,
+      "confidence": "low",
+      "warnings": [
+        "formula_display_latex_is_heuristic"
+      ],
+      "quality_warnings": []
+    }
+  ]
+}

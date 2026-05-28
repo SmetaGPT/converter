@@ -1,0 +1,10 @@
+{
+  "schema_version": "formula-gold.v1",
+  "document_label": "sp-control-absence",
+  "document_expectations": {
+    "formula_units": 0,
+    "calc_expr_units": 0,
+    "banned_substrings_absent": []
+  },
+  "unit_expectations": []
+}

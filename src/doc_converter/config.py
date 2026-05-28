@@ -11,6 +11,7 @@ _FORMULA_RECOGNITION_ENV_KEYS = {
     "provider": "FORMULA_RECOGNITION_PROVIDER",
     "model": "FORMULA_RECOGNITION_MODEL",
     "api_key": "FORMULA_RECOGNITION_API_KEY",
+    "local_backend": "FORMULA_RECOGNITION_LOCAL_BACKEND",
 }
 _GENERAL_PROVIDER_ENV_KEY = "LLM_PROVIDER"
 _GENERAL_API_KEY_ENV_KEY = "LLM_API_KEY"
@@ -40,9 +41,16 @@ class FormulaRecognitionConfig:
     provider: str | None = None
     model: str | None = None
     api_key: str | None = None
+    local_backend: str | None = None
+
+    def provider_is_configured(self) -> bool:
+        return bool(self.provider and self.model and self.api_key)
+
+    def local_backend_is_configured(self) -> bool:
+        return bool(self.local_backend)
 
     def is_configured(self) -> bool:
-        return bool(self.provider and self.model and self.api_key)
+        return self.provider_is_configured() or self.local_backend_is_configured()
 
     def public_payload(self) -> dict[str, object]:
         payload: dict[str, object] = {"configured": self.is_configured()}
@@ -50,6 +58,8 @@ class FormulaRecognitionConfig:
             payload["provider"] = self.provider
         if self.model is not None:
             payload["model"] = self.model
+        if self.local_backend is not None:
+            payload["local_backend"] = self.local_backend
         return payload
 
 
@@ -100,11 +110,13 @@ def load_formula_recognition_config(
             _GENERAL_API_KEY_ENV_KEY,
         )
     )
+    local_backend = _normalize_env_value(_first_resolved_value(resolved, _FORMULA_RECOGNITION_ENV_KEYS["local_backend"]))
 
     return FormulaRecognitionConfig(
         provider=provider,
         model=model,
         api_key=api_key,
+        local_backend=local_backend,
     )
 
 

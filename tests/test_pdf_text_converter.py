@@ -134,6 +134,106 @@ class PdfTextConverterTests(unittest.TestCase):
             self.assertEqual([unit["text"] for unit in paragraph_units], ["Основной текст 1", "Основной текст 2"])
             self.assertNotIn("СП 123", (output_dir / "search_text.txt").read_text(encoding="utf-8"))
 
+    def test_pdf_text_merges_table_continuation_lines_into_previous_cell(self) -> None:
+        class FakeMediaBox:
+            left = 0
+            bottom = 0
+            right = 595
+            top = 842
+
+        class FakePage:
+            def __init__(self, layout_text: str) -> None:
+                self._layout_text = layout_text
+                self.mediabox = FakeMediaBox()
+                self.rotation = 0
+
+            def extract_text(self, *args: object, **kwargs: object) -> str:
+                if kwargs.get("extraction_mode") == "layout":
+                    return self._layout_text
+                return self._layout_text
+
+        fake_reader = type(
+            "FakeReader",
+            (),
+            {
+                "pages": [
+                    FakePage(
+                        "Показатель  Значение  Примечание\n"
+                        "A  10  длинное описание\n"
+                        "продолжение строки\n"
+                        "B  20  короткое описание"
+                    )
+                ]
+            },
+        )()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_path = Path(temp_dir) / "continuation-table.pdf"
+            output_dir = Path(temp_dir) / "out"
+            source_path.write_bytes(b"%PDF-1.4\n%stub\n")
+
+            with patch("doc_converter.converters.pdf_text.PdfReader", return_value=fake_reader):
+                convert_pdf_text(source_path, output_dir, "4" * 64)
+
+            payload = json.loads((output_dir / "document.v1.json").read_text(encoding="utf-8"))
+            validate_payload(payload, "document.v1.schema.json")
+            table_cells = [unit for unit in payload["units"] if unit["type"] == "table_cell"]
+
+            self.assertIn(
+                "длинное описание\nпродолжение строки",
+                [unit["text"] for unit in table_cells],
+            )
+            self.assertNotIn("table_structure_warning", payload["units"][2]["quality"]["flags"])
+
+    def test_pdf_text_marks_ragged_tables_with_warning_and_pads_rows(self) -> None:
+        class FakeMediaBox:
+            left = 0
+            bottom = 0
+            right = 595
+            top = 842
+
+        class FakePage:
+            def __init__(self, layout_text: str) -> None:
+                self._layout_text = layout_text
+                self.mediabox = FakeMediaBox()
+                self.rotation = 0
+
+            def extract_text(self, *args: object, **kwargs: object) -> str:
+                if kwargs.get("extraction_mode") == "layout":
+                    return self._layout_text
+                return self._layout_text
+
+        fake_reader = type(
+            "FakeReader",
+            (),
+            {
+                "pages": [
+                    FakePage(
+                        "Показатель  Значение  Примечание\n"
+                        "A  10\n"
+                        "B  20  короткое описание"
+                    )
+                ]
+            },
+        )()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_path = Path(temp_dir) / "ragged-table.pdf"
+            output_dir = Path(temp_dir) / "out"
+            source_path.write_bytes(b"%PDF-1.4\n%stub\n")
+
+            with patch("doc_converter.converters.pdf_text.PdfReader", return_value=fake_reader):
+                convert_pdf_text(source_path, output_dir, "5" * 64)
+
+            payload = json.loads((output_dir / "document.v1.json").read_text(encoding="utf-8"))
+            validate_payload(payload, "document.v1.schema.json")
+            table_unit = next(unit for unit in payload["units"] if unit["type"] == "table")
+            row_units = [unit for unit in payload["units"] if unit["type"] == "table_row"]
+            row_cells = [unit for unit in payload["units"] if unit.get("parent_id") == row_units[1]["unit_id"]]
+
+            self.assertIn("table_structure_warning", table_unit["quality"]["flags"])
+            self.assertEqual([unit["text"] for unit in row_cells], ["A", "10", ""])
+
     def test_runner_converts_real_pdf_text_sample_when_available(self) -> None:
         source_root = Path(r"D:\ФСНБ\Документы\Загрузка НПА\SP")
         sample = source_root / "SP_481.pdf"

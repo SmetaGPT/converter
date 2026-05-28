@@ -1,0 +1,94 @@
+{
+  "schema_version": "formula-benchmark-thresholds.v1",
+  "baseline_run_id": "20260525T193008Z",
+  "description": "Required gate for the refreshed deterministic formula benchmark baseline before the next DOCX residue tranche.",
+  "checks": [
+    {
+      "label": "Anchor gold stays fully green",
+      "scope": "anchor",
+      "metric": "gold_pass_rate",
+      "op": ">=",
+      "value": 1.0
+    },
+    {
+      "label": "Anchor stays provider-free",
+      "scope": "anchor",
+      "metric": "provider_dependency_rate",
+      "op": "<=",
+      "value": 0.0
+    },
+    {
+      "label": "Gate calc_expr coverage stays above refreshed corpus floor",
+      "scope": "gate",
+      "metric": "calc_expr_coverage",
+      "op": ">=",
+      "value": 0.6
+    },
+    {
+      "label": "Gate native coverage stays above refreshed corpus floor",
+      "scope": "gate",
+      "metric": "native_coverage",
+      "op": ">=",
+      "value": 0.13
+    },
+    {
+      "label": "Gate low-confidence rate does not regress above refreshed corpus ceiling",
+      "scope": "gate",
+      "metric": "low_confidence_rate",
+      "op": "<=",
+      "value": 0.93
+    },
+    {
+      "label": "Control corpus stays false-positive free",
+      "scope": "control",
+      "metric": "false_positive_rate",
+      "op": "<=",
+      "value": 0.0
+    },
+    {
+      "label": "Control gold stays green",
+      "scope": "control",
+      "metric": "gold_pass_rate",
+      "op": ">=",
+      "value": 1.0
+    },
+    {
+      "label": "Control stays provider-free",
+      "scope": "control",
+      "metric": "provider_dependency_rate",
+      "op": "<=",
+      "value": 0.0
+    },
+    {
+      "label": "Overall calc_expr coverage stays above refreshed corpus floor",
+      "scope": "overall",
+      "metric": "calc_expr_coverage",
+      "op": ">=",
+      "value": 0.64
+    },
+    {
+      "label": "Overall native coverage stays above refreshed corpus floor",
+      "scope": "overall",
+      "metric": "native_coverage",
+      "op": ">=",
+      "value": 0.15
+    },
+    {
+      "label": "Overall low-confidence rate does not regress above refreshed corpus ceiling",
+      "scope": "overall",
+      "metric": "low_confidence_rate",
+      "op": "<=",
+      "value": 0.92
+    },
+    {
+      "label": "Overall benchmark stays provider-free by default",
+      "scope": "overall",
+      "metric": "provider_dependency_rate",
+      "op": "<=",
+      "value": 0.0
+    }
+  ],
+  "monitor_only_scopes": [
+    "rolling"
+  ]
+}

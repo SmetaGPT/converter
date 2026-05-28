@@ -5,6 +5,9 @@ import io
 import json
 import mimetypes
 import re
+import shutil
+import subprocess
+import tempfile
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -24,6 +27,7 @@ from doc_converter.schema_validation import validate_payload
 OPENROUTER_CHAT_COMPLETIONS_URL = "https://openrouter.ai/api/v1/chat/completions"
 FORMULA_RECOGNITION_RESULTS_FILENAME = "formula-recognition.jsonl"
 FORMULA_RECOGNITION_TIMEOUT_SECONDS = 90
+FORMULA_LOCAL_BACKEND_TIMEOUT_SECONDS = 30
 FORMULA_RESPONSE_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -127,6 +131,58 @@ def run_formula_recognition_postprocess(
             asset_path = None
             blob = None
 
+        try:
+            local_backend_formula = _recognize_formula_with_local_backend(
+                asset_path=asset_path,
+                blob=blob,
+                config=config,
+                local_hint_text=local_hint_text,
+                source_text=source_text,
+            )
+        except Exception as exc:  # noqa: BLE001 - best-effort local backend should not fail the document.
+            warning_set.add("formula_recognition_local_backend_failed")
+            records.append(
+                {
+                    "unit_id": unit.get("unit_id"),
+                    "asset_ref": asset_ref,
+                    "status": "local_backend_failed",
+                    "candidate_kind": candidate.get("kind"),
+                    "local_backend": config.local_backend,
+                    "error": type(exc).__name__,
+                    "message": str(exc),
+                }
+            )
+            local_backend_formula = None
+
+        if _local_backend_formula_is_sufficient(local_backend_formula):
+            assert local_backend_formula is not None
+            _apply_formula_to_unit(unit, local_backend_formula, origin="local_backend")
+            recognized += 1
+            records.append(
+                {
+                    "unit_id": unit.get("unit_id"),
+                    "asset_ref": asset_ref,
+                    "status": "recognized_local_backend",
+                    "candidate_kind": candidate.get("kind"),
+                    "local_backend": config.local_backend,
+                    "source_format": local_backend_formula.get("source_format"),
+                    "confidence": local_backend_formula.get("confidence"),
+                }
+            )
+            continue
+
+        if not config.provider_is_configured():
+            records.append(
+                {
+                    "unit_id": unit.get("unit_id"),
+                    "asset_ref": asset_ref,
+                    "status": "unresolved_without_provider",
+                    "candidate_kind": candidate.get("kind"),
+                    "local_backend": config.local_backend,
+                }
+            )
+            continue
+
         provider_calls += 1
         try:
             provider_formula = _recognize_formula_with_openrouter(
@@ -136,7 +192,7 @@ def run_formula_recognition_postprocess(
                 local_hint_text=local_hint_text,
                 source_text=source_text,
             )
-            _apply_formula_to_unit(unit, provider_formula)
+            _apply_formula_to_unit(unit, provider_formula, origin="provider")
             recognized += 1
             records.append(
                 {
@@ -180,14 +236,19 @@ def run_formula_recognition_postprocess(
         "".join(json.dumps(record, ensure_ascii=False) + "\n" for record in records),
         encoding="utf-8",
     )
-    processing["formula_recognition"] = {
-        "provider": config.provider,
-        "model": config.model,
+    processing_payload: dict[str, Any] = {
         "attempted": attempted,
         "recognized": recognized,
         "provider_calls": provider_calls,
         "results_path": artifact_path.name,
     }
+    if config.provider is not None:
+        processing_payload["provider"] = config.provider
+    if config.model is not None:
+        processing_payload["model"] = config.model
+    if config.local_backend is not None:
+        processing_payload["local_backend"] = config.local_backend
+    processing["formula_recognition"] = processing_payload
 
     validate_payload(payload, "document.v1.schema.json")
     document_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -223,16 +284,14 @@ def _formula_recognition_candidate(unit: object) -> dict[str, Any] | None:
 def _formula_needs_provider_review(formula: dict[str, Any] | None) -> bool:
     if formula is None:
         return True
-    confidence = str(formula.get("confidence"))
-    if confidence == "low":
-        return True
-    source_format = str(formula.get("source_format"))
-    if source_format in {"docx_text_linearized", "heuristic_latex"}:
-        return True
-    warnings = formula.get("warnings")
-    if isinstance(warnings, list) and any("heuristic" in str(item) for item in warnings):
+    if not _formula_has_machine_readable_contract(formula):
         return True
     return False
+
+
+def _formula_has_machine_readable_contract(formula: dict[str, Any]) -> bool:
+    calc_expr = formula.get("calc_expr")
+    return isinstance(calc_expr, str) and bool(calc_expr.strip())
 
 
 def _local_formula_is_sufficient(formula: dict[str, Any] | None) -> bool:
@@ -241,13 +300,112 @@ def _local_formula_is_sufficient(formula: dict[str, Any] | None) -> bool:
     return str(formula.get("confidence")) in {"high", "medium"}
 
 
-def _apply_formula_to_unit(unit: dict[str, Any], formula: dict[str, Any]) -> None:
+def _local_backend_formula_is_sufficient(formula: dict[str, Any] | None) -> bool:
+    if formula is None:
+        return False
+    if str(formula.get("confidence")) in {"high", "medium"}:
+        return True
+    calc_expr = formula.get("calc_expr")
+    return isinstance(calc_expr, str) and bool(calc_expr.strip())
+
+
+def _apply_formula_to_unit(unit: dict[str, Any], formula: dict[str, Any], *, origin: str | None = None) -> None:
     unit["formula"] = formula
     unit["text"] = formula.get("linear_text")
     quality = unit.setdefault("quality", {"flags": [], "warnings": []})
     warnings = quality.setdefault("warnings", [])
-    if isinstance(warnings, list) and formula.get("source_format") == "heuristic_latex":
-        _append_unique(warnings, "formula_recognition_model_generated")
+    if isinstance(warnings, list):
+        if origin == "provider":
+            _append_unique(warnings, "formula_recognition_model_generated")
+        if origin == "local_backend":
+            _append_unique(warnings, "formula_recognition_local_backend_generated")
+
+
+def _recognize_formula_with_local_backend(
+    *,
+    asset_path: Path | None,
+    blob: bytes | None,
+    config: FormulaRecognitionConfig,
+    local_hint_text: str | None,
+    source_text: str | None,
+) -> dict[str, Any] | None:
+    backend = (config.local_backend or "").strip().lower()
+    if not backend:
+        return None
+    if backend != "tesseract":
+        raise RuntimeError(f"Unsupported local formula backend: {config.local_backend}")
+    if asset_path is None or blob is None:
+        return None
+    return _recognize_formula_with_tesseract(asset_path=asset_path, blob=blob, local_hint_text=local_hint_text, source_text=source_text)
+
+
+def _recognize_formula_with_tesseract(
+    *,
+    asset_path: Path,
+    blob: bytes,
+    local_hint_text: str | None,
+    source_text: str | None,
+) -> dict[str, Any] | None:
+    tesseract = shutil.which("tesseract") or shutil.which("tesseract.exe")
+    if tesseract is None:
+        raise RuntimeError("Tesseract executable not found")
+
+    raster_bytes, suffix = _prepare_formula_asset_payload(asset_path, blob)
+    with tempfile.TemporaryDirectory(prefix="formula-local-backend-") as temp_dir:
+        input_path = Path(temp_dir) / f"formula{suffix}"
+        output_base = Path(temp_dir) / "formula-ocr"
+        input_path.write_bytes(raster_bytes)
+
+        completed = subprocess.run(
+            [
+                tesseract,
+                str(input_path),
+                str(output_base),
+                "-l",
+                "rus+eng",
+                "--psm",
+                "7",
+                "--oem",
+                "1",
+                "-c",
+                "preserve_interword_spaces=1",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=FORMULA_LOCAL_BACKEND_TIMEOUT_SECONDS,
+            check=False,
+        )
+        if completed.returncode != 0:
+            raise RuntimeError((completed.stderr or completed.stdout).strip() or "Tesseract formula OCR failed")
+
+        text_path = output_base.with_suffix(".txt")
+        if not text_path.exists():
+            return None
+        recognized_text = _normalize_local_backend_formula_text(text_path.read_text(encoding="utf-8-sig"))
+
+    if not recognized_text:
+        return None
+
+    formula = _formula_representation_from_text(recognized_text)
+    if formula is None:
+        return {
+            "source_format": "heuristic_latex",
+            "linear_text": recognized_text,
+            "display_latex": recognized_text,
+            "calc_expr": None,
+            "confidence": "low",
+            "warnings": ["formula_local_backend_tesseract", "formula_local_backend_unparsed"],
+        }
+
+    patched_formula = dict(formula)
+    warnings = list(patched_formula.get("warnings", []))
+    if local_hint_text:
+        _append_unique(warnings, "formula_local_backend_used_local_hint")
+    if source_text:
+        _append_unique(warnings, "formula_local_backend_used_source_text")
+    _append_unique(warnings, "formula_local_backend_tesseract")
+    patched_formula["warnings"] = warnings
+    return patched_formula
 
 
 def _recognize_formula_with_openrouter(
@@ -273,22 +431,30 @@ def _recognize_formula_with_openrouter(
 
 
 def _build_image_data_url(asset_path: Path, blob: bytes) -> str:
+    payload, media_type = _prepare_formula_asset_payload(asset_path, blob)
+    encoded = base64.b64encode(payload).decode("ascii")
+    return f"data:{media_type};base64,{encoded}"
+
+
+def _prepare_formula_asset_payload(asset_path: Path, blob: bytes) -> tuple[bytes, str]:
     suffix = asset_path.suffix.lower()
     if suffix in INLINE_GLYPH_RASTER_SUFFIXES:
-        media_type = mimetypes.guess_type(asset_path.name)[0] or "image/png"
-        payload = blob
-    elif suffix in INLINE_GLYPH_METAFILE_SUFFIXES:
+        return blob, mimetypes.guess_type(asset_path.name)[0] or "image/png"
+    if suffix in INLINE_GLYPH_METAFILE_SUFFIXES:
         image = _render_windows_metafile(blob, suffix)
         if image is None:
             raise RuntimeError(f"Unable to rasterize metafile asset: {asset_path.name}")
         buffer = io.BytesIO()
         image.save(buffer, format="PNG")
-        payload = buffer.getvalue()
-        media_type = "image/png"
-    else:
-        raise RuntimeError(f"Unsupported formula asset format: {asset_path.suffix}")
-    encoded = base64.b64encode(payload).decode("ascii")
-    return f"data:{media_type};base64,{encoded}"
+        return buffer.getvalue(), "image/png"
+    raise RuntimeError(f"Unsupported formula asset format: {asset_path.suffix}")
+
+
+def _normalize_local_backend_formula_text(value: str) -> str:
+    normalized = value.replace("\x0c", " ")
+    normalized = re.sub(r"(?<=[\)\]A-Za-zА-Яа-я0-9])\s*\*\s*(?=[\(\[A-Za-zА-Яа-я0-9])", " x ", normalized)
+    normalized = re.sub(r"\s+", " ", normalized)
+    return normalized.strip()
 
 
 def _formula_recognition_prompt(asset_name: str | None, local_hint_text: str | None, source_text: str | None) -> str:

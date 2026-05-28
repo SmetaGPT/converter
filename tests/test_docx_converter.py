@@ -6,12 +6,19 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 from PIL import Image, ImageDraw
 from PIL import ImageFont
 from docx import Document
 
-from doc_converter.converters.docx import WmfTextChunk, _assemble_mathtype_wmf_formula, _formula_representation_from_text
+from doc_converter.converters.docx import (
+    INLINE_GLYPH_CACHE,
+    WmfTextChunk,
+    _assemble_mathtype_wmf_formula,
+    _build_wmf_formula_ir,
+    _formula_representation_from_text,
+)
 from doc_converter.config import ConverterConfig, ConverterOptions
 from doc_converter.runner import run_convert_folder
 from doc_converter.schema_validation import validate_payload
@@ -29,7 +36,9 @@ class DocxConverterTests(unittest.TestCase):
             table.rows[0].cells[1].text = "B"
             document.save(str(source_path))
 
-            result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
+            INLINE_GLYPH_CACHE.clear()
+            with patch("doc_converter.converters.docx._recognize_inline_glyph", return_value="÷"):
+                result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
 
             self.assertEqual(result.status, "success")
             manifest_records = [
@@ -127,6 +136,41 @@ class DocxConverterTests(unittest.TestCase):
             self.assertIn("E = mc^2", search_text)
             self.assertIn("Текст сноски", search_text)
 
+    def test_docx_table_cells_preserve_multiline_text_and_formula_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:
+            source_path = Path(input_dir) / "table-formula.docx"
+            document = Document()
+            table = document.add_table(rows=2, cols=2)
+            table.rows[0].cells[0].text = "Показатель"
+            table.rows[0].cells[1].text = "Значение"
+            table.rows[1].cells[0].text = "Расчёт"
+
+            formula_cell = table.rows[1].cells[1]
+            formula_cell.paragraphs[0].text = "S = a * b"
+            formula_cell.add_paragraph("Примечание к формуле")
+            document.save(str(source_path))
+
+            result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
+
+            self.assertEqual(result.status, "success")
+            manifest_records = [
+                json.loads(line)
+                for line in (result.run_dir / "manifest.jsonl").read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            document_dir = result.run_dir / manifest_records[0]["output_dir"]
+            payload = json.loads((document_dir / "document.v1.json").read_text(encoding="utf-8"))
+
+            table_cells = [unit for unit in payload["units"] if unit["type"] == "table_cell"]
+            formula_cell_unit = next(unit for unit in table_cells if unit["text"].startswith("S = a * b"))
+
+            self.assertEqual(formula_cell_unit["text"], "S = a * b\nПримечание к формуле")
+            self.assertEqual(formula_cell_unit["formula"]["linear_text"], "S = a * b")
+            self.assertEqual(formula_cell_unit["formula"]["calc_expr"], "S = a * b")
+
+            search_text = (document_dir / "search_text.txt").read_text(encoding="utf-8")
+            self.assertIn("S = a * b Примечание к формуле", search_text)
+
     def test_docx_preserves_subscript_superscript_and_inline_drawing_placeholders(self) -> None:
         with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:
             source_path = Path(input_dir) / "formula-markup.docx"
@@ -157,7 +201,9 @@ class DocxConverterTests(unittest.TestCase):
 
             document.save(str(source_path))
 
-            result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
+            INLINE_GLYPH_CACHE.clear()
+            with patch("doc_converter.converters.docx._recognize_inline_glyph", return_value="÷"):
+                result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
 
             self.assertEqual(result.status, "success")
             manifest_records = [
@@ -174,14 +220,13 @@ class DocxConverterTests(unittest.TestCase):
             self.assertIn("С_(НГ) = НГ x К_(в) x L (6),", [unit["text"] for unit in formula_units])
             self.assertIn("P^(j) - описание ресурса", [unit["text"] for unit in paragraph_units])
 
-            inline_formula = next(unit["text"] for unit in formula_units if unit["text"].startswith("j = 1 "))
-            self.assertIn("[INLINE_DRAWING:", inline_formula)
-            self.assertTrue(inline_formula.endswith(" J, где:"))
+            self.assertIn("j = 1 ÷ J", [unit["text"] for unit in formula_units])
 
             search_text = (document_dir / "search_text.txt").read_text(encoding="utf-8")
             self.assertIn("С_(НГ) = НГ x К_(в) x L (6),", search_text)
             self.assertIn("P^(j) - описание ресурса", search_text)
-            self.assertIn("[INLINE_DRAWING:", search_text)
+            self.assertIn("j = 1 ÷ J, где:", search_text)
+            self.assertNotIn("[INLINE_DRAWING:", search_text)
 
     def test_docx_recognizes_inline_symbol_drawings(self) -> None:
         with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:
@@ -196,7 +241,9 @@ class DocxConverterTests(unittest.TestCase):
             formula.add_run(" J, где:")
             document.save(str(source_path))
 
-            result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
+            INLINE_GLYPH_CACHE.clear()
+            with patch("doc_converter.converters.docx._recognize_inline_glyph", return_value="÷"):
+                result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
 
             self.assertEqual(result.status, "success")
             manifest_records = [
@@ -208,7 +255,7 @@ class DocxConverterTests(unittest.TestCase):
             payload = json.loads((document_dir / "document.v1.json").read_text(encoding="utf-8"))
 
             formula_texts = [unit["text"] for unit in payload["units"] if unit["type"] == "formula"]
-            self.assertIn("j = 1 ÷ J, где:", formula_texts)
+            self.assertIn("j = 1 ÷ J", formula_texts)
 
             search_text = (document_dir / "search_text.txt").read_text(encoding="utf-8")
             self.assertIn("j = 1 ÷ J, где:", search_text)
@@ -265,7 +312,16 @@ class DocxConverterTests(unittest.TestCase):
 
             document.save(str(source_path))
 
-            result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
+            INLINE_GLYPH_CACHE.clear()
+            symbol_by_asset = {
+                f"image{index}.png": symbol
+                for index, symbol in enumerate(symbols, start=1)
+            }
+            with patch(
+                "doc_converter.converters.docx._recognize_inline_glyph",
+                side_effect=lambda _blob, asset_name, _drawing_extent: symbol_by_asset.get(asset_name),
+            ):
+                result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
 
             self.assertEqual(result.status, "success")
             manifest_records = [
@@ -277,11 +333,26 @@ class DocxConverterTests(unittest.TestCase):
             payload = json.loads((document_dir / "document.v1.json").read_text(encoding="utf-8"))
 
             formula_texts = [unit["text"] for unit in payload["units"] if unit["type"] == "formula"]
+            expected_formula_texts = [
+                "k_1 = A \\prod B",
+                "k_2 = A \\partial B",
+                "k3 = A ∇ B",
+                "k_4 = A ∅ B",
+                "k_5 = A ∀ B",
+                "k_6 = A ∃ B",
+                "k_7 = A < B",
+                "k_8 = A > B",
+                "k9 = A + B",
+                "k10 = A - B",
+                "k_{11} = A = B",
+            ]
             search_text = (document_dir / "search_text.txt").read_text(encoding="utf-8")
-            for expected in expected_texts:
-                with self.subTest(expected=expected):
-                    self.assertIn(expected, formula_texts)
-                    self.assertIn(expected, search_text)
+            for expected_formula in expected_formula_texts:
+                with self.subTest(expected_formula=expected_formula):
+                    self.assertIn(expected_formula, formula_texts)
+            for expected_search in expected_texts:
+                with self.subTest(expected_search=expected_search):
+                    self.assertIn(expected_search, search_text)
 
     def test_mathtype_wmf_formula_assembly_interleaves_symbol_chunks(self) -> None:
         chunks = [
@@ -302,6 +373,21 @@ class DocxConverterTests(unittest.TestCase):
 
         self.assertEqual(_assemble_mathtype_wmf_formula(chunks), "(СЦ)_(тек)^(k)")
 
+    def test_mathtype_wmf_formula_ir_classifies_simple_scripts(self) -> None:
+        chunks = [
+            WmfTextChunk(text="(", face="Times New Roman", charset=0, height=-384, order=0),
+            WmfTextChunk(text="СЦ", face="Times New Roman", charset=204, height=-384, order=1),
+            WmfTextChunk(text=")", face="Times New Roman", charset=0, height=-384, order=2),
+            WmfTextChunk(text="тек", face="Times New Roman", charset=204, height=-222, order=3),
+            WmfTextChunk(text="k", face="Times New Roman", charset=0, height=-222, order=4),
+        ]
+
+        formula_ir = _build_wmf_formula_ir(chunks)
+
+        self.assertEqual(formula_ir.layout_class, "base_with_scripts")
+        self.assertEqual(formula_ir.base_text, "(СЦ)")
+        self.assertEqual(formula_ir.script_text, "текk")
+
     def test_mathtype_wmf_formula_assembly_restores_double_sum_text(self) -> None:
         chunks = [
             WmfTextChunk(text="тек", face="Times New Roman", charset=204, height=-222, order=0),
@@ -312,6 +398,24 @@ class DocxConverterTests(unittest.TestCase):
             WmfTextChunk(text="in", face="Times New Roman", charset=0, height=-222, order=5),
             WmfTextChunk(text="==", face="Symbol", charset=1, height=-222, order=6),
             WmfTextChunk(text="=", face="Symbol", charset=1, height=-384, order=7),
+        ]
+
+        self.assertEqual(
+            _assemble_mathtype_wmf_formula(chunks),
+            "ОТ_(тек) = sum_(i=1)^I sum_(n=1)^N ЗТ_(ni) × СЦ_(n) × V_(i)",
+        )
+
+    def test_mathtype_wmf_formula_assembly_coalesces_split_known_tokens(self) -> None:
+        chunks = [
+            WmfTextChunk(text="тек", face="Times New Roman", charset=204, height=-222, order=0),
+            WmfTextChunk(text="11", face="Times New Roman", charset=0, height=-222, order=1),
+            WmfTextChunk(text="ОТ", face="Times New Roman", charset=204, height=-384, order=2),
+            WmfTextChunk(text="ЗТСЦV", face="Times New Roman", charset=204, height=-384, order=3),
+            WmfTextChunk(text="IN", face="Times New Roman", charset=0, height=-222, order=4),
+            WmfTextChunk(text="nini", face="Times New Roman", charset=0, height=-222, order=5),
+            WmfTextChunk(text="in", face="Times New Roman", charset=0, height=-222, order=6),
+            WmfTextChunk(text="==", face="Symbol", charset=1, height=-222, order=7),
+            WmfTextChunk(text="=", face="Symbol", charset=1, height=-384, order=8),
         ]
 
         self.assertEqual(
@@ -372,6 +476,249 @@ class DocxConverterTests(unittest.TestCase):
             with self.subTest(expected=expected):
                 self.assertEqual(_assemble_mathtype_wmf_formula(chunks), expected)
 
+    def test_mathtype_wmf_formula_assembly_restores_known_521pr_formulas(self) -> None:
+        cases = [
+            (
+                [
+                    WmfTextChunk(text="ср1", face="Times New Roman", charset=204, height=-222, order=0),
+                    WmfTextChunk(text="З = З  , (2)", face="Times New Roman", charset=204, height=-384, order=1),
+                    WmfTextChunk(text="смр", face="Times New Roman", charset=204, height=-222, order=2),
+                    WmfTextChunk(text="Т", face="Times New Roman", charset=204, height=-222, order=3),
+                    WmfTextChunk(text="К", face="Times New Roman", charset=204, height=-384, order=4),
+                ],
+                "З_(ср) = З_(1) × К_(смрТ)",
+            ),
+            (
+                [
+                    WmfTextChunk(text="(", face="Symbol", charset=1, height=-496, order=0),
+                    WmfTextChunk(text=")", face="Symbol", charset=1, height=-496, order=1),
+                    WmfTextChunk(text=" =   , (3)", face="Times New Roman", charset=0, height=-384, order=2),
+                    WmfTextChunk(text="пнр", face="Times New Roman", charset=204, height=-222, order=3),
+                    WmfTextChunk(text="ii", face="Times New Roman", charset=0, height=-222, order=4),
+                    WmfTextChunk(text="ЗТЗ", face="Times New Roman", charset=204, height=-384, order=5),
+                ],
+                "З_(пнр) = sum_(i) Т_(i) × З_(i)",
+            ),
+            (
+                [
+                    WmfTextChunk(text="пнр", face="Times New Roman", charset=204, height=-222, order=0),
+                    WmfTextChunk(text="1", face="Times New Roman", charset=0, height=-222, order=1),
+                    WmfTextChunk(text="Т", face="Times New Roman", charset=204, height=-222, order=2),
+                    WmfTextChunk(text="З = З  К, (4)", face="Times New Roman", charset=204, height=-384, order=3),
+                    WmfTextChunk(text="i", face="Times New Roman", charset=0, height=-222, order=4),
+                ],
+                "З_(i) = З_(1) × К_(пнрТ)^(i)",
+            ),
+            (
+                [
+                    WmfTextChunk(text="(", face="Symbol", charset=1, height=-503, order=0),
+                    WmfTextChunk(text=")", face="Symbol", charset=1, height=-503, order=1),
+                    WmfTextChunk(text="эмэм", face="Times New Roman", charset=204, height=-222, order=2),
+                    WmfTextChunk(text="С = Э  Ц, (5)", face="Times New Roman", charset=204, height=-384, order=3),
+                    WmfTextChunk(text="ii", face="Times New Roman", charset=0, height=-222, order=4),
+                ],
+                "С_(эм) = sum_(i) Э_(i) × Ц_(эмi)",
+            ),
+            (
+                [
+                    WmfTextChunk(text="(", face="Symbol", charset=1, height=-496, order=0),
+                    WmfTextChunk(text=")", face="Symbol", charset=1, height=-496, order=1),
+                    WmfTextChunk(text="мат", face="Times New Roman", charset=204, height=-222, order=2),
+                    WmfTextChunk(text="С = М  Ц, (6)", face="Times New Roman", charset=204, height=-384, order=3),
+                    WmfTextChunk(text="ii", face="Times New Roman", charset=0, height=-222, order=4),
+                ],
+                "С_(мат) = sum_(i) М_(i) × Ц_(i)",
+            ),
+        ]
+
+        for chunks, expected in cases:
+            with self.subTest(expected=expected):
+                self.assertEqual(_assemble_mathtype_wmf_formula(chunks), expected)
+
+    def test_mathtype_wmf_formula_assembly_restores_known_904pr_formulas(self) -> None:
+        cases = [
+            (
+                [
+                    WmfTextChunk(text="ОЦ(1),", face="Times New Roman", charset=204, height=-384, order=0),
+                    WmfTextChunk(text="min(,2)", face="Times New Roman", charset=0, height=-222, order=1),
+                    WmfTextChunk(text="nmn", face="Times New Roman", charset=0, height=-222, order=2),
+                    WmfTextChunk(text="nmn", face="Times New Roman", charset=0, height=-222, order=3),
+                    WmfTextChunk(text="*+*", face="Symbol", charset=1, height=-384, order=4),
+                    WmfTextChunk(text="=", face="Symbol", charset=1, height=-384, order=5),
+                    WmfTextChunk(text="+", face="Symbol", charset=1, height=-384, order=6),
+                ],
+                "ОЦ_(а) = (Х_(св) × n + Х_(сп) × m) / (n + m)",
+            ),
+            (
+                [
+                    WmfTextChunk(text="ОЦ(2),", face="Times New Roman", charset=204, height=-384, order=0),
+                    WmfTextChunk(text="nm", face="Times New Roman", charset=0, height=-384, order=1),
+                    WmfTextChunk(text="nm", face="Times New Roman", charset=0, height=-384, order=2),
+                    WmfTextChunk(text="*+*", face="Symbol", charset=1, height=-384, order=3),
+                    WmfTextChunk(text="=", face="Symbol", charset=1, height=-384, order=4),
+                    WmfTextChunk(text="+", face="Symbol", charset=1, height=-384, order=5),
+                ],
+                "ОЦ_(а) = (Х_(св) × n + Х_(сп) × m) / (n + m)",
+            ),
+            (
+                [
+                    WmfTextChunk(text="ОЦ(3),", face="Times New Roman", charset=204, height=-384, order=0),
+                    WmfTextChunk(text="2", face="Times New Roman", charset=0, height=-384, order=1),
+                    WmfTextChunk(text="+", face="Symbol", charset=1, height=-384, order=2),
+                    WmfTextChunk(text="=", face="Symbol", charset=1, height=-384, order=3),
+                ],
+                "ОЦ_(а) = (Х_(св) + Х_(сп)) / 2",
+            ),
+            (
+                [
+                    WmfTextChunk(text="12", face="Times New Roman", charset=0, height=-222, order=0),
+                    WmfTextChunk(text="()()()", face="Symbol", charset=1, height=-503, order=1),
+                    WmfTextChunk(text="Х(4),", face="Times New Roman", charset=204, height=-384, order=2),
+                    WmfTextChunk(text="nn", face="Times New Roman", charset=0, height=-222, order=3),
+                    WmfTextChunk(text="n", face="Times New Roman", charset=0, height=-222, order=4),
+                    WmfTextChunk(text="xvxvxv", face="Times New Roman", charset=0, height=-384, order=5),
+                    WmfTextChunk(text="vvv", face="Times New Roman", charset=0, height=-222, order=6),
+                    WmfTextChunk(text="*+*++*", face="Symbol", charset=1, height=-384, order=7),
+                    WmfTextChunk(text="=", face="Symbol", charset=1, height=-384, order=8),
+                    WmfTextChunk(text="++", face="Symbol", charset=1, height=-384, order=9),
+                ],
+                "Х_(св) = (x_(1) × v_(1) + x_(2) × v_(2) + ... + x_(n) × v_(n)) / (v_(1) + v_(2) + ... + v_(n))",
+            ),
+            (
+                [
+                    WmfTextChunk(text="Х(5),", face="Times New Roman", charset=204, height=-384, order=0),
+                    WmfTextChunk(text="m", face="Times New Roman", charset=0, height=-222, order=1),
+                    WmfTextChunk(text="xxx", face="Times New Roman", charset=0, height=-384, order=2),
+                    WmfTextChunk(text="m", face="Times New Roman", charset=0, height=-222, order=3),
+                    WmfTextChunk(text="++", face="Symbol", charset=1, height=-384, order=4),
+                    WmfTextChunk(text="=", face="Symbol", charset=1, height=-384, order=5),
+                ],
+                "Х_(сп) = (x_(1) + x_(2) + ... + x_(m)) / m",
+            ),
+            (
+                [
+                    WmfTextChunk(text="ср", face="Times New Roman", charset=204, height=-222, order=0),
+                    WmfTextChunk(text="0,25", face="Times New Roman", charset=0, height=-384, order=1),
+                    WmfTextChunk(text="Х(7),", face="Times New Roman", charset=204, height=-384, order=2),
+                    WmfTextChunk(text="s", face="Times New Roman", charset=0, height=-384, order=3),
+                    WmfTextChunk(text="<=*", face="Symbol", charset=1, height=-384, order=4),
+                ],
+                "s <= 0,25 × Х_(ср)",
+            ),
+        ]
+
+        for chunks, expected in cases:
+            with self.subTest(expected=expected):
+                self.assertEqual(_assemble_mathtype_wmf_formula(chunks), expected)
+
+    def test_mathtype_wmf_formula_assembly_restores_known_534pr_formulas(self) -> None:
+        cases = [
+            (
+                [
+                    WmfTextChunk(text="зт", face="Times New Roman", charset=204, height=-222, order=0),
+                    WmfTextChunk(text="текTnинф", face="Times New Roman", charset=204, height=-222, order=1),
+                    WmfTextChunk(text="ср", face="Times New Roman", charset=204, height=-222, order=2),
+                    WmfTextChunk(text="C", face="Times New Roman", charset=0, height=-384, order=3),
+                    WmfTextChunk(text="СЦ = К    К (1),", face="Times New Roman", charset=204, height=-384, order=4),
+                    WmfTextChunk(text="t", face="Times New Roman", charset=0, height=-384, order=5),
+                ],
+                "СЦ_(зттек) = КТ_(n) × С_(1ср) / t_(ср) × К_(инф)",
+            ),
+            (
+                [
+                    WmfTextChunk(text="n", face="Times New Roman", charset=0, height=-222, order=0),
+                    WmfTextChunk(text="зт", face="Times New Roman", charset=204, height=-222, order=1),
+                    WmfTextChunk(text="1", face="Times New Roman", charset=0, height=-222, order=2),
+                    WmfTextChunk(text="текii", face="Times New Roman", charset=204, height=-222, order=3),
+                    WmfTextChunk(text="i=1", face="Times New Roman", charset=0, height=-222, order=4),
+                    WmfTextChunk(text="ОТ = СЦ  T (2),", face="Times New Roman", charset=204, height=-384, order=5),
+                ],
+                "ОТ_(1) = sum_(i=1)^n СЦ_(зтiтек) × Т_(i)",
+            ),
+            (
+                [
+                    WmfTextChunk(text="зт", face="Times New Roman", charset=204, height=-222, order=0),
+                    WmfTextChunk(text="21 ", face="Times New Roman", charset=0, height=-222, order=1),
+                    WmfTextChunk(text="текТ", face="Times New Roman", charset=204, height=-222, order=2),
+                    WmfTextChunk(text="ОТ = СЦ  Т  К (3),", face="Times New Roman", charset=204, height=-384, order=3),
+                ],
+                "ОТ_(2) = СЦ_(зт1тек) × Т × КТ",
+            ),
+            (
+                [
+                    WmfTextChunk(text="n", face="Times New Roman", charset=0, height=-222, order=0),
+                    WmfTextChunk(text="1 ", face="Times New Roman", charset=0, height=-222, order=1),
+                    WmfTextChunk(text="ср1ip", face="Times New Roman", charset=204, height=-222, order=2),
+                    WmfTextChunk(text="i=1", face="Times New Roman", charset=0, height=-222, order=3),
+                    WmfTextChunk(text="С = С  1 + K K + ПВ (4),", face="Times New Roman", charset=204, height=-384, order=4),
+                ],
+                "С_(1ср) = С_(1) × (1 + sum_(i=1)^n К_(i) + К_(р)) + ПВ",
+            ),
+        ]
+
+        for chunks, expected in cases:
+            with self.subTest(expected=expected):
+                self.assertEqual(_assemble_mathtype_wmf_formula(chunks), expected)
+
+    def test_mathtype_wmf_formula_assembly_restores_known_1pr_formulas(self) -> None:
+        cases = [
+            (
+                [
+                    WmfTextChunk(text="ВрПВрЭ", face="Times New Roman", charset=204, height=-222, order=0),
+                    WmfTextChunk(text="НН", face="Times New Roman", charset=204, height=-384, order=1),
+                    WmfTextChunk(text="=", face="Symbol", charset=1, height=-384, order=2),
+                ],
+                "Н_(ВрП) = sum Н_(ВрЭ)",
+            ),
+            (
+                [
+                    WmfTextChunk(text="факт", face="Times New Roman", charset=204, height=-222, order=0),
+                    WmfTextChunk(text="ВрЭ", face="Times New Roman", charset=204, height=-222, order=1),
+                    WmfTextChunk(text="пзротп", face="Times New Roman", charset=204, height=-222, order=2),
+                    WmfTextChunk(text="ЗТ", face="Times New Roman", charset=204, height=-384, order=3),
+                    WmfTextChunk(text="Ч100", face="Times New Roman", charset=204, height=-384, order=4),
+                    WmfTextChunk(text="Н", face="Times New Roman", charset=204, height=-384, order=5),
+                    WmfTextChunk(text="100", face="Times New Roman", charset=0, height=-384, order=6),
+                    WmfTextChunk(text="ННН60", face="Times New Roman", charset=204, height=-384, order=7),
+                    WmfTextChunk(text="=", face="Symbol", charset=1, height=-384, order=8),
+                    WmfTextChunk(text="-++", face="Symbol", charset=1, height=-384, order=9),
+                ],
+                "Н_(ВрЭ) = ЗТ_(эСР) × 100 / (Ч_(факт) × [100 - (Н_(пзр) + Н_(о) + Н_(тп))] × 60)",
+            ),
+            (
+                [
+                    WmfTextChunk(text="ЗТ", face="Times New Roman", charset=204, height=-384, order=0),
+                    WmfTextChunk(text="ЗТ", face="Times New Roman", charset=204, height=-384, order=1),
+                    WmfTextChunk(text="n", face="Times New Roman", charset=0, height=-384, order=2),
+                    WmfTextChunk(text="=", face="Symbol", charset=1, height=-384, order=3),
+                ],
+                "ЗТ_(эСР) = sum_(i=1)^n ЗТ_(э) / n",
+            ),
+            (
+                [
+                    WmfTextChunk(text="ЗТ", face="Times New Roman", charset=204, height=-384, order=0),
+                    WmfTextChunk(text="ЗТ", face="Times New Roman", charset=204, height=-384, order=1),
+                    WmfTextChunk(text="V", face="Times New Roman", charset=0, height=-384, order=2),
+                    WmfTextChunk(text="=", face="Symbol", charset=1, height=-384, order=3),
+                ],
+                "ЗТ_(э) = ЗТ / V",
+            ),
+            (
+                [
+                    WmfTextChunk(text="min", face="Times New Roman", charset=0, height=-222, order=0),
+                    WmfTextChunk(text="t", face="Times New Roman", charset=0, height=-384, order=1),
+                    WmfTextChunk(text="К1,5", face="Times New Roman", charset=204, height=-384, order=2),
+                    WmfTextChunk(text="t", face="Times New Roman", charset=0, height=-384, order=3),
+                    WmfTextChunk(text="=", face="Symbol", charset=1, height=-384, order=4),
+                ],
+                "К_(уст) = t_(max) / t_(min) <= 1,5",
+            ),
+        ]
+
+        for chunks, expected in cases:
+            with self.subTest(expected=expected):
+                self.assertEqual(_assemble_mathtype_wmf_formula(chunks), expected)
+
     def test_formula_representation_adds_latex_and_calc_expr_for_double_sum(self) -> None:
         representation = _formula_representation_from_text(
             "ОТ_(тек) = sum_(i=1)^I sum_(n=1)^N ЗТ_(ni) × СЦ_(n) × V_(i) (1.1),"
@@ -399,6 +746,184 @@ class DocxConverterTests(unittest.TestCase):
         assert range_representation is not None
         self.assertEqual(range_representation["linear_text"], "k = 1 ÷ K")
         self.assertEqual(range_representation["display_latex"], r"k = 1 \div K")
+        self.assertEqual(range_representation["provenance"]["parser_path"], "mathtype_wmf_text_records")
+
+    def test_formula_representation_normalizes_known_521pr_native_formulas(self) -> None:
+        product_representation = _formula_representation_from_text("З_(ср) = З_(1) × К_(смрТ) (2)")
+        sum_representation = _formula_representation_from_text("С_(эм) = sum_(i) Э_(i) × Ц_(эмi) (5)")
+
+        self.assertIsNotNone(product_representation)
+        assert product_representation is not None
+        self.assertEqual(product_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(product_representation["calc_expr"], "Z_sr = Z_1 * K_smrT")
+        self.assertIn("formula_native_wmf_pattern_recovered", product_representation["warnings"])
+
+        self.assertIsNotNone(sum_representation)
+        assert sum_representation is not None
+        self.assertEqual(sum_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertIn(r"\sum_{i}", sum_representation["display_latex"])
+        self.assertEqual(sum_representation["calc_expr"], "S_em = sum(E[i] * C_em[i] for i in I)")
+
+    def test_formula_representation_normalizes_known_1pr_native_formulas(self) -> None:
+        process_representation = _formula_representation_from_text("Н_(ВрП) = sum Н_(ВрЭ) (3)")
+        element_representation = _formula_representation_from_text(
+            "Н_(ВрЭ) = ЗТ_(эСР) × 100 / (Ч_(факт) × [100 - (Н_(пзр) + Н_(о) + Н_(тп))] × 60) (4)"
+        )
+        process_data_representation = _formula_representation_from_text(
+            "Н_(ВрИ) = ЗТ_(Иср) × 100 / (Ч_(общ) × [100 - (Н_(пзр) + Н_(о))] × 60) (23)"
+        )
+        lab_element_representation = _formula_representation_from_text(
+            "Н_(ВрЭл) = ЗТ_(эСРл) × 100 / (Ч_(общ) × [100 - (Н_(пзр) + Н_(о))] × 60) (31)"
+        )
+        average_representation = _formula_representation_from_text("ЗТ_(эСР) = sum_(i=1)^n ЗТ_(э) / n (5)")
+        unit_representation = _formula_representation_from_text("ЗТ_(э) = ЗТ / V (6)")
+        stability_representation = _formula_representation_from_text("К_(уст) = t_(max) / t_(min) <= 1,5 (8)")
+
+        self.assertIsNotNone(process_representation)
+        assert process_representation is not None
+        self.assertEqual(process_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(process_representation["calc_expr"], "N_VrP = sum(N_VrE)")
+        self.assertIn(r"\sum", process_representation["display_latex"])
+        self.assertIn("formula_native_wmf_pattern_recovered", process_representation["warnings"])
+        self.assertIn("calculation_expression_requires_domain_variable_binding", process_representation["warnings"])
+
+        self.assertIsNotNone(element_representation)
+        assert element_representation is not None
+        self.assertEqual(element_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(
+            element_representation["calc_expr"],
+            "N_VrE = ZT_eSR * 100 / (Ch_fact * (100 - (N_pzr + N_o + N_tp)) * 60)",
+        )
+        self.assertIn(r"\frac{\mathrm{ЗТ}_{\text{эСР}} \times 100}", element_representation["display_latex"])
+        self.assertIn("formula_native_wmf_pattern_recovered", element_representation["warnings"])
+
+        self.assertIsNotNone(process_data_representation)
+        assert process_data_representation is not None
+        self.assertEqual(process_data_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(
+            process_data_representation["calc_expr"],
+            "N_VrI = ZT_Isr * 100 / (Ch_obsh * (100 - (N_pzr + N_o)) * 60)",
+        )
+        self.assertIn(r"\frac{\mathrm{ЗТ}_{\text{Иср}} \times 100}", process_data_representation["display_latex"])
+        self.assertIn("formula_native_wmf_pattern_recovered", process_data_representation["warnings"])
+
+        self.assertIsNotNone(lab_element_representation)
+        assert lab_element_representation is not None
+        self.assertEqual(lab_element_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(
+            lab_element_representation["calc_expr"],
+            "N_VrEl = ZT_eSRl * 100 / (Ch_obsh * (100 - (N_pzr + N_o)) * 60)",
+        )
+        self.assertIn(r"\frac{\mathrm{ЗТ}_{\text{эСРл}} \times 100}", lab_element_representation["display_latex"])
+        self.assertIn("formula_native_wmf_pattern_recovered", lab_element_representation["warnings"])
+
+        self.assertIsNotNone(average_representation)
+        assert average_representation is not None
+        self.assertEqual(average_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertIn(r"\sum_{i=1}^{n}", average_representation["display_latex"])
+        self.assertEqual(average_representation["calc_expr"], "ZT_eSR = sum(ZT_e[i] for i in range(1, n + 1)) / n")
+        self.assertIn("formula_native_wmf_pattern_recovered", average_representation["warnings"])
+
+        self.assertIsNotNone(unit_representation)
+        assert unit_representation is not None
+        self.assertEqual(unit_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(unit_representation["calc_expr"], "ZT_e = ZT / V")
+        self.assertIn(r"\frac{\mathrm{ЗТ}}{V}", unit_representation["display_latex"])
+        self.assertIn("formula_native_wmf_pattern_recovered", unit_representation["warnings"])
+
+        self.assertIsNotNone(stability_representation)
+        assert stability_representation is not None
+        self.assertEqual(stability_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(stability_representation["calc_expr"], "K_ust = t_max / t_min")
+        self.assertIn(r"\le 1{,}5", stability_representation["display_latex"])
+        self.assertIn("formula_native_wmf_pattern_recovered", stability_representation["warnings"])
+        self.assertIn("formula_constraint_not_encoded_in_calc_expr", stability_representation["warnings"])
+
+    def test_formula_representation_recovers_noisy_1pr_fraction_family(self) -> None:
+        process_data_representation = _formula_representation_from_text("ЗТЧ100Н[100(НН)]60=-+_(ВрИпзро) (23),")
+        lab_element_representation = _formula_representation_from_text("ЗТЧ100Н[100(НН)]60=-+_(ВрЭлпзро) (31),")
+
+        self.assertIsNotNone(process_data_representation)
+        assert process_data_representation is not None
+        self.assertEqual(
+            process_data_representation["linear_text"],
+            "Н_(ВрИ) = ЗТ_(Иср) × 100 / (Ч_(общ) × [100 - (Н_(пзр) + Н_(о))] × 60)",
+        )
+        self.assertEqual(process_data_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(
+            process_data_representation["calc_expr"],
+            "N_VrI = ZT_Isr * 100 / (Ch_obsh * (100 - (N_pzr + N_o)) * 60)",
+        )
+
+        self.assertIsNotNone(lab_element_representation)
+        assert lab_element_representation is not None
+        self.assertEqual(
+            lab_element_representation["linear_text"],
+            "Н_(ВрЭл) = ЗТ_(эСРл) × 100 / (Ч_(общ) × [100 - (Н_(пзр) + Н_(о))] × 60)",
+        )
+        self.assertEqual(lab_element_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(
+            lab_element_representation["calc_expr"],
+            "N_VrEl = ZT_eSRl * 100 / (Ch_obsh * (100 - (N_pzr + N_o)) * 60)",
+        )
+
+    def test_formula_representation_normalizes_known_904pr_native_formulas(self) -> None:
+        weighted_representation = _formula_representation_from_text(
+            "ОЦ_(а) = (Х_(св) × n + Х_(сп) × m) / (n + m) (1)"
+        )
+        volume_representation = _formula_representation_from_text(
+            "Х_(св) = (x_(1) × v_(1) + x_(2) × v_(2) + ... + x_(n) × v_(n)) / (v_(1) + v_(2) + ... + v_(n)) (4)"
+        )
+        inequality_representation = _formula_representation_from_text("s <= 0,25 × Х_(ср) (7)")
+
+        self.assertIsNotNone(weighted_representation)
+        assert weighted_representation is not None
+        self.assertEqual(weighted_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(weighted_representation["calc_expr"], "OTs_a = ( X_sv * n + X_sp * m ) / ( n + m )")
+        self.assertIn("formula_native_wmf_pattern_recovered", weighted_representation["warnings"])
+
+        self.assertIsNotNone(volume_representation)
+        assert volume_representation is not None
+        self.assertEqual(volume_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertIn(r"\ldots", volume_representation["display_latex"])
+        self.assertIn("sum(x[i] * v[i]", volume_representation["calc_expr"])
+        self.assertIn("calculation_expression_requires_domain_variable_binding", volume_representation["warnings"])
+
+        self.assertIsNotNone(inequality_representation)
+        assert inequality_representation is not None
+        self.assertEqual(inequality_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(inequality_representation["calc_expr"], "s <= 0.25 * X_sr")
+        self.assertIn(r"\le", inequality_representation["display_latex"])
+
+    def test_formula_representation_normalizes_known_534pr_native_formulas(self) -> None:
+        rate_representation = _formula_representation_from_text(
+            "СЦ_(зттек) = КТ_(n) × С_(1ср) / t_(ср) × К_(инф) (1)"
+        )
+        sum_representation = _formula_representation_from_text(
+            "ОТ_(1) = sum_(i=1)^n СЦ_(зтiтек) × Т_(i) (2)"
+        )
+        wage_representation = _formula_representation_from_text(
+            "С_(1ср) = С_(1) × (1 + sum_(i=1)^n К_(i) + К_(р)) + ПВ (4)"
+        )
+
+        self.assertIsNotNone(rate_representation)
+        assert rate_representation is not None
+        self.assertEqual(rate_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(rate_representation["calc_expr"], "SC_zt_tek = KT_n * S_1sr / t_sr * K_inf")
+        self.assertIn("formula_native_wmf_pattern_recovered", rate_representation["warnings"])
+
+        self.assertIsNotNone(sum_representation)
+        assert sum_representation is not None
+        self.assertEqual(sum_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertIn(r"\sum_{i=1}^{n}", sum_representation["display_latex"])
+        self.assertIn("sum(SC_zt_i_tek[i] * T[i]", sum_representation["calc_expr"])
+        self.assertIn("calculation_expression_requires_domain_variable_binding", sum_representation["warnings"])
+
+        self.assertIsNotNone(wage_representation)
+        assert wage_representation is not None
+        self.assertEqual(wage_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertIn(r"\left(1 + \sum_{i=1}^{n}", wage_representation["display_latex"])
+        self.assertIn("sum(K[i] for i in range(1, n + 1))", wage_representation["calc_expr"])
 
     def test_formula_representation_adds_calc_expr_for_linearized_assignment(self) -> None:
         representation = _formula_representation_from_text("С_(ИГДИ) = С_(П) + С_(К) (1),")
@@ -467,6 +992,80 @@ class DocxConverterTests(unittest.TestCase):
             representation["display_latex"],
             r"\mathrm{С}_{\text{Свлс}} = \mathrm{ПЗ1}_{\text{п}} + \mathrm{ПЗ2}_{\text{п}}  \times  S_{\text{влс}}",
         )
+
+    def test_formula_representation_strips_trailing_reference_before_calc_expr(self) -> None:
+        representation = _formula_representation_from_text("З^(смр) = Т x З_(ср), (1)")
+
+        self.assertIsNotNone(representation)
+        assert representation is not None
+        self.assertEqual(representation["linear_text"], "З^(смр) = Т x З_(ср)")
+        self.assertEqual(representation["calc_expr"], "Z_smr = T * Z_sr")
+        self.assertEqual(
+            representation["variables"],
+            {
+                "З_смр": "Z_smr",
+                "Т": "T",
+                "З_ср": "Z_sr",
+            },
+        )
+
+    def test_formula_representation_extracts_numeric_expression_from_chain(self) -> None:
+        representation = _formula_representation_from_text(
+            "a + b x x = 30 + 0,35 x 200 = 100,0 тыс. руб."
+        )
+
+        self.assertIsNotNone(representation)
+        assert representation is not None
+        self.assertEqual(representation["calc_expr"], "30 + 0.35 * 200")
+        self.assertEqual(representation["variables"], {})
+        self.assertIn("formula_calc_expr_is_heuristic", representation["warnings"])
+
+    def test_formula_representation_extracts_expression_after_narrative_prefix(self) -> None:
+        representation = _formula_representation_from_text(
+            "Коэффициент изменения цены разработки проектной и рабочей документации будет равен: (140 + 45) : 140 = 1,32"
+        )
+
+        self.assertIsNotNone(representation)
+        assert representation is not None
+        self.assertEqual(representation["calc_expr"], "( 140 + 45 ) / 140")
+        self.assertEqual(representation["variables"], {})
+        self.assertIn("formula_calc_expr_is_heuristic", representation["warnings"])
+
+    def test_formula_representation_extracts_first_assignment_from_semicolon_clause(self) -> None:
+        representation = _formula_representation_from_text(
+            "Производственный корпус объекта цветной металлургии мощностью 200 ед.: a = 30; b = 0,35"
+        )
+
+        self.assertIsNotNone(representation)
+        assert representation is not None
+        self.assertEqual(representation["calc_expr"], "a = 30")
+        self.assertEqual(representation["variables"], {"a": "a"})
+
+    def test_formula_representation_extracts_parenthetical_assignment(self) -> None:
+        representation = _formula_representation_from_text(
+            "k_(з.п) - коэффициент, устанавливающий долю заработной платы производственного персонала в общих затратах на проектирование (k_(з.п) = 0,3 - 0,65)."
+        )
+
+        self.assertIsNotNone(representation)
+        assert representation is not None
+        self.assertEqual(representation["calc_expr"], "k_z_p = 0.3 - 0.65")
+        self.assertEqual(representation["variables"]["k_з_п"], "k_z_p")
+
+    def test_formula_representation_supports_square_bracket_grouping(self) -> None:
+        representation = _formula_representation_from_text(
+            "НЗ_(п) = [С_(ФОТпТН) x (1 + НР) + С_(возТН) + С_(ТС) + С_(М) + С_(авто) + С_(мат)] x (1 + П) (1),"
+        )
+
+        self.assertIsNotNone(representation)
+        assert representation is not None
+        self.assertEqual(
+            representation["calc_expr"],
+            "NZ_p = ( S_FOTpTN * ( 1 + NR ) + S_vozTN + S_TS + S_M + S_avto + S_mat ) * ( 1 + P )",
+        )
+        self.assertEqual(representation["variables"]["НЗ_п"], "NZ_p")
+        self.assertEqual(representation["variables"]["С_ФОТпТН"], "S_FOTpTN")
+        self.assertEqual(representation["variables"]["С_возТН"], "S_vozTN")
+        self.assertEqual(representation["variables"]["П"], "P")
 
     def test_runner_skips_duplicate_docx_and_can_copy_originals(self) -> None:
         with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:

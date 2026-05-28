@@ -184,6 +184,180 @@ class FormulaRecognitionPostprocessTests(unittest.TestCase):
             artifact_record = json.loads((document_dir / "formula-recognition.jsonl").read_text(encoding="utf-8").splitlines()[0])
             self.assertEqual(artifact_record["candidate_kind"], "formula_text")
 
+    def test_formula_recognition_skips_low_confidence_formula_with_existing_calc_expr(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            document_dir = Path(temp_dir)
+            payload = _minimal_formula_text_document_payload(
+                calc_expr="Z_ch = t_rab_mes",
+                confidence="low",
+                source_format="docx_text_linearized",
+                warnings=["formula_calc_expr_is_heuristic"],
+            )
+            (document_dir / "document.v1.json").write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            with patch("doc_converter.formula_recognition._request_openrouter_completion") as mocked_provider:
+                result = run_formula_recognition_postprocess(
+                    document_dir,
+                    FormulaRecognitionConfig(provider="openrouter", model="openai/gpt-4o", api_key="secret"),
+                )
+
+            mocked_provider.assert_not_called()
+            self.assertEqual(result.attempted, 0)
+            self.assertEqual(result.recognized, 0)
+            self.assertEqual(result.provider_calls, 0)
+            self.assertFalse((document_dir / "formula-recognition.jsonl").exists())
+
+    def test_formula_recognition_attempts_formula_without_calc_expr_even_if_confidence_high(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            document_dir = Path(temp_dir)
+            payload = _minimal_formula_text_document_payload(
+                calc_expr=None,
+                confidence="high",
+                source_format="mathtype_wmf_text_records",
+                warnings=[],
+            )
+            (document_dir / "document.v1.json").write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            with patch(
+                "doc_converter.formula_recognition._request_openrouter_completion",
+                return_value={
+                    "choices": [
+                        {
+                            "message": {
+                                "content": json.dumps(
+                                    {
+                                        "linear_text": "З_ч = t_i * З_чj",
+                                        "display_latex": r"З_{ч} = t_{i} \\times З_{чj}",
+                                        "calc_expr": "Z_ch = t_i * Z_chj",
+                                        "confidence": "high",
+                                        "warnings": [],
+                                    },
+                                    ensure_ascii=False,
+                                )
+                            }
+                        }
+                    ]
+                },
+            ) as mocked_provider:
+                result = run_formula_recognition_postprocess(
+                    document_dir,
+                    FormulaRecognitionConfig(provider="openrouter", model="openai/gpt-4o", api_key="secret"),
+                )
+
+            mocked_provider.assert_called_once()
+            self.assertEqual(result.attempted, 1)
+            self.assertEqual(result.recognized, 1)
+            self.assertEqual(result.provider_calls, 1)
+
+    def test_formula_recognition_uses_local_backend_without_provider(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            document_dir = Path(temp_dir)
+            assets_dir = document_dir / "assets"
+            assets_dir.mkdir()
+            asset_path = assets_dir / "formula.png"
+            asset_path.write_bytes(b"png")
+
+            payload = _minimal_document_payload(asset_path)
+            (document_dir / "document.v1.json").write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            with patch(
+                "doc_converter.formula_recognition._recognize_formula_with_local_backend",
+                return_value={
+                    "source_format": "heuristic_latex",
+                    "linear_text": "C = A + B",
+                    "display_latex": r"C = A + B",
+                    "calc_expr": "C = A + B",
+                    "confidence": "low",
+                    "warnings": ["formula_local_backend_tesseract"],
+                },
+            ) as mocked_local_backend, patch(
+                "doc_converter.formula_recognition._request_openrouter_completion"
+            ) as mocked_provider:
+                result = run_formula_recognition_postprocess(
+                    document_dir,
+                    FormulaRecognitionConfig(local_backend="tesseract"),
+                )
+
+            mocked_local_backend.assert_called_once()
+            mocked_provider.assert_not_called()
+            self.assertEqual(result.attempted, 1)
+            self.assertEqual(result.recognized, 1)
+            self.assertEqual(result.provider_calls, 0)
+            updated_payload = json.loads((document_dir / "document.v1.json").read_text(encoding="utf-8"))
+            formula_unit = updated_payload["units"][1]
+            self.assertEqual(formula_unit["formula"]["calc_expr"], "C = A + B")
+            self.assertIn("formula_recognition_local_backend_generated", formula_unit["quality"]["warnings"])
+            self.assertEqual(
+                updated_payload["processing"]["formula_recognition"],
+                {
+                    "attempted": 1,
+                    "recognized": 1,
+                    "provider_calls": 0,
+                    "results_path": "formula-recognition.jsonl",
+                    "local_backend": "tesseract",
+                },
+            )
+            artifact_record = json.loads((document_dir / "formula-recognition.jsonl").read_text(encoding="utf-8").splitlines()[0])
+            self.assertEqual(artifact_record["status"], "recognized_local_backend")
+            self.assertEqual(artifact_record["local_backend"], "tesseract")
+
+    def test_formula_recognition_falls_back_to_provider_after_local_backend_miss(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            document_dir = Path(temp_dir)
+            assets_dir = document_dir / "assets"
+            assets_dir.mkdir()
+            asset_path = assets_dir / "formula.png"
+            asset_path.write_bytes(b"png")
+
+            payload = _minimal_document_payload(asset_path)
+            (document_dir / "document.v1.json").write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            with patch(
+                "doc_converter.formula_recognition._recognize_formula_with_local_backend",
+                return_value=None,
+            ) as mocked_local_backend, patch(
+                "doc_converter.formula_recognition._request_openrouter_completion",
+                return_value={
+                    "choices": [
+                        {
+                            "message": {
+                                "content": json.dumps(
+                                    {
+                                        "linear_text": "C = A + B",
+                                        "display_latex": r"C = A + B",
+                                        "calc_expr": "C = A + B",
+                                        "confidence": "high",
+                                        "warnings": [],
+                                    },
+                                    ensure_ascii=False,
+                                )
+                            }
+                        }
+                    ]
+                },
+            ) as mocked_provider:
+                result = run_formula_recognition_postprocess(
+                    document_dir,
+                    FormulaRecognitionConfig(local_backend="tesseract", provider="openrouter", model="openai/gpt-4o", api_key="secret"),
+                )
+
+            mocked_local_backend.assert_called_once()
+            mocked_provider.assert_called_once()
+            self.assertEqual(result.recognized, 1)
+            self.assertEqual(result.provider_calls, 1)
+
 
 def _minimal_document_payload(asset_path: Path) -> dict[str, object]:
     sha256 = "0" * 64
@@ -278,9 +452,16 @@ def _quality_payload() -> dict[str, list[str]]:
     return {"flags": [], "warnings": []}
 
 
-def _minimal_formula_text_document_payload() -> dict[str, object]:
+def _minimal_formula_text_document_payload(
+    *,
+    calc_expr: str | None = None,
+    confidence: str = "low",
+    source_format: str = "docx_text_linearized",
+    warnings: list[str] | None = None,
+) -> dict[str, object]:
     sha256 = "1" * 64
     document_id = f"sha256:{sha256}"
+    formula_warnings = ["formula_display_latex_is_heuristic"] if warnings is None else warnings
     return {
         "schema_version": "document.v1",
         "document_id": document_id,
@@ -310,12 +491,12 @@ def _minimal_formula_text_document_payload() -> dict[str, object]:
                 "text": "З_ч = (ч. раб.мес.)",
                 "asset_ref": None,
                 "formula": {
-                    "source_format": "docx_text_linearized",
+                    "source_format": source_format,
                     "linear_text": "З_ч = (ч. раб.мес.)",
                     "display_latex": r"З_ч = (ч. раб.мес.)",
-                    "calc_expr": None,
-                    "confidence": "low",
-                    "warnings": ["formula_display_latex_is_heuristic"],
+                    "calc_expr": calc_expr,
+                    "confidence": confidence,
+                    "warnings": formula_warnings,
                 },
                 "cell": None,
                 "source_ref": _source_ref_payload(document_id=document_id, docx_path="/word/document.xml/body/p[1]"),

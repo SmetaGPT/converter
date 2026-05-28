@@ -34,16 +34,20 @@ CLI, GUI и прямое создание `ConverterOptions()` автомати�
 
 - `LLM_PROVIDER=openrouter`
 - `OPENROUTER_MODEL=deepseek/deepseek-v4-pro`
+- `FORMULA_RECOGNITION_LOCAL_BACKEND=tesseract` для локального OCR backend без live provider; эту переменную можно включать отдельно или вместе с provider config
 - `FORMULA_MODEL=openai/gpt-4o` (опциональный override; если не задан и есть `OPENROUTER_API_KEY`, formula slice по умолчанию использует `openai/gpt-4o`)
 - `OPENROUTER_API_KEY=...`
 
-Заполнять нужно именно `.env.local`. В `run.json` попадает только безопасный срез `formula_recognition` с `provider`, `model` и `configured`; `api_key` в run metadata не сериализуется.
+Заполнять нужно именно `.env.local`. В `run.json` попадает только безопасный срез `formula_recognition` с `configured` и настроенными `provider`/`model`/`local_backend`; `api_key` в run metadata не сериализуется.
 
 Если formula-recognition config заполнен, runner после базового extraction открывает `document.v1.json`, ищет `formula_image` units и запускает отдельный post-processing stage:
 
 - сначала используется локальная WMF/MathType hint extraction, если она даёт достаточную уверенность;
-- затем для оставшихся кандидатов вызывается OpenRouter vision model;
+- затем, если включён `FORMULA_RECOGNITION_LOCAL_BACKEND=tesseract`, выполняется локальный raster OCR fallback без сетевого вызова;
+- только после этого для оставшихся кандидатов вызывается OpenRouter vision model, если provider действительно настроен;
 - результаты пишутся в `formula-recognition.jsonl`, а успешные распознавания попадают в `unit.text`, `unit.formula` и `processing.formula_recognition` внутри `document.v1.json`; OpenRouter response запрашивается через strict `json_schema`, чтобы downstream formula block был стабильнее machine-readable.
+
+Если настроен только local backend без provider, unresolved cases честно остаются unresolved и live provider call не выполняется.
 
 Live provider call не входит в automated validation этого репозитория, чтобы не расходовать внешние кредиты во время тестов и CI.
 
@@ -95,6 +99,15 @@ D:\converter-output\runs\<run_id>\
 ```
 
 Команда проходит по `units[*].formula.calc_expr`, возвращает machine-readable summary и пытается переиспользовать уже вычисленные targets как входы для следующих формул того же документа. Если части значений всё ещё не хватает, CLI честно возвращает `status: partial`, exit code `1` и per-formula `missing_variables`.
+
+Для deterministic formula benchmark и gold fixtures:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\run_formula_benchmark.py samples\formula-benchmark.manifest.jsonl
+.\.venv\Scripts\python.exe scripts\export_formula_gold.py "D:\converter-output\runs\<run_id>\documents\<document_folder>\document.v1.json" --document-label "421/пр" --output samples\expected\formulas\421-pr.gold.json
+```
+
+Benchmark harness пишет артефакты в `runs\formula-benchmark\runs\<run_id>\`, читает manifest/gold BOM-safe через `utf-8-sig`, по умолчанию не наследует live formula-recognition provider из окружения и автоматически загружает versioned policy `samples\formula-benchmark.thresholds.json` как required gate. В `benchmark-report.json` и `benchmark-report.md` теперь попадают `tier_summaries` и `required_gate`; для текущего baseline это означает floors/ceilings `overall: calc_expr >= 0.64, native >= 0.15, low_confidence <= 0.92`, `gate: calc_expr >= 0.60, native >= 0.13, low_confidence <= 0.93`, `control false_positive_rate = 0` и `anchor/control gold_pass_rate = 1.0`, а `rolling` остаётся monitor-only tier до следующего полного rerun. Если конкретный case должен запускаться с formula-recognition, это нужно явно включить в manifest entry через `enable_formula_recognition`.
 
 ## 2. GUI запуск из исходников
 
@@ -212,6 +225,6 @@ powershell -ExecutionPolicy Bypass -File scripts\register-agent-eval-schedule.ps
 - Если OCRmyPDF недоступен, `pdf_scan` документы получают `partial_success`, flags `ocr_required`, `ocr_unavailable`, `review_required` и не теряются.
 - Release profile сейчас делится на core и optional: core = `ocrmypdf`, `tesseract`, `ghostscript`; optional = `jbig2`, `pngquant`, `verapdf`.
 - Опциональные OCRmyPDF helpers `jbig2`, `pngquant` и `verapdf` не установлены; OCR работает, но часть оптимизаций и PDF/A-проверок пропускается.
-- PDF route в release scope v0.3.0 добавляет heuristic semantic units для tables/formulas/figure captions поверх text-layer и OCR text; сложные multi-column/table layouts всё ещё требуют downstream review по quality flags.
+- PDF route в release scope v0.3.0 добавляет heuristic semantic units для tables/formulas/figure captions поверх text-layer и OCR text; shared table parser уже нормализует simple mixed-width/continuation rows и помечает unresolved ragged tables через `table_structure_warning`, но сложные multi-column/table layouts всё ещё требуют downstream review по quality flags.
 - DOCX route в release scope v0.3.0 добавляет semantic pass для formulas, headers, footers и footnotes; embedded formula images классифицируются эвристически по media metadata, а MathType WMF formula text records могут заполнять `formula.display_latex` и `formula.calc_expr` для последующего KaTeX/Word rendering и расчётов.
 - Embeddings и загрузка в БД не входят в converter runtime; для них используется output package и `docs/downstream-handoff.md`.

@@ -137,6 +137,16 @@
           "type": "object",
           "additionalProperties": { "type": "string" }
         },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "parser_path": { "type": "string", "minLength": 1 },
+            "normalization": { "type": "string", "minLength": 1 },
+            "confidence_basis": { "type": "string", "minLength": 1 }
+          },
+          "required": ["parser_path", "normalization", "confidence_basis"],
+          "additionalProperties": false
+        },
         "confidence": { "enum": ["high", "medium", "low"] },
         "warnings": { "type": "array", "items": { "type": "string" } }
       },

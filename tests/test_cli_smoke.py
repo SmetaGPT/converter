@@ -319,6 +319,33 @@ class CliSmokeTests(unittest.TestCase):
             self.assertEqual(manifest_record["formula_recognition_results_path"], "formula-recognition.jsonl")
             self.assertIn("formula_recognition_provider_failed", manifest_record["warnings"])
 
+    def test_run_metadata_serializes_local_formula_backend_without_api_key(self) -> None:
+        with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:
+            source_path = Path(input_dir) / "formula.docx"
+            document = Document()
+            document.add_paragraph("formula local backend smoke")
+            document.save(str(source_path))
+
+            options = ConverterOptions(
+                formula_recognition=FormulaRecognitionConfig(
+                    local_backend="tesseract",
+                )
+            )
+
+            result = run_convert_folder(
+                ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir), options=options)
+            )
+
+            run_payload = json.loads((result.run_dir / "run.json").read_text(encoding="utf-8"))
+            validate_payload(run_payload, "run.v1.schema.json")
+            self.assertEqual(
+                run_payload["options"].get("formula_recognition"),
+                {
+                    "local_backend": "tesseract",
+                    "configured": True,
+                },
+            )
+
     def test_processed_documents_catalog_describes_output_folder_and_status(self) -> None:
         with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:
             source_path = Path(input_dir) / "source.docx"

@@ -29,6 +29,7 @@
           "properties": {
             "provider": { "type": "string", "minLength": 1 },
             "model": { "type": "string", "minLength": 1 },
+            "local_backend": { "type": "string", "minLength": 1 },
             "configured": { "type": "boolean" }
           },
           "additionalProperties": false

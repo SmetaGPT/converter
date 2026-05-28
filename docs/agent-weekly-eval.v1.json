@@ -1,10 +1,10 @@
 {
   "schema_version": "agent-weekly-eval.v1",
-  "as_of_date": "2026-05-24",
+  "as_of_date": "2026-05-28",
   "window": {
     "days": 7,
-    "start_date": "2026-05-18",
-    "end_date": "2026-05-24"
+    "start_date": "2026-05-22",
+    "end_date": "2026-05-28"
   },
   "overall_status": "strong",
   "sources": {
@@ -16,36 +16,38 @@
     "eval_instructions": "docs/agent-evals.md"
   },
   "telemetry_window_summary": {
-    "total_entries": 38,
+    "total_entries": 61,
     "validation_results": {
-      "passed": 37,
-      "passed_after_repair": 1,
+      "passed": 59,
+      "passed_after_repair": 2,
       "failed": 0,
       "blocked": 0
     },
-    "state_updates": 38,
-    "feature_traceable_entries": 38,
+    "state_updates": 61,
+    "feature_traceable_entries": 61,
     "task_types": {
       "code/ci/docs/runtime": 1,
       "code/docs/process": 1,
       "code/docs/release/process": 1,
       "code/docs/runtime": 2,
+      "code/docs/tests/schema": 1,
       "code/release/runtime": 1,
-      "code/runtime/docs": 1,
+      "code/runtime/docs": 3,
+      "code/tests/docs/state": 1,
       "code/tests/release/docs": 1,
       "code/tests/runtime": 3,
-      "code/tests/runtime/docs": 12,
+      "code/tests/runtime/docs": 29,
       "code/tests/runtime/research": 1,
       "docs/process": 4,
       "docs/process/ci": 1,
       "docs/process/observability": 6,
-      "docs/process/product": 1,
+      "docs/process/product": 3,
       "release/runtime": 1,
       "scripts/docs/runtime": 1
     }
   },
   "scorecard_snapshot": {
-    "scorecard_as_of_date": "2026-05-24",
+    "scorecard_as_of_date": "2026-05-28",
     "validated_features": 25,
     "referenced_features": 25,
     "referenced_feature_ids": [
@@ -82,21 +84,21 @@
         "title": "Validation discipline",
         "score": 5,
         "scale_max": 5,
-        "basis": "38/38 telemetry entries have pass-like validation results."
+        "basis": "61/61 telemetry entries have pass-like validation results."
       },
       {
         "signal_id": "state-hygiene",
         "title": "State hygiene",
         "score": 5,
         "scale_max": 5,
-        "basis": "38/38 telemetry entries report state_update=true."
+        "basis": "61/61 telemetry entries report state_update=true."
       },
       {
         "signal_id": "feature-traceability",
         "title": "Feature traceability",
         "score": 5,
         "scale_max": 5,
-        "basis": "38/38 telemetry entries reference at least one feature_id."
+        "basis": "61/61 telemetry entries reference at least one feature_id."
       },
       {
         "signal_id": "feature-coverage",

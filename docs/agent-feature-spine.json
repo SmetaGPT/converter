@@ -414,9 +414,9 @@
     {
       "feature_id": "formula-recognition-env-config",
       "area": "product",
-      "title": "Formula recognition provider env config",
+      "title": "Formula recognition provider and local backend env config",
       "status": "validated",
-      "behavior": "Converter runtime auto-loads formula recognition provider, model and API key from `.env.local`/`.env` plus process environment overrides, supporting both explicit `FORMULA_RECOGNITION_*` keys and shorthand aliases like `LLM_PROVIDER`, provider-specific model keys and `FORMULA_MODEL`; when OpenRouter credentials are present and no dedicated formula override is set, the formula slice defaults to `openrouter` + `openai/gpt-4o`, while run metadata stores only provider/model/configured and never serializes the secret itself.",
+      "behavior": "Converter runtime auto-loads formula recognition settings from `.env.local`/`.env` plus process environment overrides, supporting explicit `FORMULA_RECOGNITION_*` keys, shorthand aliases like `LLM_PROVIDER`, provider-specific model keys and `FORMULA_MODEL`, plus optional `FORMULA_RECOGNITION_LOCAL_BACKEND=tesseract`; when OpenRouter credentials are present and no dedicated formula override is set, the formula slice defaults to `openrouter` + `openai/gpt-4o`, while run metadata stores only configured `provider`/`model`/`local_backend` fields and never serializes the secret itself.",
       "owner_docs": [
         "docs/build-and-run.md",
         ".env.example",
@@ -442,14 +442,14 @@
         "docs/build-and-run.md",
         ".env.example"
       ],
-      "residual_risk": "The env loader searches the current working directory and its ancestors; if the converter is launched from an unrelated directory, the operator must export the variables explicitly or start the command from the project tree. The default formula model is tuned for multimodal OCR-like extraction, but live accuracy and cost still depend on provider availability and document quality."
+      "residual_risk": "The env loader searches the current working directory and its ancestors; if the converter is launched from an unrelated directory, the operator must export the variables explicitly or start the command from the project tree. The default formula model is tuned for multimodal OCR-like extraction, while the current local backend depends on Windows Tesseract availability and should remain an opt-in fallback rather than a deterministic benchmark baseline."
     },
     {
       "feature_id": "formula-recognition-postprocess",
       "area": "product",
       "title": "Formula image recognition postprocess",
       "status": "validated",
-      "behavior": "When formula recognition is configured, runner reopens each canonical `document.v1.json`, scans `formula_image` units, first tries local WMF/MathType hint extraction and then falls back to an OpenRouter multimodal call for unresolved assets, requesting strict `json_schema` output and writing successful results back into `unit.text`, `unit.formula`, `processing.formula_recognition` and a sidecar `formula-recognition.jsonl` artifact.",
+      "behavior": "When formula recognition is configured, runner reopens each canonical `document.v1.json`, scans `formula_image` units and residual `formula` units that still lack a machine-readable contract (currently: no usable `calc_expr`), first tries local WMF/MathType hint extraction, then an optional local OCR backend and only after that falls back to an OpenRouter multimodal call for unresolved assets, requesting strict `json_schema` output and writing successful results back into `unit.text`, `unit.formula`, `processing.formula_recognition` and a sidecar `formula-recognition.jsonl` artifact.",
       "owner_docs": [
         "docs/build-and-run.md",
         "docs/document-converter-acceptance.md",
@@ -474,7 +474,7 @@
         "docs/build-and-run.md",
         "docs/document-converter-acceptance.md"
       ],
-      "residual_risk": "Automated validation uses mocked provider responses and does not spend real OpenRouter credits; live quality still depends on provider availability, model behavior and successful rasterization of WMF/EMF assets on Windows."
+      "residual_risk": "Automated validation uses mocked provider responses and does not spend real OpenRouter credits; live quality still depends on provider availability, model behavior, local Tesseract availability and successful rasterization of WMF/EMF assets on Windows."
     },
     {
       "feature_id": "semantic-document-metadata",

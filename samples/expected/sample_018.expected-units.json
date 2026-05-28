@@ -1,20 +1,20 @@
 {
-  "sample_id": "sample_009",
+  "sample_id": "sample_018",
   "route": "pdf_text",
-  "purpose": "large PDF with dense tabular content in text layer",
+  "purpose": "medium PDF with compact tables in text layer",
   "source_observation": {
-    "pages": 151,
-    "text_chars": 211701,
+    "pages": 20,
+    "text_chars": 51140,
     "first_text_contains": "СВОД ПРАВИЛ"
   },
   "expected_units": {
     "required_types": ["document", "page", "paragraph", "table", "table_row", "table_cell"],
     "minimum_counts": {
-      "page": 151,
-      "paragraph": 250,
-      "table": 150,
-      "table_row": 2000,
-      "table_cell": 9000
+      "page": 20,
+      "paragraph": 40,
+      "table": 20,
+      "table_row": 180,
+      "table_cell": 400
     }
   },
   "required_references": {
@@ -30,18 +30,17 @@
   },
   "quality_expectations": {
     "empty_text": false,
-    "ocr_applied": false,
     "review_required": false
   },
   "table_expectations": {
-    "table_units": { "min": 150 },
-    "table_rows": { "min": 2000 },
-    "table_cells": { "min": 9000 },
-    "rows_with_two_plus_cells": { "min": 2000 },
-    "maximum_cells_per_row": { "min": 10 },
-    "average_cells_per_row": { "min": 4.5 },
+    "table_units": { "min": 20 },
+    "table_rows": { "min": 180 },
+    "table_cells": { "min": 400 },
+    "rows_with_two_plus_cells": { "min": 180 },
+    "maximum_cells_per_row": { "min": 8 },
+    "average_cells_per_row": { "min": 2.0 },
     "wide_row_ratio": { "min": 0.98 },
     "single_cell_row_ratio": { "max": 0.02 },
-    "warning_tables": { "max": 166 }
+    "warning_tables": { "max": 26 }
   }
 }

@@ -1,7 +1,7 @@
 # Windows Document Converter Acceptance
 
-Дата: 2026-05-22
-Статус: v0.2.0 release scope
+Дата: 2026-05-26
+Статус: v0.3.0 release scope + formula hardening gate
 
 ## 1. Назначение
 
@@ -115,9 +115,9 @@ Semantic metadata minimum:
 - таблицы имеют units `table`, `table_row`, `table_cell`;
 - embedded images сохранены в `assets/`;
 - формулы выделяются как `formula` там, где они представлены OMML или устойчивым text pattern;
-- если DOCX formula восстановлена из MathType WMF/text records или устойчивой линейной формы, `formula` unit может содержать machine-readable блок `formula.display_latex`, `formula.calc_expr`, `formula.variables`, `formula.confidence` и `formula.warnings`;
+- если DOCX formula восстановлена из MathType WMF/text records или устойчивой линейной формы с достаточной уверенностью, `formula` unit должен содержать machine-readable блок `formula.display_latex`, `formula.calc_expr`, `formula.variables`, `formula.confidence` и `formula.warnings`; для этого продукта именно `calc_expr` + `variables` считаются целевым contract для последующего автоматического применения формулы, а `display_latex` без расчётного слоя допустим только как partial recovery с честной маркировкой review/warnings;
 - embedded images сохраняются как `figure` или `formula_image` units/assets по доступной metadata;
-- если включён formula-recognition provider config, `formula_image` units могут быть post-enriched после базового extraction: успешное распознавание заполняет `unit.text` и `unit.formula`, а рядом создаётся `formula-recognition.jsonl` с per-asset результатами;
+- если включён formula-recognition config, post-enrichment применяется только к `formula_image` units и к тем `formula` units, для которых базовый extraction не собрал machine-readable contract; сначала используются local WMF hints, затем optional local OCR backend и только потом provider fallback; этот путь не должен подменять основной automatic contract для всего документа и применяется только к остаточным формулам без usable `calc_expr`, а не ко всем low-confidence units подряд; успешное распознавание заполняет `unit.text` и `unit.formula`, а рядом создаётся `formula-recognition.jsonl` с per-asset результатами;
 - headers, footers и footnotes выделяются как отдельные semantic units;
 - создан `search_text.txt`;
 - создан `extractor_raw.json`;
@@ -157,6 +157,7 @@ PDF route делится на два подмаршрута после пров�
 - повторяющиеся верхние и нижние edge-блоки не попадают в body paragraphs и могут быть выделены как `header`/`footer`;
 - повёрнутые PDF pages помечаются `rotated_text` и `review_required`;
 - heuristic semantic extraction выделяет PDF tables как `table`/`table_row`/`table_cell`, formulas как `formula`, figure captions как `figure` units;
+- shared table parser нормализует dominant row width, может склеивать continuation lines в предыдущую ячейку и при unresolved ragged shape выставляет `table_structure_warning` вместо тихой потери структуры;
 - создан `search_text.txt`.
 
 Для `pdf_scan` требуется:
@@ -168,6 +169,7 @@ PDF route делится на два подмаршрута после пров�
 - OCR warnings и low confidence pages попадают в `quality.flags`;
 - итоговые text units строятся из OCR-производной.
 - OCR text также проходит heuristic semantic extraction для `table`, `formula` и `figure` units.
+- table reconstruction в OCR route использует тот же normalization contract, что и `pdf_text`, включая continuation merge и `table_structure_warning` для unresolved ragged tables.
 
 Минимальная ручная проверка для Sprint 0:
 
@@ -184,10 +186,11 @@ PDF route делится на два подмаршрута после пров�
 Критерии приёмки для release scope v0.3.0:
 
 - DOCX tables сохраняются как `table`/`table_row`/`table_cell`;
+- DOCX table cells сохраняют multiline text, а при formula-like содержимом могут дополнительно нести machine-readable `formula` metadata;
 - DOCX formulas, headers, footers и footnotes сохраняются как отдельные semantic units там, где доступны в package XML;
 - DOCX formulas, пригодные для восстановления, сохраняют display LaTeX для human-readable rendering и отдельное расчётное выражение там, где оно может быть построено без доменной подстановки значений;
 - embedded DOCX media сохраняется как assets и `figure`/`formula_image` units;
-- PDF text и OCR routes создают heuristic `table`, `formula` и `figure` units из layout text blocks;
+- PDF text и OCR routes создают heuristic `table`, `formula` и `figure` units из layout text blocks и используют общий table normalization contract для mixed-width/continuation cases;
 - XLSX route сохраняет workbook tables/cells/formulas нативно, без OCR и без превращения таблиц только в plain text;
 - если семантическое распознавание графики или формулы ненадёжно в конкретном документе, это помечается как review concern, а не как потеря исходного content;
 - quality contract обязан помечать сомнительные случаи через `review_required`.
@@ -215,9 +218,22 @@ PDF route делится на два подмаршрута после пров�
 
 Дополнительная warning для XLSX: `formula_cached_values_missing`, если формулы сохранены, но workbook не содержит cached result values.
 
-Дополнительные warning для formula-recognition postprocess: `formula_recognition_applied`, `formula_recognition_provider_failed`, `formula_recognition_asset_missing`, `formula_recognition_postprocess_failed`.
+Дополнительные warning для formula-recognition postprocess: `formula_recognition_applied`, `formula_recognition_provider_failed`, `formula_recognition_local_backend_failed`, `formula_recognition_asset_missing`, `formula_recognition_postprocess_failed`.
 
-## 10. Representative pilot validation
+## 10. Formula benchmark gate
+
+Formula hardening beyond route-level acceptance считается подтверждённым только через deterministic benchmark path:
+
+- команда запуска использует `\.venv\Scripts\python.exe scripts\run_formula_benchmark.py samples\formula-benchmark.manifest.jsonl`;
+- benchmark по умолчанию загружает versioned policy `samples/formula-benchmark.thresholds.json` и пишет `tier_summaries` + `required_gate` в `benchmark-report.json` и `benchmark-report.md`;
+- `anchor` tier обязан сохранять `gold_pass_rate = 1.0` и `provider_dependency_rate = 0.0`;
+- `gate` tier обязан держать минимум `calc_expr_coverage >= 0.60`, `native_coverage >= 0.13` и потолок `low_confidence_rate <= 0.93`;
+- `control` tier обязан сохранять `false_positive_rate = 0.0`, `gold_pass_rate = 1.0` и `provider_dependency_rate = 0.0`;
+- `overall` baseline обязан держать минимум `calc_expr_coverage >= 0.64`, `native_coverage >= 0.15` и потолок `low_confidence_rate <= 0.92` при `provider_dependency_rate = 0.0`;
+- `rolling` tier пока не блокирует required gate и используется как monitor-only evidence до следующего полного rerun после новых DOCX uplifts;
+- release evidence обязано отдельно различать три quality layer: `native WMF/OMML`, `local formula OCR` и `provider fallback`, а не смешивать их в одну aggregate-quality claim.
+
+## 11. Representative pilot validation
 
 Команда проверки полного representative set:
 
@@ -230,7 +246,7 @@ python scripts\run_sample_pilot.py --clean
 
 OCR runtime установлен и активен, поэтому representative pilot больше не содержит ожидаемых `partial_success` по `pdf_scan`.
 
-## 11. Sprint 0 exit criteria
+## 12. Sprint 0 exit criteria
 
 Sprint 0 можно закрыть, когда:
 
