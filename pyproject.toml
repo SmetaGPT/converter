@@ -39,7 +39,10 @@ document-converter-gui = "doc_converter.gui:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-doc_converter = ["py.typed"]
+doc_converter = [
+	"py.typed",
+	"formulas/known-patterns.v1.json",
+]
 
 [tool.ruff]
 target-version = "py312"
@@ -55,6 +58,7 @@ ignore = ["E501", "W191", "W292"]
 "scripts/export_formula_gold.py" = ["E402"]
 "scripts/run_formula_benchmark.py" = ["E402"]
 "scripts/validate_run_package.py" = ["E402"]
+"scripts/validate_known_formulas.py" = ["E402"]
 
 [tool.pyright]
 include = ["src", "scripts", "tests"]

@@ -1,0 +1,694 @@
+{
+  "schema_version": "formula-known-patterns.v1",
+  "last_updated": "2026-05-28",
+  "noisy_form_recovery": {
+    "ЗТЧ100Н[100(НН)]60=-+_(ВрИпзро)": "Н_(ВрИ) = ЗТ_(Иср) × 100 / (Ч_(общ) × [100 - (Н_(пзр) + Н_(о))] × 60)",
+    "ЗТЧ100Н[100(НН)]60=-+_(ВрЭлпзро)": "Н_(ВрЭл) = ЗТ_(эСРл) × 100 / (Ч_(общ) × [100 - (Н_(пзр) + Н_(о))] × 60)"
+  },
+  "formula_representations": [
+    {
+      "linear_text": "М_(тек) = sum_(j=1)^J P^(j) × См_(тек)^(j)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{М}_{\\text{тек}} = \\sum_{j=1}^{J} P^{j} \\times \\mathrm{См}_{\\text{тек}}^{j}",
+      "calc_expr": "M_tek = sum(P[j] * Sm_tek[j] for j in range(1, J + 1))",
+      "variables": {
+        "М_тек": "M_tek",
+        "P_j": "P[j]",
+        "См_тек_j": "Sm_tek[j]",
+        "J": "J"
+      },
+      "confidence": "medium",
+      "warnings": ["calculation_expression_requires_domain_variable_binding"]
+    },
+    {
+      "linear_text": "ОТ_(тек) = sum_(i=1)^I ЗТ_(i) × СЦ_(ЗТтек)^(i) × V_(i)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{ОТ}_{\\text{тек}} = \\sum_{i=1}^{I} \\mathrm{ЗТ}_{i} \\times \\mathrm{СЦ}_{\\text{ЗТтек}}^{i} \\times V_{i}",
+      "calc_expr": "OT_tek = sum(ZT[i] * SC_ZT_tek[i] * V[i] for i in range(1, I + 1))",
+      "variables": {
+        "ОТ_тек": "OT_tek",
+        "ЗТ_i": "ZT[i]",
+        "СЦ_ЗТтек_i": "SC_ZT_tek[i]",
+        "V_i": "V[i]",
+        "I": "I"
+      },
+      "confidence": "medium",
+      "warnings": ["calculation_expression_requires_domain_variable_binding"]
+    },
+    {
+      "linear_text": "ОТ_(тек) = sum_(i=1)^I sum_(n=1)^N ЗТ_(ni) × СЦ_(n) × V_(i)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{ОТ}_{\\text{тек}} = \\sum_{i=1}^{I} \\sum_{n=1}^{N} \\mathrm{ЗТ}_{ni} \\times \\mathrm{СЦ}_{n} \\times V_{i}",
+      "calc_expr": "OT_tek = sum(ZT[n, i] * SC[n] * V[i] for i in range(1, I + 1) for n in range(1, N + 1))",
+      "variables": {
+        "ОТ_тек": "OT_tek",
+        "ЗТ_ni": "ZT[n, i]",
+        "СЦ_n": "SC[n]",
+        "V_i": "V[i]",
+        "I": "I",
+        "N": "N"
+      },
+      "confidence": "medium",
+      "warnings": ["calculation_expression_requires_domain_variable_binding"]
+    },
+    {
+      "linear_text": "ОТм_(тек) = sum_(i=1)^I sum_(k=1)^K ЗТ_(ki) × СЦ_(k) × V_(i)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{ОТм}_{\\text{тек}} = \\sum_{i=1}^{I} \\sum_{k=1}^{K} \\mathrm{ЗТ}_{ki} \\times \\mathrm{СЦ}_{k} \\times V_{i}",
+      "calc_expr": "OTm_tek = sum(ZT[k, i] * SC[k] * V[i] for i in range(1, I + 1) for k in range(1, K + 1))",
+      "variables": {
+        "ОТм_тек": "OTm_tek",
+        "ЗТ_ki": "ZT[k, i]",
+        "СЦ_k": "SC[k]",
+        "V_i": "V[i]",
+        "I": "I",
+        "K": "K"
+      },
+      "confidence": "medium",
+      "warnings": ["calculation_expression_requires_domain_variable_binding"]
+    },
+    {
+      "linear_text": "ЭММ_(тек) = sum_(m=1)^M T_(m) × СЦэм_(тек)^(m)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{ЭММ}_{\\text{тек}} = \\sum_{m=1}^{M} T_{m} \\times \\mathrm{СЦэм}_{\\text{тек}}^{m}",
+      "calc_expr": "EMM_tek = sum(T[m] * SCem_tek[m] for m in range(1, M + 1))",
+      "variables": {
+        "ЭММ_тек": "EMM_tek",
+        "T_m": "T[m]",
+        "СЦэм_тек_m": "SCem_tek[m]",
+        "M": "M"
+      },
+      "confidence": "medium",
+      "warnings": ["calculation_expression_requires_domain_variable_binding"]
+    },
+    {
+      "linear_text": "З_(ср) = З_(1) × К_(смрТ)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{З}_{\\text{ср}} = \\mathrm{З}_{1} \\times \\mathrm{К}_{\\text{смрТ}}",
+      "calc_expr": "Z_sr = Z_1 * K_smrT",
+      "variables": {
+        "З_ср": "Z_sr",
+        "З_1": "Z_1",
+        "К_смрТ": "K_smrT"
+      },
+      "confidence": "medium",
+      "warnings": ["formula_native_wmf_pattern_recovered"]
+    },
+    {
+      "linear_text": "З_(пнр) = sum_(i) Т_(i) × З_(i)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{З}_{\\text{пнр}} = \\sum_{i} T_{i} \\times \\mathrm{З}_{i}",
+      "calc_expr": "Z_pnr = sum(T[i] * Z[i] for i in I)",
+      "variables": {
+        "З_пнр": "Z_pnr",
+        "Т_i": "T[i]",
+        "З_i": "Z[i]",
+        "I": "I"
+      },
+      "confidence": "medium",
+      "warnings": [
+        "formula_native_wmf_pattern_recovered",
+        "calculation_expression_requires_domain_variable_binding"
+      ]
+    },
+    {
+      "linear_text": "З_(i) = З_(1) × К_(пнрТ)^(i)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{З}_{i} = \\mathrm{З}_{1} \\times \\mathrm{К}_{\\text{пнрТ}}^{i}",
+      "calc_expr": "Z_i = Z_1 * K_pnrT[i]",
+      "variables": {
+        "З_i": "Z_i",
+        "З_1": "Z_1",
+        "К_пнрТ_i": "K_pnrT[i]"
+      },
+      "confidence": "medium",
+      "warnings": [
+        "formula_native_wmf_pattern_recovered",
+        "calculation_expression_requires_domain_variable_binding"
+      ]
+    },
+    {
+      "linear_text": "Н_(ВрП) = sum Н_(ВрЭ)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{Н}_{\\text{ВрП}} = \\sum \\mathrm{Н}_{\\text{ВрЭ}}",
+      "calc_expr": "N_VrP = sum(N_VrE)",
+      "variables": {
+        "Н_ВрП": "N_VrP",
+        "Н_ВрЭ": "N_VrE"
+      },
+      "confidence": "medium",
+      "warnings": [
+        "formula_native_wmf_pattern_recovered",
+        "calculation_expression_requires_domain_variable_binding"
+      ]
+    },
+    {
+      "linear_text": "Н_(ВрЭ) = ЗТ_(эСР) × 100 / (Ч_(факт) × [100 - (Н_(пзр) + Н_(о) + Н_(тп))] × 60)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{Н}_{\\text{ВрЭ}} = \\frac{\\mathrm{ЗТ}_{\\text{эСР}} \\times 100}{\\mathrm{Ч}_{\\text{факт}} \\times \\left(100 - (\\mathrm{Н}_{\\text{пзр}} + \\mathrm{Н}_{\\text{о}} + \\mathrm{Н}_{\\text{тп}})\\right) \\times 60}",
+      "calc_expr": "N_VrE = ZT_eSR * 100 / (Ch_fact * (100 - (N_pzr + N_o + N_tp)) * 60)",
+      "variables": {
+        "Н_ВрЭ": "N_VrE",
+        "ЗТ_эСР": "ZT_eSR",
+        "Ч_факт": "Ch_fact",
+        "Н_пзр": "N_pzr",
+        "Н_о": "N_o",
+        "Н_тп": "N_tp"
+      },
+      "confidence": "medium",
+      "warnings": ["formula_native_wmf_pattern_recovered"]
+    },
+    {
+      "linear_text": "Н_(ВрИ) = ЗТ_(Иср) × 100 / (Ч_(общ) × [100 - (Н_(пзр) + Н_(о))] × 60)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{Н}_{\\text{ВрИ}} = \\frac{\\mathrm{ЗТ}_{\\text{Иср}} \\times 100}{\\mathrm{Ч}_{\\text{общ}} \\times \\left(100 - (\\mathrm{Н}_{\\text{пзр}} + \\mathrm{Н}_{\\text{о}})\\right) \\times 60}",
+      "calc_expr": "N_VrI = ZT_Isr * 100 / (Ch_obsh * (100 - (N_pzr + N_o)) * 60)",
+      "variables": {
+        "Н_ВрИ": "N_VrI",
+        "ЗТ_Иср": "ZT_Isr",
+        "Ч_общ": "Ch_obsh",
+        "Н_пзр": "N_pzr",
+        "Н_о": "N_o"
+      },
+      "confidence": "medium",
+      "warnings": ["formula_native_wmf_pattern_recovered"]
+    },
+    {
+      "linear_text": "Н_(ВрЭл) = ЗТ_(эСРл) × 100 / (Ч_(общ) × [100 - (Н_(пзр) + Н_(о))] × 60)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{Н}_{\\text{ВрЭл}} = \\frac{\\mathrm{ЗТ}_{\\text{эСРл}} \\times 100}{\\mathrm{Ч}_{\\text{общ}} \\times \\left(100 - (\\mathrm{Н}_{\\text{пзр}} + \\mathrm{Н}_{\\text{о}})\\right) \\times 60}",
+      "calc_expr": "N_VrEl = ZT_eSRl * 100 / (Ch_obsh * (100 - (N_pzr + N_o)) * 60)",
+      "variables": {
+        "Н_ВрЭл": "N_VrEl",
+        "ЗТ_эСРл": "ZT_eSRl",
+        "Ч_общ": "Ch_obsh",
+        "Н_пзр": "N_pzr",
+        "Н_о": "N_o"
+      },
+      "confidence": "medium",
+      "warnings": ["formula_native_wmf_pattern_recovered"]
+    },
+    {
+      "linear_text": "ЗТ_(эСР) = sum_(i=1)^n ЗТ_(э) / n",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{ЗТ}_{\\text{эСР}} = \\frac{\\sum_{i=1}^{n} \\mathrm{ЗТ}_{\\text{э}}}{n}",
+      "calc_expr": "ZT_eSR = sum(ZT_e[i] for i in range(1, n + 1)) / n",
+      "variables": {
+        "ЗТ_эСР": "ZT_eSR",
+        "ЗТ_э": "ZT_e[i]",
+        "n": "n"
+      },
+      "confidence": "medium",
+      "warnings": [
+        "formula_native_wmf_pattern_recovered",
+        "calculation_expression_requires_domain_variable_binding"
+      ]
+    },
+    {
+      "linear_text": "ЗТ_(э) = ЗТ / V",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{ЗТ}_{\\text{э}} = \\frac{\\mathrm{ЗТ}}{V}",
+      "calc_expr": "ZT_e = ZT / V",
+      "variables": {
+        "ЗТ_э": "ZT_e",
+        "ЗТ": "ZT",
+        "V": "V"
+      },
+      "confidence": "medium",
+      "warnings": ["formula_native_wmf_pattern_recovered"]
+    },
+    {
+      "linear_text": "К_(уст) = t_(max) / t_(min) <= 1,5",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{К}_{\\text{уст}} = \\frac{t_{\\max}}{t_{\\min}} \\le 1{,}5",
+      "calc_expr": "K_ust = t_max / t_min",
+      "variables": {
+        "К_уст": "K_ust",
+        "t_max": "t_max",
+        "t_min": "t_min"
+      },
+      "confidence": "medium",
+      "warnings": [
+        "formula_native_wmf_pattern_recovered",
+        "formula_constraint_not_encoded_in_calc_expr"
+      ]
+    },
+    {
+      "linear_text": "С_(эм) = sum_(i) Э_(i) × Ц_(эмi)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{С}_{\\text{эм}} = \\sum_{i} \\mathrm{Э}_{i} \\times \\mathrm{Ц}_{\\text{эм}i}",
+      "calc_expr": "S_em = sum(E[i] * C_em[i] for i in I)",
+      "variables": {
+        "С_эм": "S_em",
+        "Э_i": "E[i]",
+        "Ц_эмi": "C_em[i]",
+        "I": "I"
+      },
+      "confidence": "medium",
+      "warnings": [
+        "formula_native_wmf_pattern_recovered",
+        "calculation_expression_requires_domain_variable_binding"
+      ]
+    },
+    {
+      "linear_text": "ОЦ_(а) = (Х_(св) × n + Х_(сп) × m) / (n + m)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{ОЦ}_{\\text{а}} = \\frac{\\mathrm{Х}_{\\text{св}} \\times n + \\mathrm{Х}_{\\text{сп}} \\times m}{n + m}",
+      "calc_expr": "OTs_a = ( X_sv * n + X_sp * m ) / ( n + m )",
+      "variables": {
+        "ОЦ_а": "OTs_a",
+        "Х_св": "X_sv",
+        "Х_сп": "X_sp",
+        "n": "n",
+        "m": "m"
+      },
+      "confidence": "medium",
+      "warnings": ["formula_native_wmf_pattern_recovered"]
+    },
+    {
+      "linear_text": "ОЦ_(а) = (Х_(св) + Х_(сп)) / 2",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{ОЦ}_{\\text{а}} = \\frac{\\mathrm{Х}_{\\text{св}} + \\mathrm{Х}_{\\text{сп}}}{2}",
+      "calc_expr": "OTs_a = ( X_sv + X_sp ) / 2",
+      "variables": {
+        "ОЦ_а": "OTs_a",
+        "Х_св": "X_sv",
+        "Х_сп": "X_sp"
+      },
+      "confidence": "medium",
+      "warnings": ["formula_native_wmf_pattern_recovered"]
+    },
+    {
+      "linear_text": "Х_(св) = (x_(1) × v_(1) + x_(2) × v_(2) + ... + x_(n) × v_(n)) / (v_(1) + v_(2) + ... + v_(n))",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{Х}_{\\text{св}} = \\frac{x_{1} \\times v_{1} + x_{2} \\times v_{2} + \\ldots + x_{n} \\times v_{n}}{v_{1} + v_{2} + \\ldots + v_{n}}",
+      "calc_expr": "X_sv = sum(x[i] * v[i] for i in range(1, n + 1)) / sum(v[i] for i in range(1, n + 1))",
+      "variables": {
+        "Х_св": "X_sv",
+        "x_i": "x[i]",
+        "v_i": "v[i]",
+        "n": "n"
+      },
+      "confidence": "medium",
+      "warnings": [
+        "formula_native_wmf_pattern_recovered",
+        "calculation_expression_requires_domain_variable_binding"
+      ]
+    },
+    {
+      "linear_text": "Х_(сп) = (x_(1) + x_(2) + ... + x_(m)) / m",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{Х}_{\\text{сп}} = \\frac{x_{1} + x_{2} + \\ldots + x_{m}}{m}",
+      "calc_expr": "X_sp = sum(x[i] for i in range(1, m + 1)) / m",
+      "variables": {
+        "Х_сп": "X_sp",
+        "x_i": "x[i]",
+        "m": "m"
+      },
+      "confidence": "medium",
+      "warnings": [
+        "formula_native_wmf_pattern_recovered",
+        "calculation_expression_requires_domain_variable_binding"
+      ]
+    },
+    {
+      "linear_text": "s <= 0,25 × Х_(ср)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "s \\le 0{,}25 \\times \\mathrm{Х}_{\\text{ср}}",
+      "calc_expr": "s <= 0.25 * X_sr",
+      "variables": {
+        "s": "s",
+        "Х_ср": "X_sr"
+      },
+      "confidence": "medium",
+      "warnings": ["formula_native_wmf_pattern_recovered"]
+    },
+    {
+      "linear_text": "СЦ_(зттек) = КТ_(n) × С_(1ср) / t_(ср) × К_(инф)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{СЦ}_{\\text{зттек}} = \\mathrm{КТ}_{n} \\times \\frac{\\mathrm{С}_{\\text{1ср}}}{t_{\\text{ср}}} \\times \\mathrm{К}_{\\text{инф}}",
+      "calc_expr": "SC_zt_tek = KT_n * S_1sr / t_sr * K_inf",
+      "variables": {
+        "СЦ_зттек": "SC_zt_tek",
+        "КТ_n": "KT_n",
+        "С_1ср": "S_1sr",
+        "t_ср": "t_sr",
+        "К_инф": "K_inf"
+      },
+      "confidence": "medium",
+      "warnings": ["formula_native_wmf_pattern_recovered"]
+    },
+    {
+      "linear_text": "ОТ_(1) = sum_(i=1)^n СЦ_(зтiтек) × Т_(i)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{ОТ}_{1} = \\sum_{i=1}^{n} \\mathrm{СЦ}_{\\text{зт}i\\text{тек}} \\times \\mathrm{Т}_{i}",
+      "calc_expr": "OT_1 = sum(SC_zt_i_tek[i] * T[i] for i in range(1, n + 1))",
+      "variables": {
+        "ОТ_1": "OT_1",
+        "СЦ_зтiтек": "SC_zt_i_tek[i]",
+        "Т_i": "T[i]",
+        "n": "n"
+      },
+      "confidence": "medium",
+      "warnings": [
+        "formula_native_wmf_pattern_recovered",
+        "calculation_expression_requires_domain_variable_binding"
+      ]
+    },
+    {
+      "linear_text": "ОТ_(2) = СЦ_(зт1тек) × Т × КТ",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{ОТ}_{2} = \\mathrm{СЦ}_{\\text{зт1тек}} \\times \\mathrm{Т} \\times \\mathrm{КТ}",
+      "calc_expr": "OT_2 = SC_zt1_tek * T * KT",
+      "variables": {
+        "ОТ_2": "OT_2",
+        "СЦ_зт1тек": "SC_zt1_tek",
+        "Т": "T",
+        "КТ": "KT"
+      },
+      "confidence": "medium",
+      "warnings": ["formula_native_wmf_pattern_recovered"]
+    },
+    {
+      "linear_text": "С_(1ср) = С_(1) × (1 + sum_(i=1)^n К_(i) + К_(р)) + ПВ",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{С}_{\\text{1ср}} = \\mathrm{С}_{1} \\times \\left(1 + \\sum_{i=1}^{n} \\mathrm{К}_{i} + \\mathrm{К}_{\\text{р}}\\right) + \\mathrm{ПВ}",
+      "calc_expr": "S_1sr = S_1 * ( 1 + sum(K[i] for i in range(1, n + 1)) + K_r ) + PV",
+      "variables": {
+        "С_1ср": "S_1sr",
+        "С_1": "S_1",
+        "К_i": "K[i]",
+        "К_р": "K_r",
+        "ПВ": "PV",
+        "n": "n"
+      },
+      "confidence": "medium",
+      "warnings": [
+        "formula_native_wmf_pattern_recovered",
+        "calculation_expression_requires_domain_variable_binding"
+      ]
+    },
+    {
+      "linear_text": "С_(мат) = sum_(i) М_(i) × Ц_(i)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{С}_{\\text{мат}} = \\sum_{i} M_{i} \\times \\mathrm{Ц}_{i}",
+      "calc_expr": "S_mat = sum(M[i] * C[i] for i in I)",
+      "variables": {
+        "С_мат": "S_mat",
+        "М_i": "M[i]",
+        "Ц_i": "C[i]",
+        "I": "I"
+      },
+      "confidence": "medium",
+      "warnings": [
+        "formula_native_wmf_pattern_recovered",
+        "calculation_expression_requires_domain_variable_binding"
+      ]
+    },
+    {
+      "linear_text": "P^(t) = sum_(i=1)^I P_(i)^(t) × V_(i)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "P^{t} = \\sum_{i=1}^{I} P_{i}^{t} \\times V_{i}",
+      "calc_expr": "P_t = sum(P_i_t[i] * V[i] for i in range(1, I + 1))",
+      "variables": {
+        "P_t": "P_t",
+        "P_i_t": "P_i_t[i]",
+        "V_i": "V[i]",
+        "I": "I"
+      },
+      "confidence": "medium",
+      "warnings": ["calculation_expression_requires_domain_variable_binding"]
+    },
+    {
+      "linear_text": "С_(маш.р) = Ц_(а) / Т_(с)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{С}_{\\text{маш.р}} = \\frac{\\mathrm{Ц}_{\\text{а}}}{\\mathrm{Т}_{\\text{с}}}",
+      "calc_expr": "S_mash_r = C_a / T_s",
+      "variables": {
+        "С_маш.р": "S_mash_r",
+        "Ц_а": "C_a",
+        "Т_с": "T_s"
+      },
+      "confidence": "medium",
+      "warnings": ["calculation_expression_requires_domain_variable_binding"]
+    }
+  ],
+  "mathtype_signature_rules": [
+    {
+      "condition": {
+        "signature_exact": "k1|К|=÷"
+      },
+      "linear_text": "k = 1 ÷ K",
+      "comment": "Simple range formula"
+    },
+    {
+      "condition": {
+        "signature_complex": {
+          "contains_any": [
+            {
+              "all_of": ["М = P  См", "j=1", "J"]
+            }
+          ]
+        }
+      },
+      "linear_text": "М_(тек) = sum_(j=1)^J P^(j) × См_(тек)^(j)",
+      "comment": "Summation with j index"
+    },
+    {
+      "condition": {
+        "signature_exact": "с|Ц|С|Т|="
+      },
+      "linear_text": "С_(маш.р) = Ц_(а) / Т_(с)",
+      "comment": "Machine work cost formula"
+    },
+    {
+      "condition": {
+        "signature_complex": {
+          "contains_any": [
+            {
+              "all_of": ["PPV", "ii", "T", "t"]
+            }
+          ]
+        }
+      },
+      "linear_text": "P^(t) = sum_(i=1)^I P_(i)^(t) × V_(i)",
+      "comment": "Price over time"
+    },
+    {
+      "condition": {
+        "signature_complex": {
+          "contains_any": [
+            {
+              "all_of": ["ОТЗТСЦV", "IN", "nini"]
+            }
+          ]
+        }
+      },
+      "linear_text": "ОТ_(тек) = sum_(i=1)^I sum_(n=1)^N ЗТ_(ni) × СЦ_(n) × V_(i)",
+      "comment": "Double summation with i and n indices"
+    },
+    {
+      "condition": {
+        "signature_complex": {
+          "contains_any": [
+            {
+              "all_of": ["ОТЗТСЦV", "ЗТ", "iii"]
+            }
+          ]
+        }
+      },
+      "linear_text": "ОТ_(тек) = sum_(i=1)^I ЗТ_(i) × СЦ_(ЗТтек)^(i) × V_(i)",
+      "comment": "Single summation with i index"
+    },
+    {
+      "condition": {
+        "signature_complex": {
+          "contains_any": [
+            {
+              "all_of": ["ОТмЗТСЦV", "IK", "kiki"]
+            }
+          ]
+        }
+      },
+      "linear_text": "ОТм_(тек) = sum_(i=1)^I sum_(k=1)^K ЗТ_(ki) × СЦ_(k) × V_(i)",
+      "comment": "Double summation with i and k indices"
+    },
+    {
+      "condition": {
+        "signature_contains_all": ["ОЦ(1),", "min(,2)", "nmn", "*+*", "=", "+"]
+      },
+      "linear_text": "ОЦ_(а) = (Х_(св) × n + Х_(сп) × m) / (n + m)",
+      "comment": "Weighted average formula (1)"
+    },
+    {
+      "condition": {
+        "signature_contains_all": ["ОЦ(3),", "|2|", "+", "="]
+      },
+      "linear_text": "ОЦ_(а) = (Х_(св) + Х_(сп)) / 2",
+      "comment": "Simple average formula (3)"
+    },
+    {
+      "condition": {
+        "signature_contains_all": ["Х(4),", "xvxvxv", "vvv", "12", "*+*++*"]
+      },
+      "linear_text": "Х_(св) = (x_(1) × v_(1) + x_(2) × v_(2) + ... + x_(n) × v_(n)) / (v_(1) + v_(2) + ... + v_(n))",
+      "comment": "Weighted mean formula (4)"
+    },
+    {
+      "condition": {
+        "signature_contains_all": ["Х(5),", "xxx", "|m|", "++", "="]
+      },
+      "linear_text": "Х_(сп) = (x_(1) + x_(2) + ... + x_(m)) / m",
+      "comment": "Arithmetic mean formula (5)"
+    },
+    {
+      "condition": {
+        "signature_contains_all": ["Х(7),", "0,25", "ср", "s", "<=*"]
+      },
+      "linear_text": "s <= 0,25 × Х_(ср)",
+      "comment": "Tolerance constraint (7)"
+    },
+    {
+      "condition": {
+        "signature_contains_all": ["СЦ = К    К (1),", "зт", "текTnинф", "ср", "C", "t"]
+      },
+      "linear_text": "СЦ_(зттек) = КТ_(n) × С_(1ср) / t_(ср) × К_(инф)",
+      "comment": "Unit cost formula with inflation (1)"
+    },
+    {
+      "condition": {
+        "signature_contains_all": ["ОТ = СЦ  T (2),", "n", "зт", "1", "текii", "i=1"]
+      },
+      "linear_text": "ОТ_(1) = sum_(i=1)^n СЦ_(зтiтек) × Т_(i)",
+      "comment": "Total cost summation (2)"
+    },
+    {
+      "condition": {
+        "signature_contains_all": ["ОТ = СЦ  Т  К (3),", "зт", "21 ", "текТ"]
+      },
+      "linear_text": "ОТ_(2) = СЦ_(зт1тек) × Т × КТ",
+      "comment": "Total cost with correction factor (3)"
+    },
+    {
+      "condition": {
+        "signature_contains_all": ["С = С  1 + K K + ПВ (4),", "n", "1 ", "ср1ip", "i=1"]
+      },
+      "linear_text": "С_(1ср) = С_(1) × (1 + sum_(i=1)^n К_(i) + К_(р)) + ПВ",
+      "comment": "Average cost with adjustments (4)"
+    },
+    {
+      "condition": {
+        "signature_complex": {
+          "contains_any": [
+            {
+              "all_of": ["ЭММTСЦэм", "M", "mm"]
+            }
+          ]
+        }
+      },
+      "linear_text": "ЭММ_(тек) = sum_(m=1)^M T_(m) × СЦэм_(тек)^(m)",
+      "comment": "Material and equipment costs"
+    },
+    {
+      "condition": {
+        "signature_complex": {
+          "contains_any": [
+            {
+              "all_of": ["З = З  , (2)", "ср1", "смр", "Т|К"]
+            }
+          ]
+        }
+      },
+      "linear_text": "З_(ср) = З_(1) × К_(смрТ)",
+      "comment": "Average cost with factor (2)"
+    },
+    {
+      "condition": {
+        "signature_complex": {
+          "contains_any": [
+            {
+              "all_of": [" =   , (3)", "пнр", "ii", "ЗТЗ"]
+            }
+          ]
+        }
+      },
+      "linear_text": "З_(пнр) = sum_(i) Т_(i) × З_(i)",
+      "comment": "Weighted cost sum (3)"
+    },
+    {
+      "condition": {
+        "signature_complex": {
+          "contains_any": [
+            {
+              "all_of": ["З = З  К, (4)", "пнр", "1", "Т"],
+              "ends_with": "|i"
+            }
+          ]
+        }
+      },
+      "linear_text": "З_(i) = З_(1) × К_(пнрТ)^(i)",
+      "comment": "Cost with power factor (4)"
+    },
+    {
+      "condition": {
+        "signature_exact": "ВрПВрЭ|НН|="
+      },
+      "linear_text": "Н_(ВрП) = sum Н_(ВрЭ)",
+      "comment": "Sum of time norms"
+    },
+    {
+      "condition": {
+        "signature_exact": "факт|ВрЭ|пзротп|ЗТ|Ч100|Н|100|ННН60|=|-++"
+      },
+      "linear_text": "Н_(ВрЭ) = ЗТ_(эСР) × 100 / (Ч_(факт) × [100 - (Н_(пзр) + Н_(о) + Н_(тп))] × 60)",
+      "comment": "Time norm with actual hours and multiple adjustments"
+    },
+    {
+      "condition": {
+        "signature_exact": "ЗТ|ЗТ|n|="
+      },
+      "linear_text": "ЗТ_(эСР) = sum_(i=1)^n ЗТ_(э) / n",
+      "comment": "Average time cost"
+    },
+    {
+      "condition": {
+        "signature_exact": "ЗТ|ЗТ|V|="
+      },
+      "linear_text": "ЗТ_(э) = ЗТ / V",
+      "comment": "Unit time cost"
+    },
+    {
+      "condition": {
+        "signature_exact": "min|t|К1,5|t|="
+      },
+      "linear_text": "К_(уст) = t_(max) / t_(min) <= 1,5",
+      "comment": "Setup ratio constraint"
+    },
+    {
+      "condition": {
+        "signature_complex": {
+          "contains_any": [
+            {
+              "all_of": ["С = Э  Ц, (5)", "эмэм", "ii"]
+            }
+          ]
+        }
+      },
+      "linear_text": "С_(эм) = sum_(i) Э_(i) × Ц_(эмi)",
+      "comment": "Equipment cost sum (5)"
+    },
+    {
+      "condition": {
+        "signature_complex": {
+          "contains_any": [
+            {
+              "all_of": ["С = М  Ц, (6)", "мат", "ii"]
+            }
+          ]
+        }
+      },
+      "linear_text": "С_(мат) = sum_(i) М_(i) × Ц_(i)",
+      "comment": "Material cost sum (6)"
+    }
+  ]
+}

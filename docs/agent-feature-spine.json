@@ -477,6 +477,38 @@
       "residual_risk": "Automated validation uses mocked provider responses and does not spend real OpenRouter credits; live quality still depends on provider availability, model behavior, local Tesseract availability and successful rasterization of WMF/EMF assets on Windows."
     },
     {
+      "feature_id": "formula-known-patterns-data",
+      "area": "product",
+      "title": "Data-driven known MathType formula patterns",
+      "status": "validated",
+      "behavior": "Known MathType/WMF formula recovery rules, noisy linear-text recovery and full formula representations live in versioned JSON data with schema validation and package-data sync instead of being extended through a hard-coded Python condition table.",
+      "owner_docs": [
+        "samples/formulas/known-patterns.v1.json",
+        "schemas/formula-known-patterns.v1.schema.json",
+        "src/doc_converter/formulas/known.py",
+        "scripts/validate_known_formulas.py",
+        "tests/test_known_formula_patterns.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_known_formulas.py"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_known_formula_patterns tests.test_docx_converter"
+        }
+      ],
+      "evidence": [
+        "samples/formulas/known-patterns.v1.json",
+        "src/doc_converter/formulas/known-patterns.v1.json",
+        "src/doc_converter/formulas/known.py",
+        "src/doc_converter/converters/docx.py",
+        "tests/test_known_formula_patterns.py"
+      ],
+      "residual_risk": "The JSON contract preserves existing signature predicates, including suffix checks, but future generalized WMF parser work still needs separate false-positive controls beyond known-pattern lookup."
+    },
+    {
       "feature_id": "semantic-document-metadata",
       "area": "product",
       "title": "Semantic document metadata block",

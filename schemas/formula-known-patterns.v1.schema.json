@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/SmetaGPT/converter/schemas/formula-known-patterns.v1.schema.json",
+  "title": "Known Formula Patterns v1",
+  "description": "Schema for versioned known formula pattern data used by DOCX formula recovery. Contains noisy form recovery mappings, full formula representations, and MathType WMF signature rules.",
+  "type": "object",
+  "required": ["schema_version", "last_updated", "noisy_form_recovery", "formula_representations", "mathtype_signature_rules"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "formula-known-patterns.v1",
+      "description": "Schema version identifier for this known patterns data file."
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date",
+      "description": "ISO 8601 date when this data was last updated (YYYY-MM-DD)."
+    },
+    "noisy_form_recovery": {
+      "type": "object",
+      "description": "Mapping from noisy linearized formula text to clean normalized forms. Used by _recover_known_formula_linear_text.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "formula_representations": {
+      "type": "array",
+      "description": "Full representations for known formulas with LaTeX, calc expressions, and variable mappings. Used by _known_formula_representation.",
+      "items": {
+        "type": "object",
+        "required": ["linear_text", "source_format", "display_latex", "calc_expr", "variables", "confidence", "warnings"],
+        "additionalProperties": false,
+        "properties": {
+          "linear_text": {
+            "type": "string",
+            "description": "Normalized linear text form of the formula (used as lookup key)."
+          },
+          "source_format": {
+            "type": "string",
+            "description": "Original format where this formula was recovered from.",
+            "enum": ["mathtype_wmf_text_records"]
+          },
+          "display_latex": {
+            "type": "string",
+            "description": "LaTeX representation for rendering (suitable for KaTeX/MathJax)."
+          },
+          "calc_expr": {
+            "type": "string",
+            "description": "Python-like calculation expression (may require domain variable binding)."
+          },
+          "variables": {
+            "type": "object",
+            "description": "Mapping from formula symbols to Python variable names.",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "string",
+            "description": "Confidence level for this representation.",
+            "enum": ["high", "medium", "low"]
+          },
+          "warnings": {
+            "type": "array",
+            "description": "List of warning flags for this formula.",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "mathtype_signature_rules": {
+      "type": "array",
+      "description": "Signature-based pattern matching rules for MathType WMF formulas. Used by _assemble_known_mathtype_formula.",
+      "items": {
+        "type": "object",
+        "required": ["condition", "linear_text"],
+        "additionalProperties": false,
+        "properties": {
+          "condition": {
+            "type": "object",
+            "description": "Matching condition for chunk signatures.",
+            "oneOf": [
+              {
+                "required": ["signature_exact"],
+                "additionalProperties": false,
+                "properties": {
+                  "signature_exact": {
+                    "type": "string",
+                    "description": "Exact signature string to match."
+                  }
+                }
+              },
+              {
+                "required": ["signature_contains_all"],
+                "additionalProperties": false,
+                "properties": {
+                  "signature_contains_all": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "description": "All markers must be present in signature."
+                  }
+                }
+              },
+              {
+                "required": ["signature_complex"],
+                "additionalProperties": false,
+                "properties": {
+                  "signature_complex": {
+                    "type": "object",
+                    "description": "Complex condition with multiple checks.",
+                    "required": ["contains_any"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "contains_any": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": ["all_of"],
+                          "additionalProperties": false,
+                          "properties": {
+                            "all_of": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "minItems": 1
+                            },
+                            "ends_with": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "minItems": 1
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "linear_text": {
+            "type": "string",
+            "description": "Linear text formula to return when this signature matches."
+          },
+          "comment": {
+            "type": "string",
+            "description": "Optional human-readable comment about this rule."
+          }
+        }
+      }
+    }
+  }
+}

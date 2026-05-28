@@ -96,6 +96,8 @@ graph LR
 
 ### Sprint S1.2 — Known formula patterns → data
 
+**Status:** completed 2026-05-28. Evidence: `\.venv\Scripts\python.exe scripts\validate_known_formulas.py`, `\.venv\Scripts\python.exe -m unittest tests.test_known_formula_patterns tests.test_docx_converter`, full `unittest discover`, `ruff check`, `pyright`.
+
 - **Goal:** убрать hard-coded MathType таблицу из кода.
 - **Scope:**
   - Завести `schemas/formula-known-patterns.v1.schema.json`.
@@ -105,7 +107,7 @@ graph LR
   - Тест `tests/test_known_formula_patterns.py` — параметризован по записям JSON.
 - **Exit:** добавление новой формулы = правка JSON + автотест зелёный; в Python не правится ни одна строка.
 - **depends_on:** S1.1.
-- **feature_ids:** `formula.known-patterns-data`.
+- **feature_ids:** `formula-known-patterns-data`.
 
 ### Sprint S1.3 — Agent run metadata + universal validator
 
