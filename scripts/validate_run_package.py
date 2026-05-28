@@ -2,7 +2,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
 
 from openpyxl import load_workbook
 
@@ -26,6 +32,9 @@ def main(argv: list[str] | None = None) -> int:
     documents_dir = run_dir / "documents"
     for document_path in sorted(documents_dir.glob("*/document.v1.json")):
         validate_json_file(document_path, "document.v1.schema.json")
+        formula_recognition_path = document_path.parent / "formula-recognition.jsonl"
+        if formula_recognition_path.exists():
+            _validate_jsonl(formula_recognition_path, "formula-recognition.v1.schema.json")
 
     chunks_path = run_dir / "chunks.v1.jsonl"
     if chunks_path.exists():

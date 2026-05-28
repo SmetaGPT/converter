@@ -1,6 +1,6 @@
 {
   "schema_version": "agent-feature-spine.v1",
-  "last_updated": "2026-05-24",
+  "last_updated": "2026-05-28",
   "features": [
     {
       "feature_id": "state-layer",
@@ -594,6 +594,36 @@
         "scripts/build_sample_chunks.py"
       ],
       "residual_risk": "DB mapping notes and downstream loaders still evolve separately from the converter runtime."
+    },
+    {
+      "feature_id": "contracts-stable-v1",
+      "area": "contracts",
+      "title": "Stable downstream contract catalog",
+      "status": "validated",
+      "behavior": "Downstream-facing artifacts have a stable v1 JSON Schema catalog, SHA-256 schema drift snapshots and focused tests for contract stability before consumers depend on them.",
+      "owner_docs": [
+        "docs/contracts.md",
+        "docs/downstream-handoff.md",
+        "schemas/__snapshot__/stable-contracts.v1.json",
+        "tests/test_contracts_stability.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_contracts_stability"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_harness_assets.py"
+        }
+      ],
+      "evidence": [
+        "docs/contracts.md",
+        "schemas/formula-recognition.v1.schema.json",
+        "schemas/__snapshot__/stable-contracts.v1.json",
+        "tests/test_contracts_stability.py"
+      ],
+      "residual_risk": "Stable v1 schema fingerprints protect contract drift, but downstream loaders still need their own compatibility tests against real consumer databases."
     },
     {
       "feature_id": "operator-gui-and-release-packaging",

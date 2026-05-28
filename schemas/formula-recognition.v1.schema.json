@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/SmetaGPT/converter/schemas/formula-recognition.v1.schema.json",
+  "title": "Formula Recognition V1 JSONL Record",
+  "type": "object",
+  "required": ["unit_id", "status"],
+  "properties": {
+    "unit_id": {
+      "type": ["string", "null"],
+      "pattern": "^u_[0-9]{6}$"
+    },
+    "asset_ref": {
+      "type": ["string", "null"]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "asset_missing",
+        "recognized_local",
+        "local_backend_failed",
+        "recognized_local_backend",
+        "unresolved_without_provider",
+        "recognized_provider",
+        "provider_failed"
+      ]
+    },
+    "candidate_kind": {
+      "type": "string",
+      "enum": ["formula_image", "formula_text"]
+    },
+    "source_format": {
+      "type": "string",
+      "minLength": 1
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low"]
+    },
+    "provider": {
+      "type": ["string", "null"]
+    },
+    "model": {
+      "type": ["string", "null"]
+    },
+    "local_backend": {
+      "type": ["string", "null"]
+    },
+    "error": {
+      "type": "string",
+      "minLength": 1
+    },
+    "message": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

@@ -84,13 +84,15 @@ graph LR
 
 ### Sprint S1.1 — Contracts catalog
 
+**Status:** completed 2026-05-28. Evidence: `\.venv\Scripts\python.exe -m unittest tests.test_contracts_stability`, `\.venv\Scripts\python.exe scripts\validate_run_package.py runs\formula-benchmark\runs\20260525T175329Z\cases\anchor-421-pr\output\runs\20260525T175329Z`, `\.venv\Scripts\python.exe scripts\validate_harness_assets.py`, full `unittest discover`, `ruff check`, `pyright`.
+
 - **Goal:** все артефакты, потребляемые downstream, описаны как stable JSON Schema `v1` с deprecation policy.
 - **Scope:**
   - Промоутить до stable: `processed-documents-catalog.v1`, `chunks.v1`, `chunk-source.v1`, `formula-recognition.v1`.
   - Создать `docs/contracts.md` с матрицей producer → consumer и deprecation rules (минимум 1 минор-релиз с warning).
   - Добавить тест `tests/test_contracts_stability.py`: сравнение текущих схем со «слепком» в `schemas/__snapshot__/` — изменение требует bump major.
 - **Exit:** `python -m unittest tests.test_contracts_stability` green; `docs/contracts.md` существует и линкуется из [docs/downstream-handoff.md](downstream-handoff.md).
-- **feature_ids:** `contracts.stable-v1`.
+- **feature_ids:** `contracts-stable-v1`.
 
 ### Sprint S1.2 — Known formula patterns → data
 

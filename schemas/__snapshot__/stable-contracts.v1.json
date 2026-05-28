@@ -1,0 +1,18 @@
+{
+  "schema_version": "stable-contracts-snapshot.v1",
+  "updated_at": "2026-05-28",
+  "contracts": {
+    "processed-documents-catalog.v1.schema.json": {
+      "sha256": "eda86d6acf33fafb2c0a80f94038feaaaad2f9c269106bd1502480297af0cdf0"
+    },
+    "chunks.v1.schema.json": {
+      "sha256": "96be8f39b8574841eb0a0ebc1fc828412e9675ef7006dad8e09cf39a4b452048"
+    },
+    "chunk-source.v1.schema.json": {
+      "sha256": "9e016b3136b4c6add20bb2ed129aa5efbf137d467b77edece8bd7f34fa83d83e"
+    },
+    "formula-recognition.v1.schema.json": {
+      "sha256": "9cc7e8d8a5b1305a19df12b5630e200716411f85fcc05b20fc8bcf82173fc3d0"
+    }
+  }
+}

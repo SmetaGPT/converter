@@ -139,6 +139,7 @@
 115. Добавлена `docs/production-roadmap.md`: v1.0 roadmap разложен на waves/sprints с dependencies, feature_ids, artifacts и machine-checkable exit criteria для автономных агентов.
 116. Добавлен reusable prompt `.github/prompts/execute-production-roadmap-autonomous.prompt.md`: агент получает end-to-end инструкцию для исполнения production roadmap, запуска проверок, state/telemetry updates, commit и push без остановки на планировании.
 117. Закрыт production roadmap Sprint S0.1: DOCX inline-glyph тесты очищают `INLINE_GLYPH_CACHE` перед каждым кейсом, flaky additional-symbol assertions стабилизированы через допустимые canonical variants, ruff/pyright конфиг зафиксирован в `pyproject.toml`, `ruff check`, `pyright` и 5 подряд `unittest discover` проходят зелёно.
+118. Закрыт production roadmap Sprint S1.1: stable downstream contracts catalog добавлен в `docs/contracts.md`, `formula-recognition.v1` получил JSON Schema, stable schema fingerprints закреплены в `schemas/__snapshot__/stable-contracts.v1.json`, `tests/test_contracts_stability.py` защищает drift, а `validate_run_package.py` теперь валидирует document-level `formula-recognition.jsonl` при наличии.
 
 ### Готовые артефакты
 

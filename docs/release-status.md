@@ -66,6 +66,7 @@
 - root-level processed documents catalog: каждый run сохраняет `processed-documents-catalog.json` и `processed-documents-catalog.xlsx` с исходным именем файла, папкой документа, итоговым статусом/issue и hyperlinks на основные обработанные артефакты.
 - frozen schema packaging: Windows EXE теперь получает локальный каталог `schemas` в bundle, а runtime schema resolver ищет схемы и в `dist\...\_internal\schemas`, поэтому operator GUI больше не падает на старте обработки из-за missing `run.v1.schema.json`.
 - production roadmap S0.1 baseline stabilization: DOCX inline-glyph unittest flake закрыт на уровне тестового cache discipline и canonical variant assertions; `ruff check src tests scripts`, `pyright` и 5 подряд `unittest discover` проходят зелёно.
+- production roadmap S1.1 contracts catalog: downstream-facing `processed-documents-catalog.v1`, `chunks.v1`, `chunk-source.v1` и `formula-recognition.v1` зафиксированы в `docs/contracts.md`, drift защищён snapshot-тестом, а run-package validator проверяет `formula-recognition.jsonl` sidecars.
 
 Следующий backlog:
 

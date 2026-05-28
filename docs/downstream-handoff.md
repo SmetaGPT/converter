@@ -9,6 +9,8 @@
 
 Конвертер не является базой данных и не считает embeddings. Его задача — создать переносимый слой `document.v1.json` и связанные assets.
 
+Stable JSON Schema contracts for downstream artifacts are cataloged in [contracts.md](contracts.md).
+
 ## 2. Что является source layer
 
 Source layer для downstream-проекта:
