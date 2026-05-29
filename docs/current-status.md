@@ -144,6 +144,7 @@
 120. Закрыт production roadmap Sprint S1.3: `run.v1` теперь требует `agent_run_metadata` для новых run packages, CLI/runner сериализуют `agent_id/agent_version/task_id/parent_run_id`, `validate_run_package.py` сохраняет legacy compatibility через fallback metadata, а `scripts/validate_document_package.py` валидирует `document.v1.json` и `formula-recognition.jsonl` sidecars по всему run directory.
 121. Закрыт production roadmap Sprint S2.1: монолит `src/doc_converter/converters/docx.py` заменён на package `src/doc_converter/converters/docx/` с модулями `pipeline.py`, `inline_glyph.py`, `formulas/text.py` и `formulas/wmf.py`, а `__init__.py` сохраняет публичный import surface для runner, formula-recognition и тестов. Focused DOCX, CLI/formula-recognition и full-suite gates прошли зелёно; remaining repo-wide file-size debt теперь явно локализован в `src/doc_converter/runner.py` и `src/doc_converter/formula_benchmark.py` как следующий architecture backlog.
 122. Закрыт production roadmap Sprint S2.2: `src/doc_converter/runner.py` превращён в thin compatibility wrapper, а orchestration/path/resume/catalog/postprocess logic вынесены в `src/doc_converter/run/`. Focused runner/CLI slices, полный unittest с `PYTHONPATH=src`, `ruff` и `pyright` прошли зелёно; remaining repo-wide oversize debt теперь сосредоточен в `src/doc_converter/formula_benchmark.py`.
+123. Закрыт production roadmap Sprint S2.3: shared table normalizer вынесен в `src/doc_converter/tables/`, а `pdf_text` и `pdf_scan` теперь импортируют один и тот же parser для dominant-width inference, continuation merge и `table_structure_warning`. Focused PDF/table tests, свежий `table-anchors` pilot `runs\s23-table-anchors\runs\20260529T162149Z`, subset validator для `sample_009/018`, полный suite, `ruff` и `pyright` прошли зелёно.
 
 ### Готовые артефакты
 
@@ -234,29 +235,29 @@
 
 ## 3. Что делается сейчас
 
-Текущий фокус: после закрытия S2.2 следующий official tranche production roadmap — S2.3, то есть вынесение shared table normalization в `src/doc_converter/tables/` для `pdf_text` и `pdf_scan` без потери текущего measured table baseline.
+Текущий фокус: после закрытия S2.3 следующий official tranche production roadmap — S2.4, то есть отделение route registry/protocol слоя от `runner` и текущих format-specific imports без потери существующего CLI/runtime contract.
 
-Новый architecture-learning по runner split: совместимость CLI/GUI и соседних импортов сохраняется проще всего через тонкий `src/doc_converter/runner.py`, который только реэкспортирует public API из `src/doc_converter/run/`, а реальная orchestration logic живёт в smaller modules по ответственности.
+Новый architecture-learning по table split: cheapest shared-package extraction для PDF tables оказался уже partly prepared, потому что `pdf_scan` и так импортировал parser helpers из `pdf_text`; перенос в `src/doc_converter/tables/` сохранил поведение routes и убрал table normalization из converter-local ownership.
 
-Новый test-learning по architecture split: после превращения `runner.py` в wrapper monkeypatch в regression tests должен указывать на concrete implementation symbols вроде `doc_converter.run.orchestration.convert_docx` или `doc_converter.run.postprocess.run_formula_recognition_postprocess`, а не на wrapper-level alias, если production code импортирует helper напрямую.
+Новый test-learning по measured table loop: для S2.3 достаточно не только unit quartet на continuation/ragged rows, но и fresh `table-anchors` run с `validate_sample_expectations.py` по `sample_009/018`, потому что exit criterion завязан не на synthetic helper behaviour, а на сохранение measured contour.
 
-Новый validation-learning по file-size debt: после закрытия runner monolith repo-wide oversize debt больше не сидит в orchestration layer и теперь локализован только в `src/doc_converter/formula_benchmark.py`.
+Новый validation-learning по file-size debt: после закрытия runner monolith и вынесения shared table parser repo-wide oversize debt по-прежнему локализован только в `src/doc_converter/formula_benchmark.py`; table architecture tranche не вернул monolith pressure в converters.
 
 В работе:
 
-- начать production roadmap S2.3 и вынести shared table normalization в `src/doc_converter/tables/` для `pdf_text` и `pdf_scan`;
+- начать production roadmap S2.4 и отделить `ConverterProtocol`/route registry от конкретных format imports в orchestration path;
 - вывести `src/doc_converter/formula_benchmark.py` из oversize-состояния отдельным architecture slice без слома benchmark report и CLI wrappers;
-- держать state docs, feature spine, telemetry и generated eval companions синхронными после каждого architecture tranche;
-- после снятия monolith debt вернуться к measured table/formula hardening backlog уже без structural drag от крупных файлов.
+- удержать measured table backlog на `sample_009/018/020` и negative/control contour после архитектурного переноса table parser;
+- держать state docs, feature spine, telemetry и generated eval companions синхронными после каждого architecture tranche.
 
 ## 4. Что идёт дальше
 
-Следующая последовательность после закрытия S2.2:
+Следующая последовательность после закрытия S2.3:
 
-1. Закрыть production roadmap S2.3: вынести shared table normalization в `src/doc_converter/tables/` и убрать дубли между `pdf_text` и `pdf_scan`.
+1. Закрыть production roadmap S2.4: ввести `ConverterProtocol` + route registry, чтобы orchestration не знала про конкретные форматы напрямую.
 2. Зафиксировать отдельный follow-up по `src/doc_converter/formula_benchmark.py`, чтобы repo-wide file-size ceiling не зависел от одного benchmark monolith.
-3. После table package tranche продолжить measured backlog по `sample_020`, warning density на `sample_009/018` и negative/control false-positive contour.
-4. Затем перейти к production roadmap S2.4 `ConverterProtocol` + route registry и далее к richer DOCX table semantics / generalized WMF parser backlog.
+3. После S2.4 продолжить measured backlog по `sample_020`, warning density на `sample_009/018` и negative/control false-positive contour уже поверх shared `tables/` package.
+4. Затем вернуться к richer DOCX table semantics и generalized WMF parser backlog для formula-rich DOCX.
 5. Держать product-aware feature spine, sprint contract, checkpoint template и evaluator rubric обязательными на новых cross-module задачах.
 6. Не допускать пропусков в machine-readable telemetry companion на новых нетривиальных задачах.
 7. Поддерживать `scripts/refresh_agent_eval.py` и `docs/agent-weekly-reviews.v1.json` как штатный eval loop.

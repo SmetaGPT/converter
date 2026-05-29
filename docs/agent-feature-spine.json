@@ -419,6 +419,51 @@
       "residual_risk": "Internal monkeypatch targets for runner internals now need to point at concrete `doc_converter.run` submodules when implementation imports helpers directly; remaining repo-wide file-size debt is now concentrated in formula_benchmark.py."
     },
     {
+      "feature_id": "arch-tables-shared",
+      "area": "architecture",
+      "title": "Shared PDF table parser package",
+      "status": "validated",
+      "behavior": "Dominant-width inference, continuation merge and `table_structure_warning` normalization live in `doc_converter.tables`, and both `pdf_text` and `pdf_scan` routes import the same table parser instead of owning separate or converter-local heuristics.",
+      "owner_docs": [
+        "docs/production-roadmap.md",
+        "src/doc_converter/tables/__init__.py",
+        "src/doc_converter/converters/pdf_text.py",
+        "src/doc_converter/converters/pdf_scan.py",
+        "tests/test_pdf_text_converter.py",
+        "tests/test_pdf_scan_converter.py",
+        "tests/test_sample_expectations.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_pdf_text_converter tests.test_pdf_scan_converter tests.test_sample_expectations"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\run_sample_pilot.py --manifest samples\\manifest.table-anchors.jsonl --output runs\\s23-table-anchors --input runs\\s23-table-anchors-input --clean"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_sample_expectations.py runs\\s23-table-anchors\\runs\\20260529T162149Z --manifest samples\\manifest.table-anchors.jsonl --expected-dir samples\\expected --sample-id sample_009 --sample-id sample_018"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m pyright"
+        }
+      ],
+      "evidence": [
+        "docs/production-roadmap.md",
+        "src/doc_converter/tables/__init__.py",
+        "src/doc_converter/converters/pdf_text.py",
+        "src/doc_converter/converters/pdf_scan.py",
+        "tests/test_pdf_text_converter.py",
+        "tests/test_pdf_scan_converter.py",
+        "tests/test_sample_expectations.py",
+        "runs/s23-table-anchors/runs/20260529T162149Z"
+      ],
+      "residual_risk": "Shared parser logic is centralized, but table unit assembly and richer semantics still remain route-local; next backlog is no longer parser drift, but warning density, negative/control contour and scan OCR blocker handling."
+    },
+    {
       "feature_id": "pdf-text-route",
       "area": "product",
       "title": "PDF text-layer conversion route",

@@ -154,10 +154,12 @@ graph LR
 
 ### Sprint S2.3 — `tables/` shared package
 
+**Status:** completed 2026-05-29. Evidence: shared parser moved to `src/doc_converter/tables/`, `pdf_text` and `pdf_scan` now import the same table normalizer, focused/full tests stayed green, fresh table-anchor run `runs\s23-table-anchors\runs\20260529T162149Z` kept `sample_009/018` expectations green.
+
 - **Goal:** один table-нормализатор для PDF text/scan/будущих форматов.
 - **Scope:** вынести dominant-width inference, continuation-merge, `table_structure_warning` в `src/doc_converter/tables/`. Обновить [pdf_text.py](../src/doc_converter/converters/pdf_text.py), [pdf_scan.py](../src/doc_converter/converters/pdf_scan.py).
 - **Exit:** дубли в pdf_text/pdf_scan устранены; sample expectations `sample_009/018` без регрессий.
-- **feature_ids:** `arch.tables-shared`.
+- **feature_ids:** `arch-tables-shared`.
 
 ### Sprint S2.4 — `ConverterProtocol` + route registry
 

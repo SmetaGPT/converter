@@ -19,8 +19,6 @@ from doc_converter.canonical import (
 from doc_converter.converters.pdf_text import (
     _is_figure_caption,
     _is_formula_block,
-    _is_table_block,
-    _parse_table_block,
     _quality_flags_for_pdf_unit,
     _split_pdf_text,
 )
@@ -28,6 +26,7 @@ from doc_converter.document_metadata import build_document_metadata
 from doc_converter.ocr_runtime import find_ocrmypdf_executable
 from doc_converter.quality import quality_payload
 from doc_converter.schema_validation import validate_payload
+from doc_converter.tables import is_table_block as _is_table_block, parse_table_block as _parse_table_block
 
 
 @dataclass(frozen=True)
