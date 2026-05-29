@@ -21,7 +21,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     run_dir = args.run_dir.expanduser().resolve()
-    validate_json_file(run_dir / "run.json", "run.v1.schema.json")
+    legacy_agent_run_metadata = _validate_run_json(run_dir / "run.json")
     validate_json_file(run_dir / "summary.json", "summary.v1.schema.json")
     validate_json_file(run_dir / "queue-state.json", "queue-state.v1.schema.json")
     validate_json_file(run_dir / "processed-documents-catalog.json", "processed-documents-catalog.v1.schema.json")
@@ -40,8 +40,33 @@ def main(argv: list[str] | None = None) -> int:
     if chunks_path.exists():
         _validate_jsonl(chunks_path, "chunks.v1.schema.json")
 
-    print(json.dumps({"run_dir": str(run_dir), "status": "ok"}, ensure_ascii=False))
+    print(
+        json.dumps(
+            {
+                "run_dir": str(run_dir),
+                "status": "ok",
+                "legacy_agent_run_metadata": legacy_agent_run_metadata,
+            },
+            ensure_ascii=False,
+        )
+    )
     return 0
+
+
+def _validate_run_json(path: Path) -> bool:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if "agent_run_metadata" in payload:
+        validate_payload(payload, "run.v1.schema.json")
+        return False
+
+    legacy_payload = dict(payload)
+    legacy_payload["agent_run_metadata"] = {
+        "agent_id": "legacy",
+        "agent_version": str(payload.get("converter_version") or "legacy"),
+        "task_id": str(payload.get("run_id") or "legacy"),
+    }
+    validate_payload(legacy_payload, "run.v1.schema.json")
+    return True
 
 
 def _validate_jsonl(path: Path, schema_filename: str) -> None:

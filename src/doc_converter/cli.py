@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from .config import ConverterConfig, ConverterOptions
+from .config import AgentRunMetadata, ConverterConfig, ConverterOptions
 from .formula_eval import (
     DocumentFormulaEvaluationItem,
     FormulaEvaluationError,
@@ -31,6 +31,10 @@ def build_parser() -> argparse.ArgumentParser:
     convert.add_argument("output_dir", type=Path, help="Folder where run output will be created.")
     convert.add_argument("--ocr-languages", default="rus,eng", help="Comma-separated OCR language codes.")
     convert.add_argument("--include-originals", action="store_true", help="Copy source files into each canonical document package.")
+    convert.add_argument("--agent-id", help="Autonomous agent identifier to store in run metadata.")
+    convert.add_argument("--agent-version", help="Autonomous agent version to store in run metadata.")
+    convert.add_argument("--task-id", help="Agent task identifier to store in run metadata.")
+    convert.add_argument("--parent-run-id", help="Parent agent/converter run identifier, when this run is a child task.")
     convert.set_defaults(func=_handle_convert_folder)
 
     check_ocr = subparsers.add_parser("check-ocr", help="Check OCRmyPDF/Tesseract/Ghostscript runtime availability.")
@@ -80,7 +84,12 @@ def _handle_convert_folder(args: argparse.Namespace) -> int:
         include_originals=args.include_originals,
     )
     result = run_convert_folder(
-        ConverterConfig(input_dir=args.input_dir, output_dir=args.output_dir, options=options)
+        ConverterConfig(
+            input_dir=args.input_dir,
+            output_dir=args.output_dir,
+            options=options,
+            agent_run_metadata=_agent_run_metadata_from_args(args),
+        )
     )
     print(
         json.dumps(
@@ -95,6 +104,17 @@ def _handle_convert_folder(args: argparse.Namespace) -> int:
         )
     )
     return 0
+
+
+def _agent_run_metadata_from_args(args: argparse.Namespace) -> AgentRunMetadata | None:
+    if not any((args.agent_id, args.agent_version, args.task_id, args.parent_run_id)):
+        return None
+    return AgentRunMetadata(
+        agent_id=args.agent_id,
+        agent_version=args.agent_version,
+        task_id=args.task_id,
+        parent_run_id=args.parent_run_id,
+    )
 
 
 def _handle_check_ocr(args: argparse.Namespace) -> int:

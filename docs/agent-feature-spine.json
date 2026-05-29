@@ -1,6 +1,6 @@
 {
   "schema_version": "agent-feature-spine.v1",
-  "last_updated": "2026-05-28",
+  "last_updated": "2026-05-29",
   "features": [
     {
       "feature_id": "state-layer",
@@ -656,6 +656,69 @@
         "tests/test_contracts_stability.py"
       ],
       "residual_risk": "Stable v1 schema fingerprints protect contract drift, but downstream loaders still need their own compatibility tests against real consumer databases."
+    },
+    {
+      "feature_id": "run-agent-metadata",
+      "area": "contracts",
+      "title": "Run-level agent metadata contract",
+      "status": "validated",
+      "behavior": "Each new run package carries required `agent_run_metadata` with agent identity and task traceability in `run.json`; CLI can pass explicit values and runner fills safe defaults for manual runs.",
+      "owner_docs": [
+        "schemas/run.v1.schema.json",
+        "src/doc_converter/config.py",
+        "src/doc_converter/cli.py",
+        "src/doc_converter/runner.py",
+        "tests/test_cli_smoke.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_cli_smoke.CliSmokeTests.test_empty_folder_creates_run_package tests.test_cli_smoke.CliSmokeTests.test_run_metadata_records_agent_run_metadata tests.test_cli_smoke.CliSmokeTests.test_convert_folder_cli_accepts_agent_metadata_flags"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_run_package.py runs\\formula-benchmark\\runs\\20260525T175329Z\\cases\\anchor-421-pr\\output\\runs\\20260525T175329Z"
+        }
+      ],
+      "evidence": [
+        "schemas/run.v1.schema.json",
+        "src/doc_converter/config.py",
+        "src/doc_converter/cli.py",
+        "src/doc_converter/runner.py",
+        "tests/test_cli_smoke.py"
+      ],
+      "residual_risk": "Historical run packages still need validator-side fallback metadata; raw direct schema validation of old `run.json` payloads remains intentionally strict."
+    },
+    {
+      "feature_id": "validation-document-package",
+      "area": "validation",
+      "title": "Universal document package validator",
+      "status": "validated",
+      "behavior": "A dedicated validation script walks a run directory, schema-checks every canonical `document.v1.json` and validates optional `formula-recognition.jsonl` sidecars, while `validate_run_package.py` remains legacy-compatible for old `run.json` payloads.",
+      "owner_docs": [
+        "scripts/validate_document_package.py",
+        "scripts/validate_run_package.py",
+        "schemas/document.v1.schema.json",
+        "schemas/formula-recognition.v1.schema.json"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_document_package.py runs\\formula-benchmark\\runs\\20260525T175329Z\\cases\\anchor-421-pr\\output\\runs\\20260525T175329Z"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_run_package.py runs\\formula-benchmark\\runs\\20260525T175329Z\\cases\\anchor-421-pr\\output\\runs\\20260525T175329Z"
+        }
+      ],
+      "evidence": [
+        "scripts/validate_document_package.py",
+        "scripts/validate_run_package.py",
+        "schemas/document.v1.schema.json",
+        "schemas/formula-recognition.v1.schema.json",
+        "tests/test_cli_smoke.py"
+      ],
+      "residual_risk": "Validator output is currently aggregate-only; when a run contains many documents, deeper per-document diagnostics still rely on the first schema error and manual inspection."
     },
     {
       "feature_id": "operator-gui-and-release-packaging",

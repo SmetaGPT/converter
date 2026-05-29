@@ -1,10 +1,10 @@
 {
   "schema_version": "agent-weekly-eval.v1",
-  "as_of_date": "2026-05-28",
+  "as_of_date": "2026-05-29",
   "window": {
     "days": 7,
-    "start_date": "2026-05-22",
-    "end_date": "2026-05-28"
+    "start_date": "2026-05-23",
+    "end_date": "2026-05-29"
   },
   "overall_status": "strong",
   "sources": {
@@ -16,15 +16,15 @@
     "eval_instructions": "docs/agent-evals.md"
   },
   "telemetry_window_summary": {
-    "total_entries": 65,
+    "total_entries": 62,
     "validation_results": {
-      "passed": 60,
+      "passed": 57,
       "passed_after_repair": 5,
       "failed": 0,
       "blocked": 0
     },
-    "state_updates": 65,
-    "feature_traceable_entries": 65,
+    "state_updates": 62,
+    "feature_traceable_entries": 62,
     "task_types": {
       "code/ci/docs/runtime": 1,
       "code/docs/process": 1,
@@ -32,15 +32,15 @@
       "code/docs/runtime": 2,
       "code/docs/tests/schema": 1,
       "code/release/runtime": 1,
-      "code/runtime/docs": 3,
+      "code/runtime/docs": 2,
       "code/tests/data/docs": 1,
-      "code/tests/docs": 2,
+      "code/tests/docs": 3,
       "code/tests/docs/state": 1,
       "code/tests/release/docs": 1,
       "code/tests/runtime": 3,
       "code/tests/runtime/docs": 29,
       "code/tests/runtime/research": 1,
-      "docs/process": 4,
+      "docs/process": 1,
       "docs/process/ci": 1,
       "docs/process/observability": 6,
       "docs/process/product": 3,
@@ -50,9 +50,9 @@
     }
   },
   "scorecard_snapshot": {
-    "scorecard_as_of_date": "2026-05-28",
-    "validated_features": 27,
-    "referenced_features": 27,
+    "scorecard_as_of_date": "2026-05-29",
+    "validated_features": 29,
+    "referenced_features": 29,
     "referenced_feature_ids": [
       "bootstrap-contract",
       "canonical-document-package",
@@ -76,9 +76,11 @@
       "real-e2e-and-run-validation",
       "resume-dedup-and-queue-state",
       "routing-matrix",
+      "run-agent-metadata",
       "semantic-document-metadata",
       "sprint-contract-template",
       "state-layer",
+      "validation-document-package",
       "weekly-eval-companion",
       "xlsx-native-route"
     ],
@@ -89,28 +91,28 @@
         "title": "Validation discipline",
         "score": 5,
         "scale_max": 5,
-        "basis": "65/65 telemetry entries have pass-like validation results."
+        "basis": "66/66 telemetry entries have pass-like validation results."
       },
       {
         "signal_id": "state-hygiene",
         "title": "State hygiene",
         "score": 5,
         "scale_max": 5,
-        "basis": "65/65 telemetry entries report state_update=true."
+        "basis": "66/66 telemetry entries report state_update=true."
       },
       {
         "signal_id": "feature-traceability",
         "title": "Feature traceability",
         "score": 5,
         "scale_max": 5,
-        "basis": "65/65 telemetry entries reference at least one feature_id."
+        "basis": "66/66 telemetry entries reference at least one feature_id."
       },
       {
         "signal_id": "feature-coverage",
         "title": "Feature coverage in telemetry",
         "score": 5,
         "scale_max": 5,
-        "basis": "27/27 validated features are referenced by structured telemetry."
+        "basis": "29/29 validated features are referenced by structured telemetry."
       }
     ]
   },

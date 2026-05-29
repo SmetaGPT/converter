@@ -11,7 +11,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font
 
 from . import __version__
-from .config import ConverterConfig, serialize_converter_options
+from .config import AgentRunMetadata, ConverterConfig, serialize_converter_options
 from .converters.docx import ConversionResult, convert_docx
 from .converters.pdf_scan import PdfScanConversionResult, convert_pdf_scan
 from .converters.pdf_text import PdfTextConversionResult, convert_pdf_text
@@ -491,7 +491,31 @@ def _build_run_metadata(
         "input_dir": str(input_dir),
         "output_dir": str(output_dir),
         "options": serialize_converter_options(config.options),
+        "agent_run_metadata": _agent_run_metadata_payload(config.agent_run_metadata, run_id),
     }
+
+
+def _agent_run_metadata_payload(metadata: AgentRunMetadata | None, run_id: str) -> dict[str, str]:
+    agent_id = _nonempty_string(metadata.agent_id) if metadata is not None else None
+    agent_version = _nonempty_string(metadata.agent_version) if metadata is not None else None
+    task_id = _nonempty_string(metadata.task_id) if metadata is not None else None
+    parent_run_id = _nonempty_string(metadata.parent_run_id) if metadata is not None else None
+
+    payload = {
+        "agent_id": agent_id or "manual",
+        "agent_version": agent_version or __version__,
+        "task_id": task_id or run_id,
+    }
+    if parent_run_id is not None:
+        payload["parent_run_id"] = parent_run_id
+    return payload
+
+
+def _nonempty_string(value: str | None) -> str | None:
+    if value is None:
+        return None
+    stripped = value.strip()
+    return stripped or None
 
 
 def _document_output_dir(documents_dir: Path, sha256: str) -> Path:

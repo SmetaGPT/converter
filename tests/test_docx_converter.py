@@ -19,7 +19,7 @@ from doc_converter.converters.docx import (
     _build_wmf_formula_ir,
     _formula_representation_from_text,
 )
-from doc_converter.config import ConverterConfig, ConverterOptions
+from doc_converter.config import ConverterConfig, ConverterOptions, FormulaRecognitionConfig
 from doc_converter.runner import run_convert_folder
 from doc_converter.schema_validation import validate_payload
 
@@ -41,7 +41,7 @@ class DocxConverterTests(unittest.TestCase):
 
             INLINE_GLYPH_CACHE.clear()
             with patch("doc_converter.converters.docx._recognize_inline_glyph", return_value="÷"):
-                result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
+                result = run_convert_folder(_docx_converter_config(input_dir, output_dir))
 
             self.assertEqual(result.status, "success")
             manifest_records = [
@@ -80,7 +80,7 @@ class DocxConverterTests(unittest.TestCase):
             document.add_paragraph("Абзац после таблицы")
             document.save(str(source_path))
 
-            result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
+            result = run_convert_folder(_docx_converter_config(input_dir, output_dir))
 
             self.assertEqual(result.status, "success")
             manifest_records = [
@@ -117,7 +117,7 @@ class DocxConverterTests(unittest.TestCase):
             document.save(str(source_path))
             _add_footnotes_xml(source_path, "Текст сноски")
 
-            result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
+            result = run_convert_folder(_docx_converter_config(input_dir, output_dir))
 
             self.assertEqual(result.status, "success")
             manifest_records = [
@@ -153,7 +153,7 @@ class DocxConverterTests(unittest.TestCase):
             formula_cell.add_paragraph("Примечание к формуле")
             document.save(str(source_path))
 
-            result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
+            result = run_convert_folder(_docx_converter_config(input_dir, output_dir))
 
             self.assertEqual(result.status, "success")
             manifest_records = [
@@ -206,7 +206,7 @@ class DocxConverterTests(unittest.TestCase):
 
             INLINE_GLYPH_CACHE.clear()
             with patch("doc_converter.converters.docx._recognize_inline_glyph", return_value="÷"):
-                result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
+                result = run_convert_folder(_docx_converter_config(input_dir, output_dir))
 
             self.assertEqual(result.status, "success")
             manifest_records = [
@@ -223,7 +223,7 @@ class DocxConverterTests(unittest.TestCase):
             self.assertIn("С_(НГ) = НГ x К_(в) x L (6),", [unit["text"] for unit in formula_units])
             self.assertIn("P^(j) - описание ресурса", [unit["text"] for unit in paragraph_units])
 
-            self.assertIn("j = 1 ÷ J", [unit["text"] for unit in formula_units])
+            self.assertIn("j = 1 ÷ J, где:", [unit["text"] for unit in formula_units])
 
             search_text = (document_dir / "search_text.txt").read_text(encoding="utf-8")
             self.assertIn("С_(НГ) = НГ x К_(в) x L (6),", search_text)
@@ -246,7 +246,7 @@ class DocxConverterTests(unittest.TestCase):
 
             INLINE_GLYPH_CACHE.clear()
             with patch("doc_converter.converters.docx._recognize_inline_glyph", return_value="÷"):
-                result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
+                result = run_convert_folder(_docx_converter_config(input_dir, output_dir))
 
             self.assertEqual(result.status, "success")
             manifest_records = [
@@ -258,7 +258,7 @@ class DocxConverterTests(unittest.TestCase):
             payload = json.loads((document_dir / "document.v1.json").read_text(encoding="utf-8"))
 
             formula_texts = [unit["text"] for unit in payload["units"] if unit["type"] == "formula"]
-            self.assertIn("j = 1 ÷ J", formula_texts)
+            self.assertIn("j = 1 ÷ J, где:", formula_texts)
 
             search_text = (document_dir / "search_text.txt").read_text(encoding="utf-8")
             self.assertIn("j = 1 ÷ J, где:", search_text)
@@ -274,7 +274,7 @@ class DocxConverterTests(unittest.TestCase):
             document.add_paragraph("x (F - 1) (2),")
             document.save(str(source_path))
 
-            result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
+            result = run_convert_folder(_docx_converter_config(input_dir, output_dir))
 
             self.assertEqual(result.status, "success")
             manifest_records = [
@@ -324,7 +324,7 @@ class DocxConverterTests(unittest.TestCase):
                 "doc_converter.converters.docx._recognize_inline_glyph",
                 side_effect=lambda _blob, asset_name, _drawing_extent: symbol_by_asset.get(asset_name),
             ):
-                result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
+                result = run_convert_folder(_docx_converter_config(input_dir, output_dir))
 
             self.assertEqual(result.status, "success")
             manifest_records = [
@@ -337,17 +337,17 @@ class DocxConverterTests(unittest.TestCase):
 
             formula_texts = [unit["text"] for unit in payload["units"] if unit["type"] == "formula"]
             expected_formula_options = [
-                ("k_1 = A \\prod B", "k1 = A ∏ B"),
-                ("k_2 = A \\partial B", "k2 = A ∂ B"),
+                ("k1 = A ∏ B",),
+                ("k2 = A ∂ B",),
                 ("k3 = A ∇ B",),
-                ("k_4 = A ∅ B", "k₄ = A ∅ B"),
-                ("k_5 = A ∀ B", "k_5 = A \\forall B"),
-                ("k_6 = A ∃ B",),
-                ("k_7 = A < B",),
-                ("k_8 = A > B",),
+                ("k4 = A ∅ B",),
+                ("k5 = A ∀ B",),
+                ("k6 = A ∃ B",),
+                ("k7 = A < B",),
+                ("k8 = A > B",),
                 ("k9 = A + B",),
                 ("k10 = A - B",),
-                ("k_{11} = A = B",),
+                ("k11 = A = B",),
             ]
             search_text = (document_dir / "search_text.txt").read_text(encoding="utf-8")
             for options in expected_formula_options:
@@ -1148,6 +1148,14 @@ def _load_test_symbol_font(size: int) -> ImageFont.ImageFont | ImageFont.FreeTyp
         except OSError:
             continue
     return ImageFont.load_default()
+
+
+def _docx_converter_config(input_dir: str, output_dir: str) -> ConverterConfig:
+    return ConverterConfig(
+        input_dir=Path(input_dir),
+        output_dir=Path(output_dir),
+        options=ConverterOptions(formula_recognition=FormulaRecognitionConfig()),
+    )
 
 
 if __name__ == "__main__":

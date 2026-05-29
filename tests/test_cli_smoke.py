@@ -14,7 +14,7 @@ from docx import Document
 from openpyxl import Workbook, load_workbook
 
 from doc_converter.cli import build_parser, main
-from doc_converter.config import ConverterConfig, ConverterOptions, FormulaRecognitionConfig
+from doc_converter.config import AgentRunMetadata, ConverterConfig, ConverterOptions, FormulaRecognitionConfig
 from doc_converter.formula_recognition import FormulaRecognitionPostprocessResult
 from doc_converter.ocr_runtime import find_ocrmypdf_executable
 from doc_converter.runner import ConverterError, run_convert_folder
@@ -246,6 +246,69 @@ class CliSmokeTests(unittest.TestCase):
             self.assertEqual(summary["supported_files"], 0)
             self.assertEqual(catalog["documents"], [])
             self.assertNotIn("workers", run_payload["options"])
+            self.assertEqual(run_payload["agent_run_metadata"]["agent_id"], "manual")
+            self.assertEqual(run_payload["agent_run_metadata"]["task_id"], result.run_id)
+
+    def test_run_metadata_records_agent_run_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:
+            result = run_convert_folder(
+                ConverterConfig(
+                    input_dir=Path(input_dir),
+                    output_dir=Path(output_dir),
+                    agent_run_metadata=AgentRunMetadata(
+                        agent_id="roadmap-agent",
+                        agent_version="2026.05",
+                        task_id="S1.3",
+                        parent_run_id="parent-001",
+                    ),
+                )
+            )
+
+            run_payload = json.loads((result.run_dir / "run.json").read_text(encoding="utf-8"))
+            validate_payload(run_payload, "run.v1.schema.json")
+            self.assertEqual(
+                run_payload["agent_run_metadata"],
+                {
+                    "agent_id": "roadmap-agent",
+                    "agent_version": "2026.05",
+                    "task_id": "S1.3",
+                    "parent_run_id": "parent-001",
+                },
+            )
+
+    def test_convert_folder_cli_accepts_agent_metadata_flags(self) -> None:
+        with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:
+            buffer = StringIO()
+            with redirect_stdout(buffer):
+                exit_code = main(
+                    [
+                        "convert-folder",
+                        input_dir,
+                        output_dir,
+                        "--agent-id",
+                        "autonomous-agent",
+                        "--agent-version",
+                        "v1",
+                        "--task-id",
+                        "task-123",
+                        "--parent-run-id",
+                        "parent-123",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            cli_payload = json.loads(buffer.getvalue())
+            run_payload = json.loads((Path(cli_payload["run_dir"]) / "run.json").read_text(encoding="utf-8"))
+            validate_payload(run_payload, "run.v1.schema.json")
+            self.assertEqual(
+                run_payload["agent_run_metadata"],
+                {
+                    "agent_id": "autonomous-agent",
+                    "agent_version": "v1",
+                    "task_id": "task-123",
+                    "parent_run_id": "parent-123",
+                },
+            )
 
     def test_run_metadata_omits_formula_recognition_api_key(self) -> None:
         with tempfile.TemporaryDirectory() as env_dir, tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:

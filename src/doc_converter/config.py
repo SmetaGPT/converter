@@ -242,7 +242,16 @@ class ConverterOptions:
 
 
 @dataclass(frozen=True)
+class AgentRunMetadata:
+    agent_id: str | None = None
+    agent_version: str | None = None
+    task_id: str | None = None
+    parent_run_id: str | None = None
+
+
+@dataclass(frozen=True)
 class ConverterConfig:
     input_dir: Path
     output_dir: Path
     options: ConverterOptions = ConverterOptions()
+    agent_run_metadata: AgentRunMetadata | None = None

@@ -59,6 +59,7 @@ ignore = ["E501", "W191", "W292"]
 "scripts/run_formula_benchmark.py" = ["E402"]
 "scripts/validate_run_package.py" = ["E402"]
 "scripts/validate_known_formulas.py" = ["E402"]
+"scripts/validate_document_package.py" = ["E402"]
 
 [tool.pyright]
 include = ["src", "scripts", "tests"]

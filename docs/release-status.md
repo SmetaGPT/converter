@@ -1,6 +1,6 @@
 # Release Status
 
-Последнее обновление: 2026-05-28
+Последнее обновление: 2026-05-29
 Релизный контур: Windows Document Converter v0.3.0
 Статус: production-ready within declared scope
 
@@ -68,9 +68,11 @@
 - production roadmap S0.1 baseline stabilization: DOCX inline-glyph unittest flake закрыт на уровне тестового cache discipline и canonical variant assertions; `ruff check src tests scripts`, `pyright` и 5 подряд `unittest discover` проходят зелёно.
 - production roadmap S1.1 contracts catalog: downstream-facing `processed-documents-catalog.v1`, `chunks.v1`, `chunk-source.v1` и `formula-recognition.v1` зафиксированы в `docs/contracts.md`, drift защищён snapshot-тестом, а run-package validator проверяет `formula-recognition.jsonl` sidecars.
 - production roadmap S1.2 known formula patterns data: MathType known-pattern recovery больше не зашит в `docx.py`; canonical JSON + package data, schema validation, export/sync script и regression tests позволяют добавлять новые known formulas через data artifact.
+- production roadmap S1.3 agent run metadata + universal validator: новые run packages теперь schema-valid только с `agent_run_metadata`, CLI/runner фиксируют `agent_id/agent_version/task_id/parent_run_id`, `validate_run_package.py` сохраняет legacy validation path через fallback metadata, а `scripts/validate_document_package.py` валидирует все `document.v1.json` и optional `formula-recognition.jsonl` sidecars в run directory.
 
 Следующий backlog:
 
+- production roadmap S2.1: разрезать `src/doc_converter/converters/docx.py` на smaller modules без изменения public API и без потери data-driven formula behavior из S1.2/S1.3.
 - table benchmark follow-up на `sample_009`, `sample_018` и `sample_020`: next sprint должен не создавать baseline с нуля, а снижать `table_structure_warning` density на text-layer anchors, вывести explicit negative/control false-positive contour и устранить OCR blocker на `sample_020`, чтобы scan route тоже вошёл в measured table loop.
 - richer DOCX table semantics: после formula-in-cell closure следующий backlog лежит в header-like rows, merged-cell hints и richer review signals для operator QC.
 - formula production hardening formalized в `docs/formula-production-plan.md`: broader generalized WMF parser (P1-02), remaining structural residue в `1/пр`, local OCR production decision/guardrails и rolling verdict loop остаются отдельным следующим contour после table benchmark loop.

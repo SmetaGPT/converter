@@ -111,11 +111,13 @@ graph LR
 
 ### Sprint S1.3 — Agent run metadata + universal validator
 
+**Status:** completed 2026-05-29. Evidence: focused CLI metadata tests, legacy/fresh validation через `scripts\validate_run_package.py` и `scripts\validate_document_package.py`, full `unittest discover`, `ruff check`, `pyright`.
+
 - **Goal:** каждый прогон трассируется до агента; каждый артефакт валидируется одной командой.
 - **Scope:**
   - Расширить `schemas/run.v1.schema.json` обязательным блоком `agent_run_metadata { agent_id, agent_version, task_id, parent_run_id? }` (с graceful fallback для legacy).
   - Прокинуть метаданные через CLI флаги `--agent-id`, `--agent-version`, `--task-id`, `--parent-run-id`; в [src/doc_converter/runner.py](../src/doc_converter/runner.py) записать в run.json.
-  - Создать `scripts/validate_document_package.py` (по аналогии с `validate_run_package.py`), валидирующий каждый `documents/<sha>/document.json`.
+  - Создать `scripts/validate_document_package.py` (по аналогии с `validate_run_package.py`), валидирующий каждый `documents/<sha>/document.v1.json`.
 - **Exit:** `python scripts/validate_run_package.py <runs/...>` и `python scripts/validate_document_package.py <runs/...>` оба возвращают JSON-отчёт с `status: ok`.
 - **depends_on:** S1.1.
 - **feature_ids:** `run.agent-metadata`, `validation.document-package`.
