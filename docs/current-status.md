@@ -142,6 +142,7 @@
 118. Закрыт production roadmap Sprint S1.1: stable downstream contracts catalog добавлен в `docs/contracts.md`, `formula-recognition.v1` получил JSON Schema, stable schema fingerprints закреплены в `schemas/__snapshot__/stable-contracts.v1.json`, `tests/test_contracts_stability.py` защищает drift, а `validate_run_package.py` теперь валидирует document-level `formula-recognition.jsonl` при наличии.
 119. Закрыт production roadmap Sprint S1.2: hard-coded known MathType formula representations, noisy-form recovery и WMF signature rules вынесены в versioned JSON `samples/formulas/known-patterns.v1.json` с package-data copy, schema `formula-known-patterns.v1`, loader `doc_converter.formulas.known`, validator/export scripts и focused regression tests без изменения текущего DOCX formula behavior.
 120. Закрыт production roadmap Sprint S1.3: `run.v1` теперь требует `agent_run_metadata` для новых run packages, CLI/runner сериализуют `agent_id/agent_version/task_id/parent_run_id`, `validate_run_package.py` сохраняет legacy compatibility через fallback metadata, а `scripts/validate_document_package.py` валидирует `document.v1.json` и `formula-recognition.jsonl` sidecars по всему run directory.
+121. Закрыт production roadmap Sprint S2.1: монолит `src/doc_converter/converters/docx.py` заменён на package `src/doc_converter/converters/docx/` с модулями `pipeline.py`, `inline_glyph.py`, `formulas/text.py` и `formulas/wmf.py`, а `__init__.py` сохраняет публичный import surface для runner, formula-recognition и тестов. Focused DOCX, CLI/formula-recognition и full-suite gates прошли зелёно; remaining repo-wide file-size debt теперь явно локализован в `src/doc_converter/runner.py` и `src/doc_converter/formula_benchmark.py` как следующий architecture backlog.
 
 ### Готовые артефакты
 
@@ -232,38 +233,32 @@
 
 ## 3. Что делается сейчас
 
-Текущий фокус: после фиксации benchmark-like table quality loop на реальных anchors `sample_009`, `sample_018` и `sample_020` следующий product slice — снизить warning-heavy residue на PDF tables, разблокировать `sample_020` как OCR/scan table anchor и затем расширить DOCX table semantics за пределы formula-in-cell coverage к header/merged-cell cases.
+Текущий фокус: после закрытия S2.1 следующий operational tranche production roadmap — S2.2, то есть разрезание `src/doc_converter/runner.py` на thin wrapper и smaller `run/` modules без потери текущего CLI/runtime contract.
 
-Новый product-learning по PDF tables: одного split по separator pattern недостаточно. Для устойчивого table path нужен shared parser с dominant row width, который умеет склеивать continuation lines в предыдущую ячейку при стабильной ширине и не оставляет ragged rows в молча повреждённом состоянии.
+Новый architecture-learning по DOCX route: package split можно сделать без behavioural drift, если `src/doc_converter/converters/docx/__init__.py` реэкспортирует legacy helper surface для `runner`, `formula_recognition` и regression tests, а internal code зовёт уже submodule-local implementation.
 
-Новый product-learning по shared PDF routes: `pdf_text` и `pdf_scan` должны использовать один и тот же table normalization contract, иначе OCR route начинает дрейфовать от text-layer route на одних и тех же row-shape cases. Текущий sprint закрыл именно этот drift и сделал `table_structure_warning` общим сигналом качества для обоих путей.
+Новый test-learning по architecture split: когда implementation начинает импортировать helper из подпакета напрямую, monkeypatch в regression tests должен указывать на конкретный submodule symbol (`doc_converter.converters.docx.inline_glyph._recognize_inline_glyph`), а не только на package root alias.
 
-Новый product-learning по DOCX tables: полезная семантика таблицы не сводится к одному лишь `table/table_row/table_cell`. Даже без schema expansion ячейка может нести machine-readable `formula` block, если внутри есть formula-like строка, а multiline content при этом должен оставаться целым для operator QC и downstream handoff.
-
-Новый product-learning по table quality loop: после появления executable anchor contour следующий ROI лежит уже не в самом факте детекции таблиц, а в снижении warning density и в переходе от proxy-метрик (`wide_row_ratio`, `single_cell_row_ratio`) к explicit false-positive contour на control anchors. XLSX остаётся reference contract для richer cell semantics, но не является текущей зоной основного дефекта.
-
-Новый product-learning по scan anchors: `sample_020` не дошёл до table extraction не из-за route drift между `pdf_text` и `pdf_scan`, а из-за OCR failure внутри `pdf_scan` path при готовом preflight runtime. Теперь это не narrative suspicion, а зафиксированный benchmark baseline с reproducible `partial_success` и нулевыми table units.
+Новый validation-learning по file-size debt: package scope для `src/doc_converter/converters/docx/` уже полностью проходит лимит `< 800` строк на файл, а оставшийся repo-wide oversize теперь локализован не в DOCX slice, а в `src/doc_converter/runner.py` и `src/doc_converter/formula_benchmark.py`.
 
 В работе:
 
-- разобрать и устранить OCR failure на `sample_020`, чтобы scan anchor начал давать измеримые table metrics, а не только blocked baseline;
-- дотянуть DOCX table semantics на header-like и merged-cell patterns;
-- решить, нужен ли отдельный table-summary artifact или хватает текущего quality/reporting layer;
-- зафиксировать explicit false-positive contour на negative/control anchors, а не только через proxy table ratios;
-- после стабилизации table metrics вернуться к remaining formula parser backlog, уже не смешивая оба hardening contour в один спринт.
+- разрезать `src/doc_converter/runner.py` на orchestration/path/catalog/postprocess slices и сохранить public API `run_convert_folder`;
+- вывести `src/doc_converter/formula_benchmark.py` из oversize-состояния отдельным architecture slice без слома benchmark report и CLI wrappers;
+- держать state docs, feature spine, telemetry и generated eval companions синхронными после каждого architecture tranche;
+- после снятия monolith debt вернуться к measured table/formula hardening backlog уже без structural drag от крупных файлов.
 
 ## 4. Что идёт дальше
 
-Следующая последовательность после закрытия текущего table-hardening sprint:
+Следующая последовательность после закрытия S2.1:
 
-1. Разобрать и устранить `OCRmyPDF failed` path на `sample_020`, чтобы scan table anchor впервые дал реальные row/cell metrics вместо blocked baseline.
-2. Дотянуть DOCX table semantics на header-like rows, merged-cell hints и richer review signals без слома current `document.v1` contract.
-3. Проверить human-readable QC на benchmark anchors `sample_009`/`sample_018` и formula-in-cell cases, чтобы operator видел те же структурные решения, что и canonical package.
-4. Добавить explicit false-positive contour на negative/control anchors, а не только proxy thresholds по `single_cell_row_ratio` и `wide_row_ratio`.
-5. После стабилизации table metrics вернуться к generalized WMF parser для formula-rich DOCX и remaining residue в `1/пр`.
-6. Держать product-aware feature spine, sprint contract, checkpoint template и evaluator rubric обязательными на новых cross-module задачах.
-7. Не допускать пропусков в machine-readable telemetry companion на новых нетривиальных задачах.
-8. Поддерживать `scripts/refresh_agent_eval.py` и `docs/agent-weekly-reviews.v1.json` как штатный eval loop.
+1. Закрыть production roadmap S2.2: вынести orchestration из `src/doc_converter/runner.py` в smaller modules и оставить тонкий import-compatible wrapper.
+2. Зафиксировать отдельный follow-up по `src/doc_converter/formula_benchmark.py`, чтобы repo-wide file-size ceiling не зависел от одного benchmark monolith.
+3. После architecture tranche вернуться к measured table backlog: OCR blocker на `sample_020`, warning density на `sample_009/018` и negative/control false-positive contour.
+4. Затем продолжить richer DOCX table semantics и remaining generalized WMF parser backlog для formula-rich DOCX.
+5. Держать product-aware feature spine, sprint contract, checkpoint template и evaluator rubric обязательными на новых cross-module задачах.
+6. Не допускать пропусков в machine-readable telemetry companion на новых нетривиальных задачах.
+7. Поддерживать `scripts/refresh_agent_eval.py` и `docs/agent-weekly-reviews.v1.json` как штатный eval loop.
 
 ## 5. Открытые gaps
 

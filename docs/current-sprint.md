@@ -1,27 +1,27 @@
 # Current Sprint
 
 Последнее обновление: 2026-05-29
-Активный спринт: S1.3 — Agent run metadata + universal validator
+Активный спринт: S2.1 — Split converters/docx.py
 Статус: completed
 
-Предыдущий приоритетный tranche: S1.2 — Known formula patterns → data
-Статус wave W1: completed
+Предыдущий приоритетный tranche: S1.3 — Agent run metadata + universal validator
+Статус wave W2: in_progress
 
 ## 1. Цель спринта
 
-Закрыть третий Wave 1 спринт production roadmap: сделать `run.json` трассируемым до автономного агента, добавить universal document-package validator и сохранить backward compatibility validator-ов для legacy run packages.
+Убрать DOCX monolith `src/doc_converter/converters/docx.py`, перевести route на smaller package modules и сохранить текущий public API/import surface для `runner`, `formula_recognition` и regression tests.
 
 ## 2. Артефакты спринта
 
-- src/doc_converter/config.py
-- src/doc_converter/cli.py
-- src/doc_converter/runner.py
-- schemas/run.v1.schema.json
-- scripts/validate_run_package.py
-- scripts/validate_document_package.py
-- tests/test_cli_smoke.py
+- src/doc_converter/converters/docx/__init__.py
+- src/doc_converter/converters/docx/pipeline.py
+- src/doc_converter/converters/docx/inline_glyph.py
+- src/doc_converter/converters/docx/formulas/__init__.py
+- src/doc_converter/converters/docx/formulas/text.py
+- src/doc_converter/converters/docx/formulas/wmf.py
 - tests/test_docx_converter.py
-- pyproject.toml
+- tests/test_cli_smoke.py
+- tests/test_formula_recognition.py
 - docs/current-status.md
 - docs/current-sprint.md
 - docs/production-roadmap.md
@@ -34,35 +34,35 @@
 
 | Задача | Статус |
 | --- | --- |
-| Сделать `agent_run_metadata` обязательным в `run.v1` для новых run packages | Готово |
-| Прокинуть agent metadata через CLI flags и runner defaults | Готово |
-| Сохранить legacy compatibility в `validate_run_package.py` | Готово |
-| Добавить `scripts/validate_document_package.py` для `document.v1.json` и `formula-recognition.jsonl` | Готово |
-| Добавить focused tests для default/custom agent metadata | Готово |
-| Устранить env-dependent DOCX test contamination от formula-recognition defaults | Готово |
+| Заменить `src/doc_converter/converters/docx.py` на package `converters/docx/` | Готово |
+| Разнести pipeline, inline glyph и formula helpers по smaller modules | Готово |
+| Сохранить public imports через `src/doc_converter/converters/docx/__init__.py` | Готово |
+| Обновить monkeypatch targets в DOCX tests там, где pipeline зовёт submodule-local helper | Готово |
+| Подтвердить focused и full validation без behavioral drift | Готово |
+| Зафиксировать remaining file-size debt как следующий architecture backlog | Готово |
 
 ## 4. Validation targets спринта
 
-1. `\.venv\Scripts\python.exe -m unittest tests.test_cli_smoke.CliSmokeTests.test_empty_folder_creates_run_package tests.test_cli_smoke.CliSmokeTests.test_run_metadata_records_agent_run_metadata tests.test_cli_smoke.CliSmokeTests.test_convert_folder_cli_accepts_agent_metadata_flags` прошёл зелёно.
-2. `\.venv\Scripts\python.exe scripts\validate_run_package.py runs\formula-benchmark\runs\20260525T175329Z\cases\anchor-421-pr\output\runs\20260525T175329Z` прошёл зелёно с `legacy_agent_run_metadata: true`.
-3. `\.venv\Scripts\python.exe scripts\validate_document_package.py runs\formula-benchmark\runs\20260525T175329Z\cases\anchor-421-pr\output\runs\20260525T175329Z` прошёл зелёно.
-4. Fresh empty run c CLI agent flags прошёл через обе проверки: `scripts\validate_run_package.py` вернул `legacy_agent_run_metadata: false`, `scripts\validate_document_package.py` вернул `documents_validated: 0`.
-5. `\.venv\Scripts\python.exe -m unittest discover` прошёл зелёно: 142 tests, OK.
-6. `\.venv\Scripts\python.exe -m ruff check src tests scripts` прошёл зелёно.
-7. `\.venv\Scripts\python.exe -m pyright` прошёл зелёно: 0 errors, 0 warnings.
+1. `\.venv\Scripts\python.exe -m unittest tests.test_docx_converter` прошёл зелёно: 37 tests, OK.
+2. `\.venv\Scripts\python.exe -m unittest tests.test_cli_smoke tests.test_formula_recognition` прошёл зелёно: 31 test, OK.
+3. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe -m unittest discover -s tests` прошёл зелёно: 142 tests, OK.
+4. `\.venv\Scripts\python.exe -m ruff check src tests scripts` прошёл зелёно.
+5. `\.venv\Scripts\python.exe -m pyright` прошёл зелёно: 0 errors, 0 warnings.
+6. `Get-ChildItem src\doc_converter\converters\docx -Recurse -File -Include *.py | Where-Object { (Get-Content $_.FullName).Length -gt 800 }` вернул пустой результат.
 
 ## 5. Риски спринта
 
-- Исторические `run.json` без `agent_run_metadata` не становятся schema-valid сами по себе; backward compatibility обеспечивается через `scripts/validate_run_package.py`, который синтезирует legacy metadata только на validation path.
-- Converter-level DOCX tests не должны зависеть от environment-provided formula-recognition config; для изолированных unit tests теперь нужен явный пустой `FormulaRecognitionConfig()`.
-- `validate_document_package.py` валидирует canonical `document.v1.json` и `formula-recognition.jsonl` sidecar, но не заменяет более широкий run-package validator.
+- Package-level re-export сохраняет compatibility, но internal monkeypatching теперь должно указывать на реальные submodule symbols, если implementation импортирует helper напрямую.
+- Repo-wide file-size debt после закрытия S2.1 остаётся в `src/doc_converter/runner.py` и `src/doc_converter/formula_benchmark.py`; это уже не DOCX monolith risk, а следующий architecture tranche.
+- Full unittest discover в этом shell-контуре надёжнее запускать с явным `PYTHONPATH=src`, чтобы discovery не терял import context для `src/`.
 
 ## 6. Критерий выхода
 
-Спринт закрыт: каждый новый run package содержит `agent_run_metadata`, CLI умеет фиксировать `agent_id/agent_version/task_id/parent_run_id`, legacy runs продолжают проходить validator через fallback, universal document validator добавлен, а focused/full gates и harness refresh остаются зелёными.
+Спринт закрыт: монолит `src/doc_converter/converters/docx.py` удалён, DOCX route работает через package `src/doc_converter/converters/docx/`, публичный import surface сохранён через `__init__.py`, package scope больше не содержит файлов > 800 строк, а focused/full gates остаются зелёными.
 
 ## 7. Следующий operational focus
 
-1. Начать S2.1 `Split converters/docx.py`.
-2. При разрезании `docx.py` сохранить текущий public API и data-driven formula layer из S1.2/S1.3.
-3. Продолжать выполнять prompt `.github/prompts/execute-production-roadmap-autonomous.prompt.md`: sprint → focused validation → state update → commit → push.
+1. Начать S2.2 `Split runner.py`.
+2. После S2.2 вывести `src/doc_converter/formula_benchmark.py` из oversize-состояния отдельным architecture slice.
+3. Затем вернуться к measured table benchmark backlog и richer DOCX table semantics.
+4. Продолжать выполнять prompt `.github/prompts/execute-production-roadmap-autonomous.prompt.md`: sprint → focused validation → state update → commit → push.

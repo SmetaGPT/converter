@@ -294,7 +294,11 @@
       "owner_docs": [
         "docs/document-converter-acceptance.md",
         "docs/build-and-run.md",
-        "src/doc_converter/converters/docx.py",
+        "src/doc_converter/converters/docx/__init__.py",
+        "src/doc_converter/converters/docx/pipeline.py",
+        "src/doc_converter/converters/docx/inline_glyph.py",
+        "src/doc_converter/converters/docx/formulas/text.py",
+        "src/doc_converter/converters/docx/formulas/wmf.py",
         "tests/test_docx_converter.py"
       ],
       "verification": [
@@ -309,10 +313,60 @@
       ],
       "evidence": [
         "docs/document-converter-acceptance.md",
-        "src/doc_converter/converters/docx.py",
+        "src/doc_converter/converters/docx/__init__.py",
+        "src/doc_converter/converters/docx/pipeline.py",
+        "src/doc_converter/converters/docx/inline_glyph.py",
+        "src/doc_converter/converters/docx/formulas/text.py",
+        "src/doc_converter/converters/docx/formulas/wmf.py",
         "tests/test_docx_converter.py"
       ],
       "residual_risk": "DOCX headers, footers, footnotes and formulas are extracted heuristically from package XML; complex field codes and linked external objects may still need review."
+    },
+    {
+      "feature_id": "arch-docx-split",
+      "area": "architecture",
+      "title": "DOCX converter package split",
+      "status": "validated",
+      "behavior": "The legacy monolithic DOCX converter is split into smaller package modules for pipeline, inline glyph recognition and formula handling, while `doc_converter.converters.docx` keeps the previous public import surface through `__init__.py` re-exports.",
+      "owner_docs": [
+        "docs/production-roadmap.md",
+        "src/doc_converter/converters/docx/__init__.py",
+        "src/doc_converter/converters/docx/pipeline.py",
+        "src/doc_converter/converters/docx/inline_glyph.py",
+        "src/doc_converter/converters/docx/formulas/text.py",
+        "src/doc_converter/converters/docx/formulas/wmf.py",
+        "tests/test_docx_converter.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": "Get-ChildItem src\\doc_converter\\converters\\docx -Recurse -File -Include *.py | Where-Object { (Get-Content $_.FullName).Length -gt 800 }"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_docx_converter"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_cli_smoke tests.test_formula_recognition"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m pyright"
+        }
+      ],
+      "evidence": [
+        "docs/production-roadmap.md",
+        "src/doc_converter/converters/docx/__init__.py",
+        "src/doc_converter/converters/docx/pipeline.py",
+        "src/doc_converter/converters/docx/inline_glyph.py",
+        "src/doc_converter/converters/docx/formulas/text.py",
+        "src/doc_converter/converters/docx/formulas/wmf.py",
+        "tests/test_docx_converter.py",
+        "tests/test_cli_smoke.py",
+        "tests/test_formula_recognition.py"
+      ],
+      "residual_risk": "Internal monkeypatch targets now need to point at concrete DOCX submodules when implementation imports helpers directly; repo-wide file-size debt also remains in runner.py and formula_benchmark.py outside the DOCX slice."
     },
     {
       "feature_id": "pdf-text-route",
@@ -503,7 +557,7 @@
         "samples/formulas/known-patterns.v1.json",
         "src/doc_converter/formulas/known-patterns.v1.json",
         "src/doc_converter/formulas/known.py",
-        "src/doc_converter/converters/docx.py",
+        "src/doc_converter/converters/docx/formulas/text.py",
         "tests/test_known_formula_patterns.py"
       ],
       "residual_risk": "The JSON contract preserves existing signature predicates, including suffix checks, but future generalized WMF parser work still needs separate false-positive controls beyond known-pattern lookup."

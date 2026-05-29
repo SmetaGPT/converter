@@ -101,7 +101,7 @@ graph LR
 - **Goal:** убрать hard-coded MathType таблицу из кода.
 - **Scope:**
   - Завести `schemas/formula-known-patterns.v1.schema.json`.
-  - Перенести `_known_formula_representation` из [src/doc_converter/converters/docx.py](../src/doc_converter/converters/docx.py) в `samples/formulas/known-patterns.v1.json`.
+  - Перенести `_known_formula_representation` из DOCX formula text layer в [src/doc_converter/converters/docx/formulas/text.py](../src/doc_converter/converters/docx/formulas/text.py) и `samples/formulas/known-patterns.v1.json`.
   - Loader в `src/doc_converter/formulas/known.py` (после S2.1 — в подпакете), сейчас допустимо в существующем модуле.
   - Скрипт `scripts/export_known_formulas.py` + `scripts/validate_known_formulas.py`.
   - Тест `tests/test_known_formula_patterns.py` — параметризован по записям JSON.
@@ -128,17 +128,19 @@ graph LR
 
 ### Sprint S2.1 — Split `converters/docx.py`
 
-- **Goal:** ни одного файла > 800 строк в `src/`.
-- **Scope:** разрезать [src/doc_converter/converters/docx.py](../src/doc_converter/converters/docx.py) на подпакет `converters/docx/`:
+**Status:** completed 2026-05-29. Evidence: `src/doc_converter/converters/docx.py` заменён на package `converters/docx/`, package scope проходит лимит `< 800` строк на файл, focused DOCX + CLI/formula-recognition tests зелёные, full suite/ruff/pyright зелёные.
+
+- **Goal:** убрать DOCX monolith > 800 строк и зафиксировать package split pattern без ломки public API.
+- **Scope:** перевести DOCX route из monolith file в package entrypoint [src/doc_converter/converters/docx/__init__.py](../src/doc_converter/converters/docx/__init__.py) и smaller modules `converters/docx/`:
   - `pipeline.py` (convert_docx, body iteration, paragraph/table assembly);
   - `formulas/text.py` (representation, calc_expr, latex);
   - `formulas/known.py` (loader из S1.2);
   - `formulas/wmf.py` (WMF parsing, IR);
   - `inline_glyph.py` (recognizer + template renderer);
   - `__init__.py` сохраняет публичный API.
-- **Exit:** `Get-ChildItem src -Recurse -File -Include *.py | Where-Object { (Get-Content $_.FullName).Length -gt 800 }` пусто; полный unittest green; `pyright src` clean.
+- **Exit:** `Get-ChildItem src\doc_converter\converters\docx -Recurse -File -Include *.py | Where-Object { (Get-Content $_.FullName).Length -gt 800 }` пусто; imports через `doc_converter.converters.docx` сохраняются; полный unittest green; `pyright src` clean.
 - **depends_on:** S0.1, S1.2.
-- **feature_ids:** `arch.docx-split`.
+- **feature_ids:** `arch-docx-split`.
 
 ### Sprint S2.2 — Split `runner.py`
 
@@ -284,7 +286,7 @@ graph LR
 - **Goal:** безопасная обработка untrusted documents.
 - **Scope:**
   - `docs/security.md`: модель угроз, список subprocess, политика по шрифтам и paths.
-  - WMF parser: size/record-count limits в [src/doc_converter/converters/docx.py](../src/doc_converter/converters/docx.py) (после S2.1 — в `formulas/wmf.py`).
+  - WMF parser: size/record-count limits в [src/doc_converter/converters/docx/formulas/wmf.py](../src/doc_converter/converters/docx/formulas/wmf.py).
   - OOXML: лимит на zip entries и распакованный размер.
   - `runner._validate_startup_paths`: symlink resolution + строгий allowlist `input_dir`/`output_dir`/`runs_dir`.
 - **Exit:** тесты с malicious sample (zip-bomb DOCX, oversized WMF) — graceful reject; `docs/security.md` ревьюнут.
@@ -378,7 +380,7 @@ graph LR
 ```yaml
 sprint_id: S2.1
 goal: "Split converters/docx.py"
-feature_ids: [arch.docx-split]
+feature_ids: [arch-docx-split]
 depends_on: [S0.1, S1.2]
 status: in_progress     # not_started | in_progress | blocked | done
 started_at: "2026-MM-DDTHH:MM:SSZ"

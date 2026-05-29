@@ -40,7 +40,7 @@ class DocxConverterTests(unittest.TestCase):
             document.save(str(source_path))
 
             INLINE_GLYPH_CACHE.clear()
-            with patch("doc_converter.converters.docx._recognize_inline_glyph", return_value="÷"):
+            with patch("doc_converter.converters.docx.inline_glyph._recognize_inline_glyph", return_value="÷"):
                 result = run_convert_folder(_docx_converter_config(input_dir, output_dir))
 
             self.assertEqual(result.status, "success")
@@ -205,7 +205,7 @@ class DocxConverterTests(unittest.TestCase):
             document.save(str(source_path))
 
             INLINE_GLYPH_CACHE.clear()
-            with patch("doc_converter.converters.docx._recognize_inline_glyph", return_value="÷"):
+            with patch("doc_converter.converters.docx.inline_glyph._recognize_inline_glyph", return_value="÷"):
                 result = run_convert_folder(_docx_converter_config(input_dir, output_dir))
 
             self.assertEqual(result.status, "success")
@@ -245,7 +245,7 @@ class DocxConverterTests(unittest.TestCase):
             document.save(str(source_path))
 
             INLINE_GLYPH_CACHE.clear()
-            with patch("doc_converter.converters.docx._recognize_inline_glyph", return_value="÷"):
+            with patch("doc_converter.converters.docx.inline_glyph._recognize_inline_glyph", return_value="÷"):
                 result = run_convert_folder(_docx_converter_config(input_dir, output_dir))
 
             self.assertEqual(result.status, "success")
@@ -321,7 +321,7 @@ class DocxConverterTests(unittest.TestCase):
                 for index, symbol in enumerate(symbols, start=1)
             }
             with patch(
-                "doc_converter.converters.docx._recognize_inline_glyph",
+                "doc_converter.converters.docx.inline_glyph._recognize_inline_glyph",
                 side_effect=lambda _blob, asset_name, _drawing_extent: symbol_by_asset.get(asset_name),
             ):
                 result = run_convert_folder(_docx_converter_config(input_dir, output_dir))
