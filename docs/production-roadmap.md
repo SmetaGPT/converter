@@ -144,11 +144,13 @@ graph LR
 
 ### Sprint S2.2 — Split `runner.py`
 
+**Status:** completed 2026-05-29. Evidence: `src/doc_converter/runner.py` reduced to a 5-line compatibility wrapper, orchestration moved into `src/doc_converter/run/`, focused CLI/runner slices stayed green, full suite/ruff/pyright stayed green.
+
 - **Goal:** orchestration ортогонален от I/O.
 - **Scope:** подпакет `run/` с модулями `paths.py`, `resume.py`, `catalog.py`, `postprocess.py`, `orchestration.py`. Точка входа `run_convert_folder` re-exported.
 - **Exit:** `runner.py` ≤ 200 строк (тонкий wrapper) или удалён в пользу `run/__init__.py`; unittest green.
 - **depends_on:** S0.1.
-- **feature_ids:** `arch.runner-split`.
+- **feature_ids:** `arch-runner-split`.
 
 ### Sprint S2.3 — `tables/` shared package
 

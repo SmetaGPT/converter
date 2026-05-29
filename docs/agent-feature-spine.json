@@ -366,7 +366,57 @@
         "tests/test_cli_smoke.py",
         "tests/test_formula_recognition.py"
       ],
-      "residual_risk": "Internal monkeypatch targets now need to point at concrete DOCX submodules when implementation imports helpers directly; repo-wide file-size debt also remains in runner.py and formula_benchmark.py outside the DOCX slice."
+      "residual_risk": "Internal monkeypatch targets now need to point at concrete DOCX submodules when implementation imports helpers directly; remaining repo-wide file-size debt now sits outside the DOCX slice in formula_benchmark.py."
+    },
+    {
+      "feature_id": "arch-runner-split",
+      "area": "architecture",
+      "title": "Runner orchestration package split",
+      "status": "validated",
+      "behavior": "Conversion orchestration, startup path validation, resume reuse, processed catalog generation and formula postprocess live in `doc_converter.run` modules, while `doc_converter.runner` stays a thin compatibility wrapper for the public API used by CLI, GUI and tests.",
+      "owner_docs": [
+        "docs/production-roadmap.md",
+        "src/doc_converter/runner.py",
+        "src/doc_converter/run/__init__.py",
+        "src/doc_converter/run/paths.py",
+        "src/doc_converter/run/resume.py",
+        "src/doc_converter/run/catalog.py",
+        "src/doc_converter/run/postprocess.py",
+        "src/doc_converter/run/orchestration.py",
+        "tests/test_cli_smoke.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": "(Get-Content src\\doc_converter\\runner.py).Count"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_cli_smoke.CliSmokeTests.test_missing_input_directory_fails tests.test_cli_smoke.CliSmokeTests.test_equal_input_and_output_directory_fails_before_run_starts tests.test_cli_smoke.CliSmokeTests.test_output_directory_inside_input_fails_before_run_starts tests.test_cli_smoke.CliSmokeTests.test_input_directory_inside_output_fails_before_run_starts"
+        },
+        {
+          "type": "command",
+          "target": "$env:PYTHONPATH = 'src'; .\\.venv\\Scripts\\python.exe -m unittest discover -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m pyright"
+        }
+      ],
+      "evidence": [
+        "docs/production-roadmap.md",
+        "src/doc_converter/runner.py",
+        "src/doc_converter/run/__init__.py",
+        "src/doc_converter/run/paths.py",
+        "src/doc_converter/run/resume.py",
+        "src/doc_converter/run/catalog.py",
+        "src/doc_converter/run/postprocess.py",
+        "src/doc_converter/run/orchestration.py",
+        "tests/test_cli_smoke.py",
+        "src/doc_converter/cli.py",
+        "src/doc_converter/gui.py"
+      ],
+      "residual_risk": "Internal monkeypatch targets for runner internals now need to point at concrete `doc_converter.run` submodules when implementation imports helpers directly; remaining repo-wide file-size debt is now concentrated in formula_benchmark.py."
     },
     {
       "feature_id": "pdf-text-route",

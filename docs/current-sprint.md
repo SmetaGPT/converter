@@ -1,27 +1,26 @@
 # Current Sprint
 
 Последнее обновление: 2026-05-29
-Активный спринт: S2.1 — Split converters/docx.py
+Активный спринт: S2.2 — Split runner.py
 Статус: completed
 
-Предыдущий приоритетный tranche: S1.3 — Agent run metadata + universal validator
+Предыдущий приоритетный tranche: S2.1 — Split converters/docx.py
 Статус wave W2: in_progress
 
 ## 1. Цель спринта
 
-Убрать DOCX monolith `src/doc_converter/converters/docx.py`, перевести route на smaller package modules и сохранить текущий public API/import surface для `runner`, `formula_recognition` и regression tests.
+Убрать orchestration monolith `src/doc_converter/runner.py`, вынести path/resume/catalog/postprocess/run logic в `src/doc_converter/run/` и сохранить текущий public API/import surface для `cli`, `gui` и regression tests.
 
 ## 2. Артефакты спринта
 
-- src/doc_converter/converters/docx/__init__.py
-- src/doc_converter/converters/docx/pipeline.py
-- src/doc_converter/converters/docx/inline_glyph.py
-- src/doc_converter/converters/docx/formulas/__init__.py
-- src/doc_converter/converters/docx/formulas/text.py
-- src/doc_converter/converters/docx/formulas/wmf.py
-- tests/test_docx_converter.py
+- src/doc_converter/runner.py
+- src/doc_converter/run/__init__.py
+- src/doc_converter/run/paths.py
+- src/doc_converter/run/resume.py
+- src/doc_converter/run/catalog.py
+- src/doc_converter/run/postprocess.py
+- src/doc_converter/run/orchestration.py
 - tests/test_cli_smoke.py
-- tests/test_formula_recognition.py
 - docs/current-status.md
 - docs/current-sprint.md
 - docs/production-roadmap.md
@@ -34,35 +33,36 @@
 
 | Задача | Статус |
 | --- | --- |
-| Заменить `src/doc_converter/converters/docx.py` на package `converters/docx/` | Готово |
-| Разнести pipeline, inline glyph и formula helpers по smaller modules | Готово |
-| Сохранить public imports через `src/doc_converter/converters/docx/__init__.py` | Готово |
-| Обновить monkeypatch targets в DOCX tests там, где pipeline зовёт submodule-local helper | Готово |
+| Вынести startup/path validation в `src/doc_converter/run/paths.py` | Готово |
+| Разнести resume/catalog/postprocess/orchestration по smaller modules | Готово |
+| Сохранить public imports через thin `src/doc_converter/runner.py` | Готово |
+| Обновить monkeypatch targets в runner tests на concrete run submodules | Готово |
 | Подтвердить focused и full validation без behavioral drift | Готово |
-| Зафиксировать remaining file-size debt как следующий architecture backlog | Готово |
+| Зафиксировать remaining file-size debt как follow-up вне runner slice | Готово |
 
 ## 4. Validation targets спринта
 
-1. `\.venv\Scripts\python.exe -m unittest tests.test_docx_converter` прошёл зелёно: 37 tests, OK.
-2. `\.venv\Scripts\python.exe -m unittest tests.test_cli_smoke tests.test_formula_recognition` прошёл зелёно: 31 test, OK.
-3. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe -m unittest discover -s tests` прошёл зелёно: 142 tests, OK.
+1. `runTests tests/test_cli_smoke.py::test_missing_input_directory_fails test_equal_input_and_output_directory_fails_before_run_starts test_output_directory_inside_input_fails_before_run_starts test_input_directory_inside_output_fails_before_run_starts` прошёл зелёно: 4 tests, OK.
+2. `runTests tests/test_cli_smoke.py::test_empty_folder_creates_run_package test_run_metadata_records_agent_run_metadata test_runner_invokes_formula_recognition_postprocess_when_configured test_processed_documents_catalog_describes_output_folder_and_status test_failed_document_writes_review_required_file_and_failed_reason test_repeated_run_reuses_previous_output_for_unchanged_input` прошёл зелёно: 6 tests, OK.
+3. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe -m unittest discover -v` прошёл зелёно: 142 tests, OK.
 4. `\.venv\Scripts\python.exe -m ruff check src tests scripts` прошёл зелёно.
 5. `\.venv\Scripts\python.exe -m pyright` прошёл зелёно: 0 errors, 0 warnings.
-6. `Get-ChildItem src\doc_converter\converters\docx -Recurse -File -Include *.py | Where-Object { (Get-Content $_.FullName).Length -gt 800 }` вернул пустой результат.
+6. `(Get-Content src\doc_converter\runner.py).Count` вернул `5`.
+7. `\.venv\Scripts\python.exe scripts\validate_harness_assets.py` вернул `status: ok`, `features: 31`, `validated: 31`, `telemetry_entries: 68`.
 
 ## 5. Риски спринта
 
-- Package-level re-export сохраняет compatibility, но internal monkeypatching теперь должно указывать на реальные submodule symbols, если implementation импортирует helper напрямую.
-- Repo-wide file-size debt после закрытия S2.1 остаётся в `src/doc_converter/runner.py` и `src/doc_converter/formula_benchmark.py`; это уже не DOCX monolith risk, а следующий architecture tranche.
+- Package-level re-export сохраняет compatibility, но internal monkeypatching теперь должно указывать на реальные `run/` submodule symbols, если implementation импортирует helper напрямую.
+- Repo-wide file-size debt после закрытия S2.2 остаётся уже не в orchestration layer, а только в `src/doc_converter/formula_benchmark.py`.
 - Full unittest discover в этом shell-контуре надёжнее запускать с явным `PYTHONPATH=src`, чтобы discovery не терял import context для `src/`.
 
 ## 6. Критерий выхода
 
-Спринт закрыт: монолит `src/doc_converter/converters/docx.py` удалён, DOCX route работает через package `src/doc_converter/converters/docx/`, публичный import surface сохранён через `__init__.py`, package scope больше не содержит файлов > 800 строк, а focused/full gates остаются зелёными.
+Спринт закрыт: orchestration вынесен в `src/doc_converter/run/`, `src/doc_converter/runner.py` сокращён до thin wrapper, public API для `cli`/`gui` сохранён, focused/full gates остаются зелёными, а runner больше не содержит monolith-sized implementation.
 
 ## 7. Следующий operational focus
 
-1. Начать S2.2 `Split runner.py`.
-2. После S2.2 вывести `src/doc_converter/formula_benchmark.py` из oversize-состояния отдельным architecture slice.
-3. Затем вернуться к measured table benchmark backlog и richer DOCX table semantics.
+1. Начать S2.3 `tables/` shared package.
+2. Отдельно вывести `src/doc_converter/formula_benchmark.py` из oversize-состояния как следующий architecture follow-up.
+3. Затем продолжить measured table benchmark backlog и richer DOCX table semantics.
 4. Продолжать выполнять prompt `.github/prompts/execute-production-roadmap-autonomous.prompt.md`: sprint → focused validation → state update → commit → push.

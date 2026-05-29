@@ -357,7 +357,7 @@ class CliSmokeTests(unittest.TestCase):
             )
 
             with patch(
-                "doc_converter.runner.run_formula_recognition_postprocess",
+                "doc_converter.run.postprocess.run_formula_recognition_postprocess",
                 return_value=FormulaRecognitionPostprocessResult(
                     attempted=2,
                     recognized=1,
@@ -456,7 +456,7 @@ class CliSmokeTests(unittest.TestCase):
             document.add_paragraph("boom")
             document.save(str(source_path))
 
-            with patch("doc_converter.runner.convert_docx", side_effect=OSError("broken docx extractor")):
+            with patch("doc_converter.run.orchestration.convert_docx", side_effect=OSError("broken docx extractor")):
                 result = run_convert_folder(
                     ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir), options=ConverterOptions())
                 )
@@ -559,7 +559,7 @@ class CliSmokeTests(unittest.TestCase):
                 if line.strip()
             ]
 
-            with patch("doc_converter.runner.convert_docx") as convert_docx:
+            with patch("doc_converter.run.orchestration.convert_docx") as convert_docx:
                 second_result = run_convert_folder(
                     ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir), options=ConverterOptions())
                 )

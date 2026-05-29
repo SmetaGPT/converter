@@ -101,9 +101,9 @@ Machine-readable companion: `docs/agent-quality-scorecard.v1.json`.
 Текущий observed snapshot из structured telemetry:
 
 - as_of_date: `2026-05-29`;
-- telemetry entries: `67`;
-- validated features in spine: `30`;
-- referenced features in telemetry: `30`;
+- telemetry entries: `68`;
+- validated features in spine: `31`;
+- referenced features in telemetry: `31`;
 - observed signals: `Validation 5/5, State hygiene 5/5, Feature traceability 5/5, Feature coverage 5/5`.
 
 Этот companion не заменяет qualitative review и eval loop. Он нужен как быстрый machine-readable слой для weekly checks и CI-backed drift detection.
