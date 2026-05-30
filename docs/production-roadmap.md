@@ -202,11 +202,13 @@ graph LR
 
 ### Sprint S3.3 — Secret redaction guarantee
 
+**Status:** completed locally 2026-05-31. Evidence: `src/doc_converter/redaction.py` introduces recursive env-value redaction for keys matching `*API_KEY*/*TOKEN*/*SECRET*`; run/package serialization boundaries in `src/doc_converter/run/orchestration.py`, `src/doc_converter/run/logging.py`, `src/doc_converter/run/catalog.py` and `src/doc_converter/formula_recognition.py` now write redacted payloads; `tests/test_provider_secret_redaction.py` scans temp run artifacts and formula-recognition sidecars for raw env-secret values; full `unittest`, `ruff` and `pyright` stayed green.
+
 - **Goal:** ни один secret не утекает в артефакты.
 - **Scope:** утилита `redact_secrets(obj, env)`; вызов на границе записи `run.json`/`manifest`/`formula-recognition.jsonl`; тест `tests/test_provider_secret_redaction.py` сканирует все артефакты test-runs на совпадения со значениями env-vars `*API_KEY*/*TOKEN*/*SECRET*`.
 - **Exit:** тест зелёный; CI-gate.
 - **depends_on:** S3.1.
-- **feature_ids:** `security.secret-redaction`.
+- **feature_ids:** `security-secret-redaction`.
 
 ---
 

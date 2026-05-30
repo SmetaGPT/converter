@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from ..inventory import InventoryRecord, UnsupportedInventoryRecord
+from ..redaction import redact_secrets
 from .catalog_writers import CatalogWriteContext, CatalogWriter, ProcessedDocumentCatalogEntry
 
 
@@ -24,11 +25,14 @@ def _write_processed_documents_catalog(
         manifest_records=manifest_records,
         error_details_by_relative_path=error_details_by_relative_path,
     )
+    redacted_documents = redact_secrets(documents)
+    if not isinstance(redacted_documents, list):
+        raise TypeError("Redacted catalog documents must remain a list")
 
     context = CatalogWriteContext(
         run_dir=run_dir,
         run_id=run_id,
-        documents=documents,
+        documents=redacted_documents,
         write_validated_json=write_validated_json,
     )
     for writer in writers:

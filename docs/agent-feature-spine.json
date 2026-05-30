@@ -1374,7 +1374,7 @@
         "docs/production-roadmap.md",
         "docs/release-status.md"
       ],
-      "residual_risk": "OCR backend dispatch is now explicit and configurable, but live OCR quality still depends on local/runtime tool availability and secret/artifact hygiene still needs S3.3 to guarantee redaction boundaries."
+      "residual_risk": "OCR backend dispatch is now explicit and configurable, but live OCR quality still depends on local/runtime tool availability and any future OCR integrations must adopt the same artifact-redaction discipline."
     },
     {
       "feature_id": "providers-catalog-protocol",
@@ -1418,7 +1418,53 @@
         "docs/production-roadmap.md",
         "docs/release-status.md"
       ],
-      "residual_risk": "Catalog emission is now protocol-driven, but artifact-surface secrecy still depends on S3.3 and any future catalog formats will still need explicit validation and operator-compatibility tests."
+      "residual_risk": "Catalog emission is now protocol-driven, but any future catalog formats will still need explicit validation, operator-compatibility tests, and the same boundary-level redaction discipline."
+    },
+    {
+      "feature_id": "security-secret-redaction",
+      "area": "security",
+      "title": "Artifact secret redaction boundary",
+      "status": "validated",
+      "behavior": "Run/package/provider artifacts no longer rely on individual call-sites to avoid leaking credentials; a shared `redact_secrets` helper rewrites env-secret values at the last serialization boundary for JSON, JSONL, compatibility mirrors, formula-recognition sidecars and processed-document catalogs, including XLSX-backed operator output.",
+      "owner_docs": [
+        "src/doc_converter/redaction.py",
+        "src/doc_converter/run/orchestration.py",
+        "src/doc_converter/run/logging.py",
+        "src/doc_converter/run/catalog.py",
+        "src/doc_converter/formula_recognition.py",
+        "tests/test_provider_secret_redaction.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "memories/repo/backend-notes.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_provider_secret_redaction tests.test_formula_recognition tests.test_cli_smoke.CliSmokeTests.test_failed_document_writes_review_required_file_and_failed_reason -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m ruff check src tests scripts"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest discover -v"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/redaction.py",
+        "src/doc_converter/run/orchestration.py",
+        "src/doc_converter/run/logging.py",
+        "src/doc_converter/run/catalog.py",
+        "src/doc_converter/formula_recognition.py",
+        "tests/test_provider_secret_redaction.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "memories/repo/backend-notes.md"
+      ],
+      "residual_risk": "Artifact serialization now redacts env-secret values centrally, but future non-JSON export surfaces and external integrations still need to opt into the same boundary discipline and tests."
     },
     {
       "feature_id": "machine-readable-telemetry",

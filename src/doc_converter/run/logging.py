@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Callable
 
+from ..redaction import redact_secrets
 from ..schema_validation import validate_payload
 
 
@@ -31,7 +32,7 @@ class RuntimeLogger:
         if legacy:
             legacy_path = self.legacy_error_path if event == "document_failed" else self.legacy_log_path
             if legacy_path is not None:
-                _append_jsonl(legacy_path, _legacy_event_payload(event_payload))
+                _append_jsonl(legacy_path, _redacted_mapping(_legacy_event_payload(event_payload)))
 
         if progress and self.progress_callback is not None:
             self.progress_callback(dict(event_payload))
@@ -106,13 +107,21 @@ def _legacy_event_payload(event_payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _append_validated_jsonl(path: Path, payload: dict[str, Any], schema_filename: str) -> None:
-    validate_payload(payload, schema_filename)
-    _append_jsonl(path, payload)
+    redacted_payload = _redacted_mapping(payload)
+    validate_payload(redacted_payload, schema_filename)
+    _append_jsonl(path, redacted_payload)
 
 
 def _append_jsonl(path: Path, payload: dict[str, Any]) -> None:
     with path.open("a", encoding="utf-8", newline="\n") as handle:
         handle.write(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n")
+
+
+def _redacted_mapping(payload: dict[str, Any]) -> dict[str, Any]:
+    redacted = redact_secrets(payload)
+    if not isinstance(redacted, dict):
+        raise TypeError("Redacted payload must remain a dictionary")
+    return redacted
 
 
 def _optional_int(value: object) -> int | None:

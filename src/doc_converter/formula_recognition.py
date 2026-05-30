@@ -17,6 +17,7 @@ from doc_converter.formulas.providers import (
     NullProvider,
     build_formula_provider_chain,
 )
+from doc_converter.redaction import redact_secrets
 from doc_converter.schema_validation import validate_payload
 
 FORMULA_RECOGNITION_RESULTS_FILENAME = "formula-recognition.jsonl"
@@ -204,10 +205,8 @@ def run_formula_recognition_postprocess(
             _append_unique(processing_warnings, warning)
 
     artifact_path = document_dir / FORMULA_RECOGNITION_RESULTS_FILENAME
-    artifact_path.write_text(
-        "".join(json.dumps(record, ensure_ascii=False) + "\n" for record in records),
-        encoding="utf-8",
-    )
+    redacted_records = _redacted_record_list(records)
+    artifact_path.write_text("".join(json.dumps(record, ensure_ascii=False) + "\n" for record in redacted_records), encoding="utf-8")
     processing_payload: dict[str, Any] = {
         "attempted": attempted,
         "recognized": recognized,
@@ -222,8 +221,11 @@ def run_formula_recognition_postprocess(
         processing_payload["local_backend"] = config.local_backend
     processing["formula_recognition"] = processing_payload
 
-    validate_payload(payload, "document.v1.schema.json")
-    document_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    redacted_payload = redact_secrets(payload)
+    if not isinstance(redacted_payload, dict):
+        raise TypeError("Redacted document payload must remain a dictionary")
+    validate_payload(redacted_payload, "document.v1.schema.json")
+    document_path.write_text(json.dumps(redacted_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     return FormulaRecognitionPostprocessResult(
         attempted=attempted,
@@ -296,3 +298,10 @@ def _apply_formula_to_unit(unit: dict[str, Any], formula: dict[str, Any], *, ori
 def _append_unique(values: list[str], value: str) -> None:
     if value not in values:
         values.append(value)
+
+
+def _redacted_record_list(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    redacted = redact_secrets(records)
+    if not isinstance(redacted, list):
+        raise TypeError("Redacted formula-recognition records must remain a list")
+    return redacted
