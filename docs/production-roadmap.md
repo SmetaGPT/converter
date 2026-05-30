@@ -344,6 +344,8 @@ Status: completed (2026-05-30). Evidence: added `docs/security.md`, hardened `sr
 
 ### Sprint S9.1 — PR-gates и branch protection
 
+**Status:** completed 2026-05-30. Evidence: `main` branch protection now requires `secret-scan`, `lint`, `typecheck`, `unit-tests`, `harness-validator`, `formula-benchmark-gate`, `document-package-validator` и `release-smoke` with `strict = true` and `required_approving_review_count = 0`; PR template enforces feature/state/validation closeout; `.github/workflows/autonomous-pr-auto-merge.yml` lives on `main` and same-repo non-draft PRs with label `agent:autonomous` can merge automatically after green checks.
+
 - **Goal:** автономный merge при зелёных gates.
 - **Scope:**
   - PR template требует feature_id, обновлённый `current-status.md`, telemetry append.
@@ -351,7 +353,7 @@ Status: completed (2026-05-30). Evidence: added `docs/security.md`, hardened `sr
   - Auto-merge для PR с label `agent:autonomous` при всех зелёных gates.
 - **Exit:** demo PR от агента merge-ится без человека.
 - **depends_on:** S0.1, S1.3, S3.3, S7.2.
-- **feature_ids:** `ci.pr-gates`, `ci.auto-merge`.
+- **feature_ids:** `ci-pr-gates`, `ci-auto-merge`.
 
 ### Sprint S9.2 — Nightly full e2e
 

@@ -1,7 +1,7 @@
 # Current Status
 
 Последнее обновление: 2026-05-30
-Статус контура: wave 2 complete, operational use ready
+Статус контура: wave 2 complete, S9.1 gate automation live
 
 ## 1. Краткий снимок состояния
 
@@ -13,6 +13,8 @@
 - Sprint 4 завершён;
 - Sprint 5 завершён;
 - Sprint 6 завершён;
+- Sprint 7 завершён;
+- critical-path sprint S9.1 завершён;
 - roadmap wave 1 завершена;
 - roadmap wave 2 завершена;
 - state layer уже создан;
@@ -151,6 +153,7 @@
 126. Закрыт production roadmap Sprint S6.2: весь runtime event stream теперь проходит через central `RuntimeLogger`, каждый run получает schema-backed `telemetry.jsonl` по `log.v1`, а `scripts/validate_run_package.py` валидирует telemetry вместе с остальными run-package артефактами. Legacy `processing-log.jsonl` и `errors.jsonl` оставлены как compatibility mirrors; focused CLI smoke (29 tests), validator smoke на fresh run package, full suite (203 tests), `ruff` и `pyright` прошли зелёно.
 127. Закрыт production roadmap Sprint S7.1: `validate_run_directories` теперь fail-closed отклоняет symlink components в `input_dir`/`output_dir`/`runs_dir`, DOCX admission проверяет entry-count и uncompressed-size limits до `python-docx`, WMF parser ограничен по размеру blob и количеству records, а новый `docs/security.md` фиксирует threat model, subprocess inventory и font/path policy. Focused security slice (`tests/test_docx_converter.py` + `tests/test_run_paths.py`, 88 tests), `python -m unittest discover -v` (156 tests, skipped 4), `ruff` и `pyright` прошли зелёно.
 128. Закрыт production roadmap Sprint S7.2: `windows-ci` теперь ставит Gitleaks и выполняет required git-backed secret scan `gitleaks git --config .gitleaks.toml --exit-code 1 .`, `.gitleaks.toml` расширяет default rules узким product-specific rule для `OPENROUTER_API_KEY` / `FORMULA_RECOGNITION_API_KEY`, а global allowlist покрывает только известные fake fixtures и `.env.example`. Focused local validation подтвердила `clean repo exit 0` и `synthetic git canary exit 1`.
+129. Закрыт production roadmap Sprint S9.1: на `main` включены strict required PR checks `secret-scan`, `lint`, `typecheck`, `unit-tests`, `harness-validator`, `formula-benchmark-gate`, `document-package-validator` и `release-smoke`, PR template требует feature/state/validation closeout, а workflow `.github/workflows/autonomous-pr-auto-merge.yml` на base branch включает squash auto-merge для same-repo non-draft PR с label `agent:autonomous`. Bootstrap tranche потребовал отдельного release-smoke hardening, после чего proof PR агента merge-ится автоматически без ручного `gh pr merge`.
 
 ### Готовые артефакты
 
@@ -198,6 +201,9 @@
 - docs/build-and-run.md
 - docs/ocr-runtime-windows.md
 - docs/downstream-handoff.md
+- .github/PULL_REQUEST_TEMPLATE.md
+- .github/workflows/windows-ci.yml
+- .github/workflows/autonomous-pr-auto-merge.yml
 - .github/prompts/production-readiness-hardening.prompt.md
 - .github/prompts/execute-production-roadmap-autonomous.prompt.md
 - .vscode/extensions.json
@@ -243,7 +249,7 @@
 
 ## 3. Что делается сейчас
 
-Текущий фокус: после закрытия S7.2 следующий critical-path sprint production roadmap — S9.1, то есть PR-gates и branch protection поверх уже закрытого security baseline.
+Текущий фокус: после закрытия S9.1 следующий critical-path sprint production roadmap — S9.2, то есть nightly full e2e поверх уже зафиксированных PR-gates, branch protection и autonomous merge.
 
 Новый architecture-learning по input hardening: самые дешёвые security controls снова закрываются в shared admission boundary, а не в route-specific хвостах. Один guard в `run/paths.py` и один DOCX archive preflight дают больше контроля, чем поздние локальные проверки после начала extraction.
 
@@ -253,9 +259,14 @@
 
 Новый secret-scan-learning по S7.2: deterministic CI gate проще и надёжнее строить по git-tracked content с узким config-driven правилом, чем по filesystem scan всего рабочего дерева. Локальные `.venv`/`dist`/release artifacts быстро создают шум и ломают reproducible validation, тогда как `gitleaks git` честно проверяет именно репозиторный контур.
 
+Новый CI-learning по S9.1: PR, который впервые доставляет `pull_request_target` auto-merge workflow на `main`, не может сам доказать label-driven merge path. Bootstrap и proof должны быть разделены на два same-repo PR, иначе automation ещё не существует на base branch в момент проверки.
+
+Новый release-smoke-learning по S9.1: GitHub-hosted runner без `tesseract`/`ghostscript` должен считаться валидным `environment_invalid` ответом для `check-ocr`; release-smoke здесь проверяет schema-backed CLI envelope и exit-code contract, а не готовность OCR runtime на каждом runner.
+
 В работе:
 
-- открыть production roadmap S9.1: PR-gates и branch protection как следующий automation tranche;
+- открыть production roadmap S9.2: nightly full e2e как следующий automation tranche поверх уже закрытого S9.1;
+- держать contract required-status contexts и label `agent:autonomous` синхронными с `.github/workflows/windows-ci.yml` и `.github/workflows/autonomous-pr-auto-merge.yml`;
 - удерживать `.gitleaks.toml` allowlist узким и не расширять его за пределы test/example surfaces без нового evidence;
 - держать `src/doc_converter/formula_benchmark.py` как отдельный non-critical architecture follow-up по file-size debt;
 - удержать measured table backlog на `sample_009/018/020` и negative/control contour как parallel quality loop, не подменяя им critical path;
@@ -263,10 +274,10 @@
 
 ## 4. Что идёт дальше
 
-Следующая последовательность после закрытия S7.2:
+Следующая последовательность после закрытия S9.1:
 
-1. Открыть production roadmap S9.1: PR-gates и branch protection.
-2. Затем продолжить S9.x automation, не размывая S7.x hardening measured backlog-ами.
+1. Открыть production roadmap S9.2: nightly full e2e.
+2. Затем открыть S9.3: release automation поверх стабильного nightly/regression контура.
 3. После security baseline решить отдельным tranche дальнейший hardening для PDF/XLSX admission, если он станет критичным.
 4. Держать `src/doc_converter/formula_benchmark.py` как отдельный follow-up по repo-wide file-size debt вне critical path.
 5. Продолжать measured table backlog по `sample_020`, warning density на `sample_009/018` и negative/control false-positive contour уже поверх shared `tables/` package.
