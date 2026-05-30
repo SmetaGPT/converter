@@ -1,24 +1,21 @@
 # Current Sprint
 
 Последнее обновление: 2026-05-30
-Активный спринт: S7.1 — Threat model и input hardening
+Активный спринт: S7.2 — Secret scan CI
 Статус: completed
 
-Предыдущий приоритетный tranche: S6.2 — Structured logs and telemetry
+Предыдущий приоритетный tranche: S7.1 — Threat model и input hardening
 Статус: completed
-Статус wave W7: in_progress
+Статус wave W7: completed
 
 ## 1. Цель спринта
 
-Сделать обработку untrusted inputs fail-closed на самых дешёвых admission boundaries: запретить symlink/path confusion на старте, ограничить OOXML archive size и entry count, ограничить WMF blob/record parsing и зафиксировать эти правила в `docs/security.md`.
+Сделать leak gate обязательной частью CI: чистый git-backed репозиторный контур проходит, а искусственно вставленный API-key canary валится до merge.
 
 ## 2. Артефакты спринта
 
-- src/doc_converter/run/paths.py
-- src/doc_converter/converters/docx/pipeline.py
-- src/doc_converter/converters/docx/formulas/wmf.py
-- tests/test_run_paths.py
-- tests/test_docx_converter.py
+- .gitleaks.toml
+- .github/workflows/windows-ci.yml
 - docs/security.md
 - docs/current-status.md
 - docs/current-sprint.md
@@ -36,35 +33,33 @@
 
 | Задача | Статус |
 | --- | --- |
-| Ужесточить startup path validation для `input_dir`/`output_dir`/`runs_dir` | Готово |
-| Ввести DOCX archive admission limits до `python-docx` и manual extraction | Готово |
-| Ограничить WMF parser по размеру blob и количеству records | Готово |
-| Добавить malicious-limit tests для DOCX и WMF | Готово |
-| Зафиксировать threat model, subprocess inventory и font/path policy в `docs/security.md` | Готово |
+| Добавить required Gitleaks scan в `windows-ci` | Готово |
+| Зафиксировать global allowlist только для known test fixtures и `.env.example` | Готово |
+| Добавить deterministic product-specific rule для `OPENROUTER_API_KEY` / `FORMULA_RECOGNITION_API_KEY` | Готово |
+| Подтвердить локально clean repo pass и synthetic git canary fail | Готово |
+| Синхронизировать `docs/security.md`, roadmap, feature spine и telemetry | Готово |
 
 ## 4. Validation targets спринта
 
-1. `runTests tests/test_docx_converter.py tests/test_run_paths.py` прошёл зелёно: 88 tests, 0 failed.
-2. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe -m unittest discover -v` прошёл зелёно: 156 tests, 0 failed, `skipped=4`.
-3. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe -m ruff check src tests scripts` прошёл зелёно.
-4. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe -m pyright` прошёл зелёно: 0 errors, 0 warnings.
-5. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe scripts\refresh_agent_eval.py` пересобрал generated companions без drift.
-6. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe scripts\validate_harness_assets.py` вернул `status: ok`, `features: 39`, `validated: 39`, `telemetry_entries: 73`.
+1. Official Windows Gitleaks binary локально прошёл `gitleaks git --config .gitleaks.toml --exit-code 1 .`: `clean_exit = 0`.
+2. Тот же `gitleaks git --config .gitleaks.toml --exit-code 1 .` в synthetic temporary git repo с `OPENROUTER_API_KEY=prodkeyABCDEF1234567890` вернул `canary_exit = 1`.
+3. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe scripts\refresh_agent_eval.py` пересобрал generated companions без drift.
+4. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe scripts\validate_harness_assets.py` вернул `status: ok`, `features: 40`, `validated: 40`, `telemetry_entries: 74`.
 
 ## 5. Риски спринта
 
-- Threat model и input hardening закрывают admission baseline для DOCX/WMF и startup paths, но required secret-scan gate по-прежнему остаётся следующим security tranche в S7.2.
+- Required secret-scan gate теперь покрывает committed git content и known fixture allowlist, но не заменяет workstation hygiene для untracked local artifacts и внешних release bundles вне git history.
 - PDF/XLSX routes пока не имеют столь же явных parser-level size limits, как DOCX archive и WMF parser.
 - Repo-wide file-size debt вне critical path по-прежнему локализован в `src/doc_converter/formula_benchmark.py`.
 
 ## 6. Критерий выхода
 
-Спринт закрыт: startup admission отклоняет symlink-based path confusion, DOCX route проверяет archive limits до parse/extraction, WMF parser ограничен по размеру и record count, malicious-limit tests дают graceful reject path, а `docs/security.md` фиксирует threat model, subprocess inventory и font/path policy.
+Спринт закрыт: `windows-ci` ставит Gitleaks и выполняет required git-backed secret scan `gitleaks git --config .gitleaks.toml --exit-code 1 .`, allowlist остаётся узким и покрывает только known fake fixtures/examples, clean repo проходит, а synthetic API-key canary валится.
 
 ## 7. Следующий operational focus
 
-1. Открыть critical-path sprint S7.2 и закрыть secret-scan CI как required leak gate.
-2. Затем вернуться к S9.x automation и не смешивать его с remaining measured hardening backlog.
+1. Открыть critical-path sprint S9.1 и закрыть PR-gates и branch protection.
+2. Затем продолжить S9.x automation, не смешивая его с remaining measured hardening backlog.
 3. После security baseline решить отдельным tranche parser-level limits для PDF/XLSX, если они станут release-critical.
 4. Держать `src/doc_converter/formula_benchmark.py` как отдельный non-critical follow-up по oversize debt.
 5. После critical path продолжать measured table backlog и richer DOCX semantics.

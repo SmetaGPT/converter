@@ -309,6 +309,8 @@ Status: completed (2026-05-30). Evidence: added `docs/security.md`, hardened `sr
 
 ### Sprint S7.2 — Secret scan CI
 
+**Status:** completed 2026-05-30. Evidence: `windows-ci` теперь устанавливает Gitleaks и выполняет `gitleaks git --config .gitleaks.toml --exit-code 1 .`; local validation подтвердила `clean_exit = 0` на текущем repo и `canary_exit = 1` в synthetic git repo с `OPENROUTER_API_KEY=prodkeyABCDEF1234567890`.
+
 - **Goal:** утечки не попадают в репозиторий.
 - **Scope:** gitleaks или trufflehog в CI; конфиг с allowlist для test fixtures; required check.
 - **Exit:** CI-job зелёный на чистом репо; искусственно вставленный API key валится.

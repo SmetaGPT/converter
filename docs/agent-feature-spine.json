@@ -1118,6 +1118,34 @@
       "residual_risk": "The threat model is an operational baseline, not a sandbox guarantee or a formal external security review."
     },
     {
+      "feature_id": "security-secret-scan",
+      "area": "product",
+      "title": "Git-backed secret scan gate",
+      "status": "validated",
+      "behavior": "`windows-ci` installs Gitleaks and runs `gitleaks git --config .gitleaks.toml --exit-code 1 .`, keeping default secret rules plus a narrow product-specific rule for env-style `OPENROUTER_API_KEY` / `FORMULA_RECOGNITION_API_KEY` assignments while allowlisting only known fake fixtures and `.env.example`.",
+      "owner_docs": [
+        ".gitleaks.toml",
+        ".github/workflows/windows-ci.yml",
+        "docs/security.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": "gitleaks git --config .gitleaks.toml --exit-code 1 ."
+        },
+        {
+          "type": "procedure",
+          "target": "Create a temporary git repo with OPENROUTER_API_KEY=<canary> and confirm the same command exits non-zero."
+        }
+      ],
+      "evidence": [
+        ".gitleaks.toml",
+        ".github/workflows/windows-ci.yml",
+        "docs/security.md"
+      ],
+      "residual_risk": "The required check covers committed git content for the repository and intentionally does not substitute for workstation hygiene on untracked local artifacts or external release bundles."
+    },
+    {
       "feature_id": "machine-readable-telemetry",
       "area": "observability",
       "title": "Machine-readable telemetry companion",

@@ -1,0 +1,25 @@
+title = "Converter Gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Intentional fake secrets in test fixtures and examples"
+paths = [
+  '''^tests/test_cli_smoke\.py$''',
+  '''^tests/test_config\.py$''',
+  '''^tests/test_contracts_stability\.py$''',
+  '''^tests/test_formula_recognition\.py$''',
+  '''^\.env\.example$'''
+]
+
+[[rules]]
+id = "converter-openrouter-api-key"
+description = "Converter API key assignment"
+regex = '''(?:OPENROUTER_API_KEY|FORMULA_RECOGNITION_API_KEY)\s*[:=]\s*([A-Za-z0-9_-]{16,})'''
+secretGroup = 1
+entropy = 2.5
+keywords = [
+  "OPENROUTER_API_KEY",
+  "FORMULA_RECOGNITION_API_KEY",
+]

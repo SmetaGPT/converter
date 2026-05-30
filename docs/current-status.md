@@ -150,6 +150,7 @@
 125. Закрыт production roadmap Sprint S6.1: CLI теперь по умолчанию выводит human-readable summary, а `--output-format=json` эмитит schema-backed envelope `cli-result.v1` с явной exit-code matrix `0/10/20/30/40/50`. Добавлены subcommands `doctor` и `dry-run`, focused `tests.test_cli_smoke` slice покрывает каждый subcommand и каждый exit code, а narrow smoke (29 tests), full suite (203 tests), `ruff` и `pyright` прошли зелёно.
 126. Закрыт production roadmap Sprint S6.2: весь runtime event stream теперь проходит через central `RuntimeLogger`, каждый run получает schema-backed `telemetry.jsonl` по `log.v1`, а `scripts/validate_run_package.py` валидирует telemetry вместе с остальными run-package артефактами. Legacy `processing-log.jsonl` и `errors.jsonl` оставлены как compatibility mirrors; focused CLI smoke (29 tests), validator smoke на fresh run package, full suite (203 tests), `ruff` и `pyright` прошли зелёно.
 127. Закрыт production roadmap Sprint S7.1: `validate_run_directories` теперь fail-closed отклоняет symlink components в `input_dir`/`output_dir`/`runs_dir`, DOCX admission проверяет entry-count и uncompressed-size limits до `python-docx`, WMF parser ограничен по размеру blob и количеству records, а новый `docs/security.md` фиксирует threat model, subprocess inventory и font/path policy. Focused security slice (`tests/test_docx_converter.py` + `tests/test_run_paths.py`, 88 tests), `python -m unittest discover -v` (156 tests, skipped 4), `ruff` и `pyright` прошли зелёно.
+128. Закрыт production roadmap Sprint S7.2: `windows-ci` теперь ставит Gitleaks и выполняет required git-backed secret scan `gitleaks git --config .gitleaks.toml --exit-code 1 .`, `.gitleaks.toml` расширяет default rules узким product-specific rule для `OPENROUTER_API_KEY` / `FORMULA_RECOGNITION_API_KEY`, а global allowlist покрывает только известные fake fixtures и `.env.example`. Focused local validation подтвердила `clean repo exit 0` и `synthetic git canary exit 1`.
 
 ### Готовые артефакты
 
@@ -190,6 +191,7 @@
 - docs/document-converter-acceptance.md
 - docs/production-roadmap.md
 - docs/security.md
+- .gitleaks.toml
 - docs/formula-production-plan.md
 - samples/formula-benchmark.manifest.jsonl
 - samples/expected/formulas/
@@ -241,7 +243,7 @@
 
 ## 3. Что делается сейчас
 
-Текущий фокус: после закрытия S7.1 следующий critical-path sprint production roadmap — S7.2, то есть secret-scan CI и required leak gate для репозитория.
+Текущий фокус: после закрытия S7.2 следующий critical-path sprint production roadmap — S9.1, то есть PR-gates и branch protection поверх уже закрытого security baseline.
 
 Новый architecture-learning по input hardening: самые дешёвые security controls снова закрываются в shared admission boundary, а не в route-specific хвостах. Один guard в `run/paths.py` и один DOCX archive preflight дают больше контроля, чем поздние локальные проверки после начала extraction.
 
@@ -249,19 +251,21 @@
 
 Новый documentation-learning по security: `docs/security.md` должен перечислять реальные subprocess surfaces и конкретные hard limits из кода, а не абстрактные пожелания. Иначе документ не помогает ни review, ни operator troubleshooting.
 
+Новый secret-scan-learning по S7.2: deterministic CI gate проще и надёжнее строить по git-tracked content с узким config-driven правилом, чем по filesystem scan всего рабочего дерева. Локальные `.venv`/`dist`/release artifacts быстро создают шум и ломают reproducible validation, тогда как `gitleaks git` честно проверяет именно репозиторный контур.
+
 В работе:
 
-- закрыть production roadmap S7.2: secret-scan CI и required leak gate;
-- затем вернуться к следующему critical-path automation tranche после security baseline;
+- открыть production roadmap S9.1: PR-gates и branch protection как следующий automation tranche;
+- удерживать `.gitleaks.toml` allowlist узким и не расширять его за пределы test/example surfaces без нового evidence;
 - держать `src/doc_converter/formula_benchmark.py` как отдельный non-critical architecture follow-up по file-size debt;
 - удержать measured table backlog на `sample_009/018/020` и negative/control contour как parallel quality loop, не подменяя им critical path;
 - держать state docs, feature spine, telemetry и generated eval companions синхронными после каждого следующего sprint tranche.
 
 ## 4. Что идёт дальше
 
-Следующая последовательность после закрытия S7.1:
+Следующая последовательность после закрытия S7.2:
 
-1. Закрыть production roadmap S7.2: secret-scan CI и required leak gate.
+1. Открыть production roadmap S9.1: PR-gates и branch protection.
 2. Затем продолжить S9.x automation, не размывая S7.x hardening measured backlog-ами.
 3. После security baseline решить отдельным tranche дальнейший hardening для PDF/XLSX admission, если он станет критичным.
 4. Держать `src/doc_converter/formula_benchmark.py` как отдельный follow-up по repo-wide file-size debt вне critical path.

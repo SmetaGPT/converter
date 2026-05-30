@@ -90,3 +90,10 @@ Rejected conditions:
 - `tests/test_run_paths.py` подтверждает startup path allowlist и symlink rejection.
 - `tests/test_docx_converter.py` содержит malicious-limit checks для DOCX archive entry/uncompressed-size limits и WMF parser limits.
 - `scripts/validate_run_package.py` остаётся post-run structural validator и не заменяет input-admission checks.
+
+## 11. CI secret-scan baseline
+
+- `windows-ci` выполняет `gitleaks git --config .gitleaks.toml --exit-code 1 .` как ранний fail-fast gate.
+- `.gitleaks.toml` расширяет default rules и добавляет deterministic product-specific rule для `OPENROUTER_API_KEY` / `FORMULA_RECOGNITION_API_KEY`-подобных значений.
+- Known fake fixtures и placeholder values исключаются через global path allowlist в `.gitleaks.toml`; это намеренный allowlist только для test/example surfaces, а не глобальное отключение secret scan.
+- Secret scan рассматривается как required security gate после S7.1 input-hardening baseline.
