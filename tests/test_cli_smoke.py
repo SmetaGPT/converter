@@ -332,6 +332,8 @@ class CliSmokeTests(unittest.TestCase):
             self.assertEqual(summary["status"], "success")
             self.assertEqual(summary["supported_files"], 0)
             self.assertEqual(catalog["documents"], [])
+            self.assertEqual(run_payload["options"]["ocr_backend"], "ocrmypdf")
+            self.assertEqual(run_payload["options"]["catalog_writers"], ["json", "xlsx"])
             self.assertNotIn("workers", run_payload["options"])
             self.assertEqual(run_payload["agent_run_metadata"]["agent_id"], "manual")
             self.assertEqual(run_payload["agent_run_metadata"]["task_id"], result.run_id)
@@ -548,6 +550,43 @@ class CliSmokeTests(unittest.TestCase):
                 _file_uri_to_path(sheet["G2"].hyperlink.target),
                 result.run_dir / entry["output_dir"] / "search_text.txt",
             )
+
+    def test_convert_folder_honors_configured_null_ocr_backend_and_json_only_catalog(self) -> None:
+        with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:
+            source_path = Path(input_dir) / "scan.pdf"
+            source_path.write_bytes(b"%PDF-1.4\n%stub\n")
+
+            options = ConverterOptions(ocr_backend="null", catalog_writers=("json",))
+            fake_reader = Mock(pages=[Mock(extract_text=Mock(return_value=""))])
+            with patch("doc_converter.converters._classify_pdf_route", return_value=("pdf_scan", ("ocr_required",))):
+                with patch("doc_converter.converters.pdf_scan.PdfReader", return_value=fake_reader):
+                    result = run_convert_folder(
+                        ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir), options=options)
+                    )
+
+            manifest_records = [
+                json.loads(line)
+                for line in (result.run_dir / "manifest.jsonl").read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            document_dir = result.run_dir / str(manifest_records[0]["output_dir"])
+            document_payload = json.loads((document_dir / "document.v1.json").read_text(encoding="utf-8"))
+            status_payload = json.loads((document_dir / "ocr" / "ocr-status.json").read_text(encoding="utf-8"))
+            run_payload = json.loads((result.run_dir / "run.json").read_text(encoding="utf-8"))
+            catalog = json.loads((result.run_dir / "processed-documents-catalog.json").read_text(encoding="utf-8"))
+
+            validate_payload(document_payload, "document.v1.schema.json")
+            validate_payload(run_payload, "run.v1.schema.json")
+            validate_payload(catalog, "processed-documents-catalog.v1.schema.json")
+            self.assertEqual(result.status, "partial_success")
+            self.assertEqual(manifest_records[0]["status"], "partial_success")
+            self.assertEqual(run_payload["options"]["ocr_backend"], "null")
+            self.assertEqual(run_payload["options"]["catalog_writers"], ["json"])
+            self.assertTrue((result.run_dir / "processed-documents-catalog.json").exists())
+            self.assertFalse((result.run_dir / "processed-documents-catalog.xlsx").exists())
+            self.assertEqual(status_payload["engine"], "null")
+            self.assertEqual(status_payload["status"], "disabled")
+            self.assertIn("OCR backend is disabled by configuration.", document_payload["processing"]["warnings"])
 
     def test_failed_document_writes_review_required_file_and_failed_reason(self) -> None:
         with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:

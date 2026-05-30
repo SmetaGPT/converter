@@ -13,6 +13,7 @@ from ..converters import get_converter
 from ..inventory import build_inventory
 from ..schema_validation import validate_payload
 from .catalog import _write_processed_documents_catalog
+from .catalog_writers import build_catalog_writers
 from .logging import RuntimeLogger
 from .paths import ConverterError, _allocate_run_dir, _document_output_path, _new_run_id, validate_run_directories
 from .postprocess import (
@@ -50,6 +51,7 @@ def run_convert_folder(
 
     run_metadata = _build_run_metadata(run_id, input_dir, output_dir, config)
     _write_validated_json(run_dir / "run.json", run_metadata, "run.v1.schema.json")
+    catalog_writers = build_catalog_writers(config.options.catalog_writers)
 
     inventory = build_inventory(input_dir)
     inventory_records = inventory.supported_records
@@ -271,6 +273,7 @@ def run_convert_folder(
         unsupported_records=unsupported_records,
         manifest_records=final_manifest_records,
         error_details_by_relative_path=error_details_by_relative_path,
+        writers=catalog_writers,
         write_validated_json=_write_validated_json,
     )
 

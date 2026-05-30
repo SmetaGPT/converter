@@ -7,12 +7,42 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from doc_converter.config import ConverterConfig
-from doc_converter.converters.pdf_scan import _write_ocr_success_result
+from doc_converter.converters.pdf_scan import _write_ocr_success_result, convert_pdf_scan
+from doc_converter.ocr.backends import NullOcrBackend, build_ocr_backend
 from doc_converter.runner import run_convert_folder
 from doc_converter.schema_validation import validate_payload
 
 
 class PdfScanConverterTests(unittest.TestCase):
+    def test_build_ocr_backend_returns_null_backend_when_configured(self) -> None:
+        self.assertIsInstance(build_ocr_backend("null"), NullOcrBackend)
+
+    def test_convert_pdf_scan_accepts_explicit_null_backend(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            source_path = temp_path / "scan.pdf"
+            output_dir = temp_path / "out"
+            source_path.write_bytes(b"%PDF-1.4\n%stub\n")
+
+            fake_reader = Mock(pages=[Mock(extract_text=Mock(return_value=""))])
+            with patch("doc_converter.converters.pdf_scan.PdfReader", return_value=fake_reader):
+                result = convert_pdf_scan(
+                    source_path,
+                    output_dir,
+                    "1" * 64,
+                    ("rus", "eng"),
+                    ocr_backend=NullOcrBackend(),
+                )
+
+            payload = json.loads((output_dir / "document.v1.json").read_text(encoding="utf-8"))
+            status_payload = json.loads((output_dir / "ocr" / "ocr-status.json").read_text(encoding="utf-8"))
+            validate_payload(payload, "document.v1.schema.json")
+            self.assertEqual(result.status, "partial_success")
+            self.assertEqual(status_payload["engine"], "null")
+            self.assertEqual(status_payload["status"], "disabled")
+            self.assertFalse(payload["processing"]["ocr_applied"])
+            self.assertIn("OCR backend is disabled by configuration.", payload["processing"]["warnings"])
+
     def test_ocr_success_preserves_page_boundaries_for_paragraph_units(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)

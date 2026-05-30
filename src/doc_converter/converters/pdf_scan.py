@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -23,7 +22,7 @@ from doc_converter.converters.pdf_text import (
     _split_pdf_text,
 )
 from doc_converter.document_metadata import build_document_metadata
-from doc_converter.ocr_runtime import find_ocrmypdf_executable
+from doc_converter.ocr.backends import OCRBackend, OcrBackendContext, build_ocr_backend
 from doc_converter.quality import quality_payload
 from doc_converter.schema_validation import validate_payload
 from doc_converter.tables import is_table_block as _is_table_block, parse_table_block as _parse_table_block
@@ -44,6 +43,7 @@ def convert_pdf_scan(
     sha256: str,
     ocr_languages: tuple[str, ...],
     *,
+    ocr_backend: OCRBackend | None = None,
     relative_source_path: str | None = None,
 ) -> PdfScanConversionResult:
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -53,45 +53,44 @@ def convert_pdf_scan(
     sidecar_text = ocr_dir / "sidecar.txt"
     status_path = ocr_dir / "ocr-status.json"
 
-    ocrmypdf = find_ocrmypdf_executable()
-    if ocrmypdf is None:
-        return _write_unavailable_result(source_path, output_dir, status_path, sha256, relative_source_path=relative_source_path)
+    backend = ocr_backend or build_ocr_backend("ocrmypdf")
+    backend_result = backend.run(
+        OcrBackendContext(
+            source_path=source_path,
+            searchable_pdf=searchable_pdf,
+            sidecar_text=sidecar_text,
+            ocr_languages=ocr_languages,
+        )
+    )
+    _write_json(status_path, backend_result.status_payload)
 
-    command = [
-        ocrmypdf,
-        "--mode",
-        "skip",
-        "--deskew",
-        "--sidecar",
-        str(sidecar_text),
-        "-l",
-        "+".join(ocr_languages),
-        str(source_path),
-        str(searchable_pdf),
-    ]
-    completed = subprocess.run(command, capture_output=True, text=True, timeout=900, check=False)
-    status_payload = {
-        "engine": "ocrmypdf",
-        "command": command,
-        "returncode": completed.returncode,
-        "stdout": completed.stdout[-4000:],
-        "stderr": completed.stderr[-4000:],
-    }
-    _write_json(status_path, status_payload)
-    if completed.returncode != 0:
+    if backend_result.status == "unavailable":
+        return _write_unavailable_result(
+            source_path,
+            output_dir,
+            status_path,
+            sha256,
+            warning=backend_result.message or "OCR backend is not available in the current runtime.",
+            relative_source_path=relative_source_path,
+        )
+
+    if backend_result.status == "failed":
         return _write_ocr_failed_result(
             source_path,
             output_dir,
             status_path,
             sha256,
-            completed.stderr,
+            backend_result.message or "OCR backend failed.",
             relative_source_path=relative_source_path,
         )
 
+    if backend_result.searchable_pdf is None or backend_result.sidecar_text is None:
+        raise RuntimeError(f"OCR backend {backend.backend_id} did not return output paths")
+
     return _write_ocr_success_result(
         source_path,
-        searchable_pdf,
-        sidecar_text,
+        backend_result.searchable_pdf,
+        backend_result.sidecar_text,
         output_dir,
         sha256,
         relative_source_path=relative_source_path,
@@ -104,18 +103,11 @@ def _write_unavailable_result(
     status_path: Path,
     sha256: str,
     *,
+    warning: str = "OCRmyPDF is not available in the current runtime.",
     relative_source_path: str | None = None,
 ) -> PdfScanConversionResult:
     reader = PdfReader(str(source_path))
     pages = len(reader.pages)
-    _write_json(
-        status_path,
-        {
-            "engine": "ocrmypdf",
-            "available": False,
-            "status": "unavailable",
-        },
-    )
     return _write_scan_payload(
         source_path=source_path,
         output_dir=output_dir,
@@ -124,7 +116,7 @@ def _write_unavailable_result(
         search_text="",
         status="partial_success",
         flags=["ocr_required", "ocr_unavailable", "empty_text", "review_required"],
-        warnings=["OCRmyPDF is not available in the current runtime."],
+        warnings=[warning],
         ocr_applied=False,
         assets=[
             build_asset_record(
@@ -158,7 +150,7 @@ def _write_ocr_failed_result(
         search_text="",
         status="partial_success",
         flags=["ocr_required", "ocr_failed", "empty_text", "review_required"],
-        warnings=[stderr.strip()[:1000] or "OCRmyPDF failed."],
+        warnings=[stderr.strip()[:1000] or "OCR backend failed."],
         ocr_applied=False,
         assets=[
             build_asset_record(

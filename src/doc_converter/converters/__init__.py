@@ -7,6 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from ..config import ConverterConfig
+from ..ocr.backends import build_ocr_backend
 from .docx import convert_docx
 from .pdf_scan import convert_pdf_scan
 from .pdf_text import convert_pdf_text
@@ -132,6 +133,7 @@ class _PdfScanConverter:
 			output_dir,
 			sha256,
 			config.options.ocr_languages,
+			ocr_backend=build_ocr_backend(config.options.ocr_backend),
 			relative_source_path=relative_source_path,
 		)
 		return ConversionOutcome(

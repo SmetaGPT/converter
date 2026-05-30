@@ -1,6 +1,6 @@
 # Current Sprint
 
-Последнее обновление: 2026-05-30
+Последнее обновление: 2026-05-31
 Активный спринт: S9.2 — Nightly full e2e
 Статус: in_progress
 
@@ -23,10 +23,15 @@
 - scripts/render_release_notes.py
 - scripts/run_sample_pilot.py
 - src/doc_converter/formulas/providers.py
+- src/doc_converter/ocr/backends.py
 - src/doc_converter/release_notes.py
 - src/doc_converter/formula_benchmark.py
+- src/doc_converter/run/catalog_writers.py
+- schemas/run.v1.schema.json
+- tests/test_config.py
 - tests/test_formula_recognition.py
 - tests/test_nightly_failure_issue.py
+- tests/test_pdf_scan_converter.py
 - tests/test_release_notes.py
 - tests/test_sample_pilot.py
 - tests/test_formula_benchmark.py
@@ -76,4 +81,4 @@
 1. Дождаться первого GitHub run `nightly-full-e2e` и зафиксировать artifact/issue evidence в state layer.
 2. Снять первый hosted proof для `.github/workflows/release.yml`: `v*` tag должен опубликовать GitHub Release с zip, checksum и notes из `CHANGELOG.md`.
 3. Держать `agent_id` field обязательной частью agent PR closeout, чтобы auto-issue path перестал зависеть от fallback inference.
-4. Пока hosted proof по S9.x идёт отдельно на GitHub, независимый S3.1 уже закрыт локально через `FormulaProvider Protocol`; следующий parallel follow-up теперь S3.2/S3.3 и measured DOCX/table backlog.
+4. Пока hosted proof по S9.x идёт отдельно на GitHub, независимые S3.1 и S3.2 уже закрыты локально через `FormulaProvider` / `OcrBackend` / `CatalogWriter` protocols; следующий parallel follow-up теперь S3.3 и measured DOCX/table backlog.

@@ -1335,6 +1335,92 @@
       "residual_risk": "Formula providers are now abstracted, but the wider pluggable surface still depends on S3.2 for OCR and catalog writers, and live provider quality/cost remains an operator-triggered concern outside automated tests."
     },
     {
+      "feature_id": "providers-ocr-protocol",
+      "area": "architecture",
+      "title": "Pluggable OCR backend dispatch",
+      "status": "validated",
+      "behavior": "PDF scan OCR no longer hard-codes `ocrmypdf` subprocess logic inside the converter; it dispatches through an `OCRBackend` protocol with `OcrmypdfBackend` and `NullOcrBackend`, so runtime OCR side effects can be replaced through `ConverterOptions` without rewriting the scan payload builder.",
+      "owner_docs": [
+        "src/doc_converter/ocr/backends.py",
+        "src/doc_converter/converters/pdf_scan.py",
+        "src/doc_converter/converters/__init__.py",
+        "tests/test_pdf_scan_converter.py",
+        "tests/test_cli_smoke.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_pdf_scan_converter tests.test_cli_smoke.CliSmokeTests.test_convert_folder_honors_configured_null_ocr_backend_and_json_only_catalog -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m pyright"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest discover -v"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/ocr/backends.py",
+        "src/doc_converter/converters/pdf_scan.py",
+        "src/doc_converter/converters/__init__.py",
+        "tests/test_pdf_scan_converter.py",
+        "tests/test_cli_smoke.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "residual_risk": "OCR backend dispatch is now explicit and configurable, but live OCR quality still depends on local/runtime tool availability and secret/artifact hygiene still needs S3.3 to guarantee redaction boundaries."
+    },
+    {
+      "feature_id": "providers-catalog-protocol",
+      "area": "architecture",
+      "title": "Pluggable processed-document catalog writers",
+      "status": "validated",
+      "behavior": "Root run catalogs no longer hard-code JSON plus XLSX emission inside orchestration-specific helpers; they dispatch through a `CatalogWriter` protocol with `JsonCatalogWriter` and `XlsxCatalogWriter`, and `ConverterOptions.catalog_writers` controls which operator artifacts are emitted while preserving the default dual-output path.",
+      "owner_docs": [
+        "src/doc_converter/run/catalog.py",
+        "src/doc_converter/run/catalog_writers.py",
+        "src/doc_converter/run/orchestration.py",
+        "schemas/run.v1.schema.json",
+        "tests/test_cli_smoke.py",
+        "tests/test_config.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_cli_smoke.CliSmokeTests.test_empty_folder_creates_run_package tests.test_cli_smoke.CliSmokeTests.test_processed_documents_catalog_describes_output_folder_and_status tests.test_cli_smoke.CliSmokeTests.test_convert_folder_honors_configured_null_ocr_backend_and_json_only_catalog tests.test_config -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m ruff check src tests scripts"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest discover -v"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/run/catalog.py",
+        "src/doc_converter/run/catalog_writers.py",
+        "src/doc_converter/run/orchestration.py",
+        "schemas/run.v1.schema.json",
+        "tests/test_cli_smoke.py",
+        "tests/test_config.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "residual_risk": "Catalog emission is now protocol-driven, but artifact-surface secrecy still depends on S3.3 and any future catalog formats will still need explicit validation and operator-compatibility tests."
+    },
+    {
       "feature_id": "machine-readable-telemetry",
       "area": "observability",
       "title": "Machine-readable telemetry companion",

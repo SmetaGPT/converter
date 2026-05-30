@@ -192,6 +192,8 @@ graph LR
 
 ### Sprint S3.2 — `OCRBackend Protocol` и `CatalogWriter Protocol`
 
+**Status:** completed locally 2026-05-31. Evidence: `src/doc_converter/ocr/backends.py` now defines `OcrmypdfBackend`, `NullOcrBackend` and the `OCRBackend` protocol; `src/doc_converter/run/catalog_writers.py` introduces `JsonCatalogWriter`, `XlsxCatalogWriter` and the `CatalogWriter` protocol; `ConverterOptions` now serializes `ocr_backend` and `catalog_writers` into `run.json`; `tests/test_pdf_scan_converter.py`, `tests/test_cli_smoke.py` and `tests/test_config.py` verify explicit null OCR backend, json-only catalog output and unchanged default behavior; full `unittest`, `ruff` and `pyright` stayed green.
+
 - **Goal:** OCR backend и catalog writer тоже plug-in.
 - **Scope:** аналогично S3.1; `OcrmypdfBackend`, `NullOcrBackend`; `JsonCatalogWriter`, `XlsxCatalogWriter`.
 - **Exit:** замена backend через config работает в тесте.
