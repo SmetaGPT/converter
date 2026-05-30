@@ -60,13 +60,18 @@ def main(argv: list[str] | None = None) -> int:
         default=ROOT / "samples" / "formula-benchmark.thresholds.json",
         help="Optional threshold policy JSON used to evaluate the required benchmark gate.",
     )
+    parser.add_argument(
+        "--no-thresholds",
+        action="store_true",
+        help="Disable threshold evaluation and run the manifest in monitor-only mode.",
+    )
     args = parser.parse_args(argv)
 
     report = run_benchmark_manifest(
         args.manifest,
         output_root=args.output_root,
         keep_case_inputs=args.keep_case_inputs,
-        thresholds_path=args.thresholds,
+        thresholds_path=None if args.no_thresholds else args.thresholds,
     )
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0 if report["status"] == "ok" else 1

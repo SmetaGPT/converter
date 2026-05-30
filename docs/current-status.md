@@ -1,7 +1,7 @@
 # Current Status
 
 Последнее обновление: 2026-05-30
-Статус контура: wave 2 complete, S9.1 gate automation live
+Статус контура: wave 2 complete, S9.2 nightly infrastructure active
 
 ## 1. Краткий снимок состояния
 
@@ -15,6 +15,7 @@
 - Sprint 6 завершён;
 - Sprint 7 завершён;
 - critical-path sprint S9.1 завершён;
+- critical-path sprint S9.2 активирован;
 - roadmap wave 1 завершена;
 - roadmap wave 2 завершена;
 - state layer уже создан;
@@ -154,6 +155,7 @@
 127. Закрыт production roadmap Sprint S7.1: `validate_run_directories` теперь fail-closed отклоняет symlink components в `input_dir`/`output_dir`/`runs_dir`, DOCX admission проверяет entry-count и uncompressed-size limits до `python-docx`, WMF parser ограничен по размеру blob и количеству records, а новый `docs/security.md` фиксирует threat model, subprocess inventory и font/path policy. Focused security slice (`tests/test_docx_converter.py` + `tests/test_run_paths.py`, 88 tests), `python -m unittest discover -v` (156 tests, skipped 4), `ruff` и `pyright` прошли зелёно.
 128. Закрыт production roadmap Sprint S7.2: `windows-ci` теперь ставит Gitleaks и выполняет required git-backed secret scan `gitleaks git --config .gitleaks.toml --exit-code 1 .`, `.gitleaks.toml` расширяет default rules узким product-specific rule для `OPENROUTER_API_KEY` / `FORMULA_RECOGNITION_API_KEY`, а global allowlist покрывает только известные fake fixtures и `.env.example`. Focused local validation подтвердила `clean repo exit 0` и `synthetic git canary exit 1`.
 129. Закрыт production roadmap Sprint S9.1: на `main` включены strict required PR checks `secret-scan`, `lint`, `typecheck`, `unit-tests`, `harness-validator`, `formula-benchmark-gate`, `document-package-validator` и `release-smoke`, PR template требует feature/state/validation closeout, а workflow `.github/workflows/autonomous-pr-auto-merge.yml` на base branch включает squash auto-merge для same-repo non-draft PR с label `agent:autonomous`. Bootstrap tranche потребовал отдельного release-smoke hardening, после чего proof PR агента merge-ится автоматически без ручного `gh pr merge`.
+130. Открыт production roadmap Sprint S9.2: добавлен hosted-runner workflow `.github/workflows/nightly-full-e2e.yml`, repo-safe `samples/manifest.table-anchors.ci.jsonl`, monitor-only path `--no-thresholds` для полного formula manifest на GitHub-hosted runner и helper `scripts/create_nightly_failure_issue.py`, который при падении nightly создаёт issue с latest merged PR context и `agent_id` из PR body с fallback на `head_ref`/author.
 
 ### Готовые артефакты
 
@@ -204,6 +206,7 @@
 - .github/PULL_REQUEST_TEMPLATE.md
 - .github/workflows/windows-ci.yml
 - .github/workflows/autonomous-pr-auto-merge.yml
+- .github/workflows/nightly-full-e2e.yml
 - .github/prompts/production-readiness-hardening.prompt.md
 - .github/prompts/execute-production-roadmap-autonomous.prompt.md
 - .vscode/extensions.json
@@ -211,6 +214,7 @@
 - .vscode/settings.json
 - samples/manifest.sample.jsonl
 - samples/manifest.table-anchors.jsonl
+- samples/manifest.table-anchors.ci.jsonl
 - samples/pdf-text-layer-check.sample.json
 - samples/expected/README.md
 - samples/expected/sample_001.expected-units.json

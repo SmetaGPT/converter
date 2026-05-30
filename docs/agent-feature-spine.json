@@ -1211,6 +1211,46 @@
       "residual_risk": "This proof must happen on a PR opened after the workflow already exists on the base branch; the bootstrap PR that first introduces the workflow cannot prove the path by itself."
     },
     {
+      "feature_id": "ci-nightly-e2e",
+      "area": "process",
+      "title": "Hosted nightly full e2e contour",
+      "status": "active",
+      "behavior": "A dedicated nightly workflow runs synthetic e2e, a full formula benchmark monitor, a CI-safe formula gate, repo-tracked table anchors, portable package build, EXE smoke and opens a diagnostic GitHub issue on failure with context from the latest merged PR.",
+      "owner_docs": [
+        ".github/PULL_REQUEST_TEMPLATE.md",
+        ".github/workflows/nightly-full-e2e.yml",
+        "samples/manifest.table-anchors.ci.jsonl",
+        "scripts/create_nightly_failure_issue.py",
+        "scripts/run_sample_pilot.py",
+        "src/doc_converter/formula_benchmark.py",
+        "docs/current-sprint.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_sample_pilot tests.test_formula_benchmark tests.test_nightly_failure_issue -v"
+        },
+        {
+          "type": "procedure",
+          "target": "Trigger `.github/workflows/nightly-full-e2e.yml` via workflow_dispatch or schedule and confirm artifact upload or auto-issued GitHub failure report."
+        }
+      ],
+      "evidence": [
+        ".github/PULL_REQUEST_TEMPLATE.md",
+        ".github/workflows/nightly-full-e2e.yml",
+        "samples/manifest.table-anchors.ci.jsonl",
+        "scripts/create_nightly_failure_issue.py",
+        "scripts/run_sample_pilot.py",
+        "src/doc_converter/formula_benchmark.py",
+        "docs/current-sprint.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "residual_risk": "GitHub-hosted runners still cannot access the external D:\\ corpus, so the full formula manifest currently runs as monitor-only without thresholds and the failure issue can fall back to head_ref/author for historical merges that predate the explicit PR template field."
+    },
+    {
       "feature_id": "machine-readable-telemetry",
       "area": "observability",
       "title": "Machine-readable telemetry companion",

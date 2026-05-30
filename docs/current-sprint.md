@@ -1,24 +1,28 @@
 # Current Sprint
 
 Последнее обновление: 2026-05-30
-Активный спринт: S9.1 — PR-gates и branch protection
-Статус: completed
+Активный спринт: S9.2 — Nightly full e2e
+Статус: in_progress
 
-Предыдущий приоритетный tranche: S7.2 — Secret scan CI
+Предыдущий приоритетный tranche: S9.1 — PR-gates и branch protection
 Статус: completed
 Статус wave W9: in_progress
 
 ## 1. Цель спринта
 
-Сделать merge автономным при зелёных required checks: `main` защищён branch protection, PR template требует state/telemetry closeout, а same-repo PR с label `agent:autonomous` получает auto-merge без ручного `gh pr merge`.
+Запустить hosted-runner nightly regression contour поверх закрытого S9.1: synthetic e2e, full formula benchmark monitor, CI-safe formula gate, repo-tracked table anchors, portable package build, EXE smoke и auto-issue при падении с привязкой к последнему merged PR.
 
 ## 2. Артефакты спринта
 
 - .github/PULL_REQUEST_TEMPLATE.md
-- .github/workflows/windows-ci.yml
-- .github/workflows/autonomous-pr-auto-merge.yml
-- scripts/package-release.ps1
-- scripts/validate_ocr_preflight_cli.py
+- .github/workflows/nightly-full-e2e.yml
+- samples/manifest.table-anchors.ci.jsonl
+- scripts/create_nightly_failure_issue.py
+- scripts/run_sample_pilot.py
+- src/doc_converter/formula_benchmark.py
+- tests/test_nightly_failure_issue.py
+- tests/test_sample_pilot.py
+- tests/test_formula_benchmark.py
 - docs/current-status.md
 - docs/current-sprint.md
 - docs/production-roadmap.md
@@ -35,34 +39,32 @@
 
 | Задача | Статус |
 | --- | --- |
-| Зафиксировать PR template с обязательными feature/state/validation полями | Готово |
-| Включить strict branch protection и required contexts на `main` | Готово |
-| Довести `windows-ci` и `release-smoke` до стабильного required gate на GitHub | Готово |
-| Включить label-driven auto-merge для same-repo non-draft PR | Готово |
-| Синхронизировать state docs, feature spine, telemetry и generated companions | Готово |
+| Поднять отдельный nightly workflow на hosted runner | Готово |
+| Сделать table anchor manifest repo-safe и независимым от `cwd`/`D:\...` | Готово |
+| Развести full formula monitor и CI-safe required gate | Готово |
+| Открыть auto-issue path на failure с контекстом latest merged PR | Готово |
+| Набрать 7 ночей burn-in evidence и убедиться, что auto-issue path не флапает | В работе |
 
 ## 4. Validation targets спринта
 
-1. `gh api repos/SmetaGPT/converter/branches/main/protection` показывает `strict = true`, `required_approving_review_count = 0` и required contexts `secret-scan`, `lint`, `typecheck`, `unit-tests`, `harness-validator`, `formula-benchmark-gate`, `document-package-validator`, `release-smoke`.
-2. `gh api repos/SmetaGPT/converter/actions/runs/26690514184` подтверждает final green bootstrap run после release-smoke hardening на GitHub.
-3. Same-repo non-draft PR с label `agent:autonomous` получает `autoMergeRequest` через `.github/workflows/autonomous-pr-auto-merge.yml` и merge-ится автоматически после всех required checks.
-4. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe scripts\refresh_agent_eval.py` пересобирает generated companions без drift.
-5. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe scripts\validate_harness_assets.py` возвращает `status: ok`, `features: 42`, `validated: 42`, `telemetry_entries: 75`.
+1. `runTests tests/test_sample_pilot.py tests/test_formula_benchmark.py tests/test_nightly_failure_issue.py` проходит зелёно и фиксирует portability/monitor/auto-issue contracts.
+2. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe scripts\refresh_agent_eval.py` пересобирает generated companions без drift.
+3. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe scripts\validate_harness_assets.py` возвращает `status: ok` с активным feature `ci-nightly-e2e`.
+4. Первый `workflow_dispatch` или schedule run `nightly-full-e2e` на GitHub публикует artifact bundle с synthetic run, formula monitor, formula gate, table-anchor run и nightly portable package либо автоматически создаёт issue с диагностикой.
 
 ## 5. Риски спринта
 
-- Required contexts жёстко привязаны к именам job-ов в `.github/workflows/windows-ci.yml`; любое переименование нужно синхронизировать с branch protection.
-- `pull_request_target` auto-merge можно доказать только на PR, открытом после того, как workflow уже живёт на base branch; bootstrap и proof нельзя сливать в один PR.
-- Nightly full e2e и release automation ещё не закрыты, поэтому после S9.1 следующий critical path смещается в S9.2/S9.3.
+- GitHub-hosted runner не видит внешний `D:\ФСНБ\...` corpus, поэтому full formula manifest в nightly идёт в monitor-only режиме без thresholds, а required gate пока держится на CI-safe subset.
+- `agent_id` для failure issue будет точным только для PR, где заполнен новый template field; для старых merges helper честно падает назад на `head_ref`, затем author login.
+- Exit спринта зависит не от локального validation, а от 7-night burn-in/auto-issue evidence на GitHub.
 
 ## 6. Критерий выхода
 
-Спринт закрыт: `main` защищён strict required checks, PR template требует feature/state/validation closeout, а same-repo demo PR с label `agent:autonomous` merge-ится автоматически без human review и без ручной merge-команды.
+Спринт закрыт, когда hosted nightly contour либо проходит 7 ночей подряд, либо детерминированно открывает диагностический issue со ссылкой на failing run и latest merged PR context без ручного вмешательства.
 
 ## 7. Следующий operational focus
 
-1. Открыть critical-path sprint S9.2 и запустить nightly full e2e.
-2. Затем открыть S9.3 и перевести release automation на стабильный nightly/regression контур.
-3. Держать required-check names и label contract синхронными с workflow definitions.
-4. Держать `src/doc_converter/formula_benchmark.py` как отдельный non-critical follow-up по oversize debt.
-5. После critical path продолжать measured table backlog и richer DOCX semantics.
+1. Дождаться первого GitHub run `nightly-full-e2e` и зафиксировать artifact/issue evidence в state layer.
+2. Затем открыть S9.3 и перевести release automation на уже работающий nightly/regression контур.
+3. Держать `agent_id` field обязательной частью agent PR closeout, чтобы auto-issue path перестал зависеть от fallback inference.
+4. После critical path продолжать measured table backlog и richer DOCX semantics.

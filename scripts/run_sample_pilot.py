@@ -7,7 +7,7 @@ import json
 import shutil
 from collections import Counter
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from doc_converter.config import ConverterConfig, ConverterOptions
 from doc_converter.runner import run_convert_folder
@@ -25,14 +25,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--clean", action="store_true", help="Remove previous pilot input/output folders before running.")
     args = parser.parse_args(argv)
 
-    records = _read_jsonl(args.manifest)
+    manifest_path = args.manifest.expanduser().resolve()
+    records = _read_jsonl(manifest_path)
     if args.clean:
         _remove_if_exists(args.input)
         _remove_if_exists(args.output)
 
     args.input.mkdir(parents=True, exist_ok=True)
     args.output.mkdir(parents=True, exist_ok=True)
-    staged_records = _stage_records(records, args.input)
+    staged_records = _stage_records(records, args.input, manifest_dir=manifest_path.parent)
     _write_jsonl(args.input / "pilot-input-manifest.jsonl", staged_records)
 
     options = ConverterOptions(ocr_languages=tuple(part for part in args.ocr_languages.split("+") if part))
@@ -56,10 +57,10 @@ def _write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
             handle.write(json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n")
 
 
-def _stage_records(records: list[dict[str, Any]], input_dir: Path) -> list[dict[str, Any]]:
+def _stage_records(records: list[dict[str, Any]], input_dir: Path, *, manifest_dir: Path) -> list[dict[str, Any]]:
     staged_records: list[dict[str, Any]] = []
     for record in records:
-        source_path = Path(record["source_root"]) / record["relative_path"]
+        source_path = _resolve_record_source_path(record, manifest_dir=manifest_dir)
         if not source_path.exists():
             raise FileNotFoundError(f"Sample source not found: {source_path}")
 
@@ -71,6 +72,18 @@ def _stage_records(records: list[dict[str, Any]], input_dir: Path) -> list[dict[
         staged_record["staged_relative_path"] = staged_name
         staged_records.append(staged_record)
     return staged_records
+
+
+def _resolve_record_source_path(record: Mapping[str, Any], *, manifest_dir: Path) -> Path:
+    source_root = Path(str(record["source_root"]))
+    if not source_root.is_absolute():
+        source_root = (manifest_dir / source_root).resolve()
+
+    relative_path = Path(str(record["relative_path"]))
+    if relative_path.is_absolute():
+        return relative_path
+
+    return source_root / relative_path
 
 
 def _build_summary(

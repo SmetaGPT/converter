@@ -357,11 +357,13 @@ Status: completed (2026-05-30). Evidence: added `docs/security.md`, hardened `sr
 
 ### Sprint S9.2 — Nightly full e2e
 
+**Status:** in_progress 2026-05-30. Initial evidence: `.github/workflows/nightly-full-e2e.yml`, `samples/manifest.table-anchors.ci.jsonl`, `scripts/create_nightly_failure_issue.py`.
+
 - **Goal:** ежедневный полный регресс.
-- **Scope:** nightly job: synthetic-e2e + полный formula benchmark + table anchors + portable package build + EXE smoke. Failure → auto-issue с привязкой к agent_id последнего merge.
+- **Scope:** nightly job: synthetic-e2e + full formula benchmark monitor on hosted runners (`--no-thresholds`) + CI-safe formula required gate + repo-tracked table anchors + portable package build + EXE smoke. Failure → auto-issue с привязкой к latest merged PR и `agent_id` из PR body с fallback на `head_ref`/author.
 - **Exit:** 7 ночей подряд успешный run или auto-issue с детальной диагностикой.
 - **depends_on:** S9.1.
-- **feature_ids:** `ci.nightly-e2e`.
+- **feature_ids:** `ci-nightly-e2e`.
 
 ### Sprint S9.3 — Release automation
 
@@ -369,7 +371,7 @@ Status: completed (2026-05-30). Evidence: added `docs/security.md`, hardened `sr
 - **Scope:** tag `v0.x.y` → build portable + checksum + GitHub Release + release-notes из CHANGELOG, который пишут агенты.
 - **Exit:** релиз `v0.3.1` (или ближайший) уходит автоматически.
 - **depends_on:** S9.1.
-- **feature_ids:** `ci.release-automation`.
+- **feature_ids:** `ci-release-automation`.
 
 ---
 

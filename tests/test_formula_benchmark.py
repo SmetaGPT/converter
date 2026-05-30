@@ -4,12 +4,14 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 
 from doc_converter.formula_benchmark import (
     build_formula_gold_payload,
     collect_formula_units,
     compare_formula_units_to_gold,
     evaluate_threshold_policy,
+    main,
     run_benchmark_manifest,
     summarize_formula_units,
 )
@@ -256,6 +258,66 @@ class FormulaBenchmarkTests(unittest.TestCase):
             markdown = (Path(report["benchmark_run_dir"]) / "benchmark-report.md").read_text(encoding="utf-8")
             self.assertIn("## Required Gate", markdown)
 
+    def test_main_can_run_without_thresholds(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            document_path = root / "document.v1.json"
+            gold_path = root / "gold.json"
+            manifest_path = root / "manifest.jsonl"
+            output_root = root / "output"
+
+            payload = _document_payload(
+                [
+                    _formula_unit(
+                        unit_id="u_000001",
+                        order=1,
+                        text="R = A + B",
+                        source_format="docx_text_linearized",
+                        calc_expr="R = A + B",
+                        confidence="high",
+                    )
+                ]
+            )
+            document_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            gold_path.write_text(
+                json.dumps(build_formula_gold_payload(payload, document_label="sample"), ensure_ascii=False, indent=2)
+                + "\n",
+                encoding="utf-8",
+            )
+            manifest_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "formula-benchmark.manifest-entry.v1",
+                        "benchmark_id": "sample-doc",
+                        "tier": "anchor",
+                        "label": "Sample doc",
+                        "required": True,
+                        "input_kind": "document_json",
+                        "input_path": str(document_path),
+                        "gold_path": str(gold_path),
+                        "tags": ["unit-test"],
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            exit_code = main(
+                [
+                    str(manifest_path),
+                    "--output-root",
+                    str(output_root),
+                    "--no-thresholds",
+                ]
+            )
+
+            self.assertEqual(exit_code, 0)
+            benchmark_run_dir = next((output_root / "runs").iterdir())
+            report = json.loads((benchmark_run_dir / "benchmark-report.json").read_text(encoding="utf-8"))
+            self.assertIsNone(report["thresholds_path"])
+            self.assertIsNone(report["required_gate"])
+
     def test_evaluate_threshold_policy_rejects_missing_scope_metric(self) -> None:
         required_gate = evaluate_threshold_policy(
             {
@@ -277,7 +339,7 @@ class FormulaBenchmarkTests(unittest.TestCase):
         self.assertEqual(required_gate["checks"][0]["status"], "failed")
 
 
-def _document_payload(units: list[dict[str, object]]) -> dict[str, object]:
+def _document_payload(units: list[dict[str, Any]]) -> dict[str, Any]:
     document_id = "sha256:" + ("0" * 64)
     return {
         "schema_version": "document.v1",
@@ -340,7 +402,7 @@ def _formula_unit(
     confidence: str,
     warnings: list[str] | None = None,
     quality_warnings: list[str] | None = None,
-) -> dict[str, object]:
+) -> dict[str, Any]:
     document_id = "sha256:" + ("0" * 64)
     return {
         "unit_id": unit_id,
