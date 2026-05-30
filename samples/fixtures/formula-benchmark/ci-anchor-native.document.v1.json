@@ -1,0 +1,85 @@
+{
+  "schema_version": "document.v1",
+  "document_id": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "source": {
+    "original_path": "ci-anchor-native.docx",
+    "relative_input_path": null,
+    "filename": "ci-anchor-native.docx",
+    "format": "docx",
+    "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "size_bytes": 0
+  },
+  "processing": {
+    "route": "docx_native",
+    "status": "success",
+    "warnings": []
+  },
+  "metadata": {
+    "title": "CI anchor native formula",
+    "document_type": "приказ",
+    "short_summary": "Repo-tracked anchor fixture for CI formula benchmark.",
+    "confidence": "high",
+    "method": "filename_fallback"
+  },
+  "units": [
+    {
+      "unit_id": "u_000000",
+      "parent_id": null,
+      "type": "document",
+      "order": 0,
+      "text": null,
+      "asset_ref": null,
+      "formula": null,
+      "cell": null,
+      "source_ref": {
+        "document_id": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "page": null,
+        "bbox": null,
+        "docx_path": "/word/document.xml",
+        "coordinate_system": null,
+        "page_width": null,
+        "page_height": null
+      },
+      "quality": {
+        "flags": [],
+        "warnings": []
+      }
+    },
+    {
+      "unit_id": "u_000001",
+      "parent_id": "u_000000",
+      "type": "formula",
+      "order": 1,
+      "text": "n = 1 / N",
+      "asset_ref": null,
+      "formula": {
+        "source_format": "mathtype_wmf_text_records",
+        "linear_text": "n = 1 / N",
+        "display_latex": "n = 1 / N",
+        "calc_expr": "n = 1 / N",
+        "variables": {},
+        "confidence": "high",
+        "warnings": []
+      },
+      "cell": null,
+      "source_ref": {
+        "document_id": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "page": null,
+        "bbox": null,
+        "docx_path": "/word/document.xml/body/p[1]",
+        "coordinate_system": null,
+        "page_width": null,
+        "page_height": null
+      },
+      "quality": {
+        "flags": [],
+        "warnings": []
+      }
+    }
+  ],
+  "assets": [],
+  "quality": {
+    "flags": [],
+    "warnings": []
+  }
+}

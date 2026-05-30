@@ -42,7 +42,7 @@
 ## 4. Validation targets спринта
 
 1. Official Windows Gitleaks binary локально прошёл `gitleaks git --config .gitleaks.toml --exit-code 1 .`: `clean_exit = 0`.
-2. Тот же `gitleaks git --config .gitleaks.toml --exit-code 1 .` в synthetic temporary git repo с `OPENROUTER_API_KEY=prodkeyABCDEF1234567890` вернул `canary_exit = 1`.
+2. Тот же `gitleaks git --config .gitleaks.toml --exit-code 1 .` в synthetic temporary git repo с env-style synthetic canary assignment вернул `canary_exit = 1`.
 3. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe scripts\refresh_agent_eval.py` пересобрал generated companions без drift.
 4. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe scripts\validate_harness_assets.py` вернул `status: ok`, `features: 40`, `validated: 40`, `telemetry_entries: 74`.
 

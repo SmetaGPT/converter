@@ -12,6 +12,9 @@ paths = [
   '''^tests/test_formula_recognition\.py$''',
   '''^\.env\.example$'''
 ]
+stopwords = [
+  '''prodkeyABCDEF1234567890'''
+]
 
 [[rules]]
 id = "converter-openrouter-api-key"

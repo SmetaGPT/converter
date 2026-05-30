@@ -324,4 +324,4 @@ def _render_inline_glyph_template(symbol: str, font_name: str, font_size: int) -
 
 def _inline_glyph_difference_score(image: Image.Image, template: Image.Image) -> float:
     diff = ImageChops.difference(image, template)
-    return sum(diff.getdata()) / (255 * INLINE_GLYPH_TEMPLATE_SIZE * INLINE_GLYPH_TEMPLATE_SIZE)
+    return sum(diff.tobytes()) / (255 * INLINE_GLYPH_TEMPLATE_SIZE * INLINE_GLYPH_TEMPLATE_SIZE)
