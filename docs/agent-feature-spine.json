@@ -948,6 +948,86 @@
       "residual_risk": "Pause and resume are intentionally not exposed as GUI controls; the product relies on safe rerun semantics instead."
     },
     {
+      "feature_id": "operator-cli-json",
+      "area": "product",
+      "title": "Structured CLI result envelope",
+      "status": "validated",
+      "behavior": "CLI commands default to human-readable output, while `--output-format=json` emits a fixed `cli-result.v1` envelope with `command`, `status`, `exit_code`, `message` and command-specific `data`, so autonomous agents can react without parsing prose.",
+      "owner_docs": [
+        "src/doc_converter/cli.py",
+        "schemas/cli-result.v1.schema.json",
+        "tests/test_cli_smoke.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": "runTests tests/test_cli_smoke.py"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m pyright"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/cli.py",
+        "schemas/cli-result.v1.schema.json",
+        "tests/test_cli_smoke.py"
+      ],
+      "residual_risk": "The envelope is stable, but command-specific `data` payloads still vary by subcommand until S6.2 adds a structured runtime event contract."
+    },
+    {
+      "feature_id": "operator-doctor",
+      "area": "product",
+      "title": "Structured environment doctor command",
+      "status": "validated",
+      "behavior": "`document-converter doctor` reports OCR runtime, bundled font availability, schema availability and OpenRouter reachability through the same CLI envelope and returns `environment_invalid` when the runtime is not ready.",
+      "owner_docs": [
+        "src/doc_converter/cli.py",
+        "src/doc_converter/ocr_runtime.py",
+        "schemas/cli-result.v1.schema.json",
+        "tests/test_cli_smoke.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": "runTests tests/test_cli_smoke.py"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/cli.py",
+        "src/doc_converter/ocr_runtime.py",
+        "schemas/cli-result.v1.schema.json",
+        "tests/test_cli_smoke.py"
+      ],
+      "residual_risk": "Bundled font checks are expected to stay red until S4.3, and OpenRouter reachability is only probed when provider configuration is present."
+    },
+    {
+      "feature_id": "operator-dry-run",
+      "area": "product",
+      "title": "Inventory-only dry-run command",
+      "status": "validated",
+      "behavior": "`document-converter dry-run` performs deterministic inventory and route classification without creating run directories, and returns supported/unsupported records plus route and warning counts through the structured CLI envelope.",
+      "owner_docs": [
+        "src/doc_converter/cli.py",
+        "src/doc_converter/inventory.py",
+        "schemas/cli-result.v1.schema.json",
+        "tests/test_cli_smoke.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": "runTests tests/test_cli_smoke.py"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/cli.py",
+        "src/doc_converter/inventory.py",
+        "schemas/cli-result.v1.schema.json",
+        "tests/test_cli_smoke.py"
+      ],
+      "residual_risk": "Dry-run stops at inventory/classification and does not exercise per-route converter startup requirements; full `convert-folder` runs remain the conversion gate."
+    },
+    {
       "feature_id": "machine-readable-telemetry",
       "area": "observability",
       "title": "Machine-readable telemetry companion",

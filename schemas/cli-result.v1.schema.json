@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/SmetaGPT/converter/schemas/cli-result.v1.schema.json",
+  "title": "CLI Result V1",
+  "type": "object",
+  "required": ["schema_version", "command", "status", "exit_code", "message", "data"],
+  "properties": {
+    "schema_version": { "const": "cli-result.v1" },
+    "command": {
+      "enum": [
+        "check-ocr",
+        "convert-folder",
+        "doctor",
+        "dry-run",
+        "evaluate-document-formulas",
+        "evaluate-formula",
+        "document-converter"
+      ]
+    },
+    "status": {
+      "enum": [
+        "ok",
+        "partial",
+        "review_required",
+        "input_invalid",
+        "environment_invalid",
+        "internal_error"
+      ]
+    },
+    "exit_code": { "enum": [0, 10, 20, 30, 40, 50] },
+    "message": { "type": "string", "minLength": 1 },
+    "data": { "type": "object" }
+  },
+  "additionalProperties": false
+}

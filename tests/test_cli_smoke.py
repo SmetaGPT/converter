@@ -7,6 +7,7 @@ import unittest
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
+from typing import Any, cast
 from urllib.parse import unquote, urlparse
 from unittest.mock import Mock, patch
 
@@ -27,6 +28,8 @@ class CliSmokeTests(unittest.TestCase):
         help_text = build_parser().format_help()
         self.assertIn("convert-folder", help_text)
         self.assertIn("check-ocr", help_text)
+        self.assertIn("doctor", help_text)
+        self.assertIn("dry-run", help_text)
         self.assertIn("evaluate-formula", help_text)
         self.assertIn("evaluate-document-formulas", help_text)
         self.assertNotIn("--workers", help_text)
@@ -34,15 +37,84 @@ class CliSmokeTests(unittest.TestCase):
     def test_check_ocr_outputs_machine_readable_status(self) -> None:
         buffer = StringIO()
         with redirect_stdout(buffer):
-            exit_code = main(["check-ocr"])
+            exit_code = main(["check-ocr", "--output-format=json"])
 
-        self.assertIn(exit_code, {0, 1})
-        payload = json.loads(buffer.getvalue())
-        validate_payload(payload, "ocr-runtime.v1.schema.json")
-        self.assertEqual(payload["schema_version"], "ocr-runtime.v1")
-        self.assertIn(payload["status"], {"ready", "missing"})
-        self.assertIn("tools", payload)
-        self.assertIn("languages", payload)
+        self.assertIn(exit_code, {0, 40})
+        payload = _load_cli_result(buffer)
+        self.assertEqual(payload["command"], "check-ocr")
+        self.assertIn(payload["status"], {"ok", "environment_invalid"})
+        validate_payload(payload["data"], "ocr-runtime.v1.schema.json")
+        self.assertEqual(payload["data"]["schema_version"], "ocr-runtime.v1")
+        self.assertIn(payload["data"]["status"], {"ready", "missing"})
+        self.assertIn("tools", payload["data"])
+        self.assertIn("languages", payload["data"])
+
+    def test_doctor_outputs_machine_readable_status(self) -> None:
+        buffer = StringIO()
+        with patch("doc_converter.cli.detect_ocr_runtime", return_value=_ready_ocr_payload()):
+            with patch("doc_converter.cli._check_font_bundle", return_value=_ready_font_bundle_payload()):
+                with patch("doc_converter.cli._check_schema_contracts", return_value=_ready_schema_checks_payload()):
+                    with patch(
+                        "doc_converter.cli._check_openrouter_reachability",
+                        return_value={"provider": None, "model": None, "status": "not_configured", "warnings": []},
+                    ):
+                        with redirect_stdout(buffer):
+                            exit_code = main(["doctor", "--output-format=json"])
+
+        self.assertEqual(exit_code, 0)
+        payload = _load_cli_result(buffer)
+        self.assertEqual(payload["command"], "doctor")
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["data"]["ocr_runtime"]["status"], "ready")
+        self.assertEqual(payload["data"]["font_bundle"]["status"], "ready")
+        self.assertEqual(payload["data"]["schemas"]["status"], "ready")
+
+    def test_doctor_reports_environment_invalid(self) -> None:
+        buffer = StringIO()
+        with patch("doc_converter.cli.detect_ocr_runtime", return_value=_missing_ocr_payload()):
+            with patch("doc_converter.cli._check_font_bundle", return_value=_ready_font_bundle_payload()):
+                with patch("doc_converter.cli._check_schema_contracts", return_value=_ready_schema_checks_payload()):
+                    with patch(
+                        "doc_converter.cli._check_openrouter_reachability",
+                        return_value={"provider": None, "model": None, "status": "not_configured", "warnings": []},
+                    ):
+                        with redirect_stdout(buffer):
+                            exit_code = main(["doctor", "--output-format=json"])
+
+        self.assertEqual(exit_code, 40)
+        payload = _load_cli_result(buffer)
+        self.assertEqual(payload["status"], "environment_invalid")
+        self.assertEqual(payload["data"]["ocr_runtime"]["status"], "missing")
+
+    def test_dry_run_reports_review_required_for_unsupported_inputs(self) -> None:
+        with tempfile.TemporaryDirectory() as input_dir:
+            document = Document()
+            document.add_paragraph("Dry run candidate")
+            document.save(str(Path(input_dir) / "sample.docx"))
+            (Path(input_dir) / "notes.txt").write_text("unsupported", encoding="utf-8")
+
+            buffer = StringIO()
+            with redirect_stdout(buffer):
+                exit_code = main(["dry-run", input_dir, "--output-format=json"])
+
+        self.assertEqual(exit_code, 20)
+        payload = _load_cli_result(buffer)
+        self.assertEqual(payload["command"], "dry-run")
+        self.assertEqual(payload["status"], "review_required")
+        self.assertEqual(payload["data"]["supported_files"], 1)
+        self.assertEqual(payload["data"]["unsupported_files"], 1)
+        self.assertEqual(payload["data"]["route_counts"], {"docx_native": 1})
+
+    def test_convert_folder_reports_input_invalid_exit_code(self) -> None:
+        with tempfile.TemporaryDirectory() as output_dir:
+            missing = Path(output_dir) / "missing"
+            buffer = StringIO()
+            with redirect_stdout(buffer):
+                exit_code = main(["convert-folder", str(missing), output_dir, "--output-format=json"])
+
+        self.assertEqual(exit_code, 30)
+        payload = _load_cli_result(buffer)
+        self.assertEqual(payload["status"], "input_invalid")
 
     def test_evaluate_formula_outputs_machine_readable_result(self) -> None:
         buffer = StringIO()
@@ -54,15 +126,17 @@ class CliSmokeTests(unittest.TestCase):
                     "K_rost = ( 1 + P_rost / 100 ) ** 2",
                     "--values",
                     '{"P_rost": 15}',
+                    "--output-format=json",
                 ]
             )
 
         self.assertEqual(exit_code, 0)
-        payload = json.loads(buffer.getvalue())
+        payload = _load_cli_result(buffer)
         self.assertEqual(payload["status"], "ok")
-        self.assertEqual(payload["target"], "K_rost")
-        self.assertAlmostEqual(payload["value"], 1.3225)
-        self.assertEqual(payload["used_variables"], {"P_rost": 15.0})
+        self.assertEqual(payload["data"]["status"], "ok")
+        self.assertEqual(payload["data"]["target"], "K_rost")
+        self.assertAlmostEqual(payload["data"]["value"], 1.3225)
+        self.assertEqual(payload["data"]["used_variables"], {"P_rost": 15.0})
 
     def test_evaluate_formula_reports_missing_variables(self) -> None:
         buffer = StringIO()
@@ -74,14 +148,16 @@ class CliSmokeTests(unittest.TestCase):
                     "R = A + B",
                     "--values",
                     '{"A": 1}',
+                    "--output-format=json",
                 ]
             )
 
-        self.assertEqual(exit_code, 1)
-        payload = json.loads(buffer.getvalue())
-        self.assertEqual(payload["status"], "missing_variables")
-        self.assertEqual(payload["target"], "R")
-        self.assertEqual(payload["missing_variables"], ["B"])
+        self.assertEqual(exit_code, 20)
+        payload = _load_cli_result(buffer)
+        self.assertEqual(payload["status"], "review_required")
+        self.assertEqual(payload["data"]["status"], "missing_variables")
+        self.assertEqual(payload["data"]["target"], "R")
+        self.assertEqual(payload["data"]["missing_variables"], ["B"])
 
     def test_evaluate_formula_accepts_utf8_bom_values_file(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -97,13 +173,14 @@ class CliSmokeTests(unittest.TestCase):
                         "K_rost = ( 1 + P_rost / 100 ) ** 2",
                         "--values-file",
                         str(values_path),
+                        "--output-format=json",
                     ]
                 )
 
         self.assertEqual(exit_code, 0)
-        payload = json.loads(buffer.getvalue())
+        payload = _load_cli_result(buffer)
         self.assertEqual(payload["status"], "ok")
-        self.assertAlmostEqual(payload["value"], 1.3225)
+        self.assertAlmostEqual(payload["data"]["value"], 1.3225)
 
     def test_evaluate_document_formulas_outputs_machine_readable_results(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -123,20 +200,21 @@ class CliSmokeTests(unittest.TestCase):
                         str(document_path),
                         "--values-file",
                         str(values_path),
+                        "--output-format=json",
                     ]
                 )
 
-        self.assertEqual(exit_code, 1)
-        payload = json.loads(buffer.getvalue())
+        self.assertEqual(exit_code, 10)
+        payload = _load_cli_result(buffer)
         self.assertEqual(payload["status"], "partial")
-        self.assertEqual(payload["formula_units"], 2)
-        self.assertEqual(payload["calc_expr_units"], 2)
-        self.assertEqual(payload["evaluated"], 1)
-        self.assertEqual(payload["missing_variables"], 1)
-        self.assertEqual(payload["results"][0]["target"], "R")
-        self.assertAlmostEqual(payload["results"][0]["value"], 5.0)
-        self.assertEqual(payload["results"][1]["status"], "missing_variables")
-        self.assertEqual(payload["results"][1]["missing_variables"], ["C"])
+        self.assertEqual(payload["data"]["formula_units"], 2)
+        self.assertEqual(payload["data"]["calc_expr_units"], 2)
+        self.assertEqual(payload["data"]["evaluated"], 1)
+        self.assertEqual(payload["data"]["missing_variables"], 1)
+        self.assertEqual(payload["data"]["results"][0]["target"], "R")
+        self.assertAlmostEqual(payload["data"]["results"][0]["value"], 5.0)
+        self.assertEqual(payload["data"]["results"][1]["status"], "missing_variables")
+        self.assertEqual(payload["data"]["results"][1]["missing_variables"], ["C"])
 
     def test_evaluate_document_formulas_resolves_dependencies(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -164,17 +242,18 @@ class CliSmokeTests(unittest.TestCase):
                         str(document_path),
                         "--values-file",
                         str(values_path),
+                        "--output-format=json",
                     ]
                 )
 
         self.assertEqual(exit_code, 0)
-        payload = json.loads(buffer.getvalue())
+        payload = _load_cli_result(buffer)
         self.assertEqual(payload["status"], "ok")
-        self.assertEqual(payload["evaluated"], 2)
-        self.assertEqual(payload["missing_variables"], 0)
-        self.assertAlmostEqual(payload["results"][0]["value"], 10.0)
-        self.assertEqual(payload["results"][0]["used_variables"], {"R": 5.0})
-        self.assertAlmostEqual(payload["results"][1]["value"], 5.0)
+        self.assertEqual(payload["data"]["evaluated"], 2)
+        self.assertEqual(payload["data"]["missing_variables"], 0)
+        self.assertAlmostEqual(payload["data"]["results"][0]["value"], 10.0)
+        self.assertEqual(payload["data"]["results"][0]["used_variables"], {"R": 5.0})
+        self.assertAlmostEqual(payload["data"]["results"][1]["value"], 5.0)
 
     def test_find_ocrmypdf_prefers_active_python_directory(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -293,12 +372,13 @@ class CliSmokeTests(unittest.TestCase):
                         "task-123",
                         "--parent-run-id",
                         "parent-123",
+                        "--output-format=json",
                     ]
                 )
 
             self.assertEqual(exit_code, 0)
-            cli_payload = json.loads(buffer.getvalue())
-            run_payload = json.loads((Path(cli_payload["run_dir"]) / "run.json").read_text(encoding="utf-8"))
+            cli_payload = _load_cli_result(buffer)
+            run_payload = json.loads((Path(cli_payload["data"]["run_dir"]) / "run.json").read_text(encoding="utf-8"))
             validate_payload(run_payload, "run.v1.schema.json")
             self.assertEqual(
                 run_payload["agent_run_metadata"],
@@ -309,6 +389,18 @@ class CliSmokeTests(unittest.TestCase):
                     "parent_run_id": "parent-123",
                 },
             )
+
+    def test_dry_run_internal_error_maps_to_exit_code_50(self) -> None:
+        with tempfile.TemporaryDirectory() as input_dir:
+            buffer = StringIO()
+            with patch("doc_converter.cli.build_inventory", side_effect=RuntimeError("boom")):
+                with redirect_stdout(buffer):
+                    exit_code = main(["dry-run", input_dir, "--output-format=json"])
+
+        self.assertEqual(exit_code, 50)
+        payload = _load_cli_result(buffer)
+        self.assertEqual(payload["status"], "internal_error")
+        self.assertEqual(payload["data"]["error_type"], "RuntimeError")
 
     def test_run_metadata_omits_formula_recognition_api_key(self) -> None:
         with tempfile.TemporaryDirectory() as env_dir, tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:
@@ -719,4 +811,68 @@ def _minimal_formula_unit(
             "page_height": None,
         },
         "quality": {"flags": [], "warnings": []},
+    }
+
+
+def _load_cli_result(buffer: StringIO) -> dict[str, Any]:
+    payload = cast(dict[str, Any], json.loads(buffer.getvalue()))
+    validate_payload(payload, "cli-result.v1.schema.json")
+    return payload
+
+
+def _ready_ocr_payload() -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "schema_version": "ocr-runtime.v1",
+        "status": "ready",
+        "tools": {
+            "ocrmypdf": {"available": True, "path": "C:/ocrmypdf.exe"},
+            "tesseract": {"available": True, "path": "C:/tesseract.exe"},
+            "ghostscript": {"available": True, "path": "C:/gswin64c.exe"},
+        },
+        "languages": {
+            "requested": ["rus", "eng"],
+            "installed": ["rus", "eng"],
+            "missing": [],
+        },
+        "warnings": [],
+    }
+    validate_payload(payload, "ocr-runtime.v1.schema.json")
+    return payload
+
+
+def _missing_ocr_payload() -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "schema_version": "ocr-runtime.v1",
+        "status": "missing",
+        "tools": {
+            "ocrmypdf": {"available": False, "path": None},
+            "tesseract": {"available": True, "path": "C:/tesseract.exe"},
+            "ghostscript": {"available": True, "path": "C:/gswin64c.exe"},
+        },
+        "languages": {
+            "requested": ["rus", "eng"],
+            "installed": ["rus", "eng"],
+            "missing": [],
+        },
+        "warnings": ["OCRmyPDF CLI is not available in the active runtime."],
+    }
+    validate_payload(payload, "ocr-runtime.v1.schema.json")
+    return payload
+
+
+def _ready_font_bundle_payload() -> dict[str, Any]:
+    return {
+        "status": "ready",
+        "directory": "D:/converter/assets/fonts",
+        "fonts": ["LiberationSerif-Regular.ttf"],
+        "warnings": [],
+    }
+
+
+def _ready_schema_checks_payload() -> dict[str, Any]:
+    return {
+        "status": "ready",
+        "directory": "D:/converter/schemas",
+        "schemas": [{"name": "cli-result.v1.schema.json", "available": True}],
+        "warnings": [],
     }

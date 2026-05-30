@@ -266,6 +266,8 @@ graph LR
 
 ### Sprint S6.1 — Structured CLI
 
+**Status:** completed 2026-05-30. Evidence: `schemas/cli-result.v1.schema.json` добавлена, `tests/test_cli_smoke.py` покрывает каждый subcommand и каждый exit code, `runTests tests/test_cli_smoke.py` дал 29/29, полный `runTests` дал 203/0, `ruff` и `pyright` зелёные.
+
 - **Goal:** агенты принимают решения без парсинга текста.
 - **Scope:**
   - [src/doc_converter/cli.py](../src/doc_converter/cli.py): флаг `--output-format=json` (default — human) с фиксированной схемой `schemas/cli-result.v1.schema.json`.

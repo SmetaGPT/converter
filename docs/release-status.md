@@ -12,6 +12,8 @@
 
 Сейчас проект находится в post-release table and formula hardening state поверх production-ready v0.3.0: converter уже имеет runtime schema validation, resume/reuse для неизменённых файлов, duplicate skip без перезаписи canonical package, operator-grade GUI surface, reference chunk builder, Windows CI, synthetic e2e и portable release packaging. После v0.2.0 реализованы semantic metadata enhancement для `document.v1.json`, heuristic semantic extraction для DOCX/PDF tables/formulas/figures и DOCX footnotes/header/footer, native XLSX route для workbook/sheet/cell/formula packages, env-based formula-recognition provider config с безопасной сериализацией run metadata, formula-recognition postprocess с local WMF hint extraction и OpenRouter fallback, optional Windows schedule helper для eval refresh, root-level `processed-documents-catalog.json` и `processed-documents-catalog.xlsx` для operator navigation, first-class human-readable Markdown/HTML export из canonical package и GUI HTML QC path, а portable package пересобран как v0.3.0. Поверх formula tranche уже закрыт первый table-hardening sprint: `pdf_text` и `pdf_scan` теперь используют shared table parser с dominant row width normalization, continuation-line merge и explicit `table_structure_warning` для unresolved ragged tables, а DOCX `table_cell` units сохраняют multiline text и formula-like cell metadata. Следом закрыт и первый table benchmark anchor baseline: `sample_009` и `sample_018` получили executable expected specs с row/cell metrics, `sample_020` зафиксирован как reproducible OCR-blocked scan baseline, а новый validator `scripts/validate_sample_expectations.py` превращает representative sample expectations из статичных JSON fixtures в воспроизводимый quality loop. Formula benchmark harness, versioned gates и opt-in local formula OCR backend `FORMULA_RECOGNITION_LOCAL_BACKEND=tesseract` остаются отдельным воспроизводимым quality loop для следующего formula backlog. Дополнительно harness layer теперь имеет machine-readable feature spine, bootstrap contract, clean-exit checklist, sprint contract template, evaluator rubric и CI-backed validator для этих артефактов, а feature spine покрывает и core product-capabilities конвертера, связан с task-flow через `feature_id` traceability, дополнен schema-backed telemetry JSONL companion, generated scorecard companion, generated weekly eval companion, machine-readable weekly review source, one-command refresh wrapper и guarded schedule helper для этого eval contour.
 
+Critical-path operator surface S6.1 закрыт: CLI по умолчанию остаётся human-readable для ручного использования, а `--output-format=json` выдаёт fixed `cli-result.v1` envelope с exit-code matrix `0/10/20/30/40/50`. Дополнительно появились `doctor` и `dry-run`, поэтому агент может различать `input_invalid`, `environment_invalid`, `review_required` и `partial` без парсинга prose и без пробного запуска полного conversion path.
+
 Готово:
 
 - baseline;
@@ -26,6 +28,7 @@
 - Windows Document Converter hardening Sprint 13-16;
 - runtime schema validation для `run/document/manifest/summary/queue-state/ocr-runtime/chunks`;
 - `review-required.jsonl`, richer summary reasons и portable run-package validation;
+- structured CLI operator surface: `cli-result.v1`, exit-code matrix, `doctor` и `dry-run`.
 - Windows CI workflow, synthetic e2e и portable release package с checksum/release notes.
 - schema-backed semantic metadata block в `document.v1.json`, подтверждённый real-folder e2e на 52 DOCX из `metod`.
 - machine-readable `docs/agent-feature-spine.json` и validator `scripts/validate_harness_assets.py`, встроенный в CI.
@@ -76,8 +79,8 @@
 
 Следующий backlog:
 
-- production roadmap S6.1: structured CLI JSON output, exit-code matrix, `doctor` и `dry-run` как следующий critical-path operator surface.
 - production roadmap S6.2: structured runtime logs/telemetry schema после machine-readable CLI contract.
+- production roadmap S7.1: threat model, input hardening и `docs/security.md` после operator surface.
 - отдельный architecture follow-up: вывести `src/doc_converter/formula_benchmark.py` из oversize-состояния без ломки benchmark CLI/report contracts.
 - table benchmark follow-up на `sample_009`, `sample_018` и `sample_020`: next sprint должен не создавать baseline с нуля, а снижать `table_structure_warning` density на text-layer anchors, вывести explicit negative/control false-positive contour и устранить OCR blocker на `sample_020`, чтобы scan route тоже вошёл в measured table loop.
 - richer DOCX table semantics: после formula-in-cell closure следующий backlog лежит в header-like rows, merged-cell hints и richer review signals для operator QC.
@@ -114,6 +117,8 @@
 До Sprint 6 все risky production-like действия считаются вне рамки автоматического исполнения. Их approval points должны быть описаны в release documentation и guardrails.
 
 ## 7. Текущий release risk
+
+Предыдущий critical-path risk по отсутствию structured CLI/operator contract закрыт в S6.1; ближайший critical path теперь смещён на structured runtime logs/telemetry contract в S6.2 и последующий security hardening в S7.x.
 
 Операционных blocker-ов для релиза v0.3.0 не осталось. Последний внешний production audit больше не оставляет runtime- или CI-blocker: self-ingestion guard и unsupported accounting закрыты в runtime, OCR traineddata direct downloads проверяются по pinned SHA-256, а lint/type/pip/package smoke выполняются в штатном workflow. Runner monolith risk тоже закрыт: orchestration теперь живёт в smaller `run/` modules, а compatibility surface сохраняется через thin wrapper. Route-coupling risk закрыт следующим архитектурным шагом: `inventory` и `run.orchestration` теперь используют shared converter registry вместо hard-coded format-specific imports и route branches. Table parser ownership тоже приведён к архитектурному baseline: dominant-width inference, continuation merge и `table_structure_warning` больше не размазаны по converters, а живут в shared `tables/` package с подтверждённым fresh anchor run `20260529T162149Z`. Новый table benchmark contour остаётся measured: `sample_009` и `sample_018` держат executable row/cell baseline, warning density всё ещё высокая, а `sample_020` по-прежнему OCR-blocked scan baseline с `partial_success` и `OCRmyPDF failed`. Значит ближайший release-risk по tables теперь ещё уже локализован: не parser drift между routes, а warning-heavy parse, missing negative/control false-positive contour и OCR blocker на одном scan anchor. Следующий critical-path release-risk смещается с route architecture на отсутствие structured CLI/operator contract и последующий security hardening в S6.x/S7.x. Formula benchmark manifest по-прежнему зелёный на curated `metod`/`SP` set и подтверждён run `20260526T054732Z` под executable policy `samples/formula-benchmark.thresholds.json`, поэтому formula backlog можно возвращать после operator-surface tranche. Optional OCR helpers `jbig2`, `pngquant`, `verapdf` остаются необязательными и не блокируют core OCR path. Для harness layer остаточный риск теперь в основном операционный: thresholds уже executable и перепроверены, но telemetry, generated scorecard, generated weekly eval, machine-readable weekly reviews и schedule helper всё ещё требуют дисциплины обновления, а из repo-wide file-size debt остался только `src/doc_converter/formula_benchmark.py`.
 
@@ -170,7 +175,7 @@
 ## 14. Harness assets validation
 
 - Команда: `.\.venv\Scripts\python.exe scripts\validate_harness_assets.py`.
-- Результат: `status: ok`, `features: 32`, `validated: 32`, `active: 0`, `backlog: 0`, `telemetry_entries: 69`.
+- Результат: `status: ok`, `features: 36`, `validated: 36`, `active: 0`, `backlog: 0`, `telemetry_entries: 71`.
 - Назначение: ранний провал CI при потере feature spine, feature-traceability markers в шаблонах, machine-readable telemetry companion, generated scorecard companion, generated weekly eval companion, machine-readable weekly reviews source, markdown structured companion sync, qualitative weekly review evidence или core product-capabilities ссылок.
 
 ## 15. Latest Audit Remediation
