@@ -1,6 +1,6 @@
 {
   "schema_version": "agent-feature-spine.v1",
-  "last_updated": "2026-05-29",
+  "last_updated": "2026-05-30",
   "features": [
     {
       "feature_id": "state-layer",
@@ -462,6 +462,48 @@
         "runs/s23-table-anchors/runs/20260529T162149Z"
       ],
       "residual_risk": "Shared parser logic is centralized, but table unit assembly and richer semantics still remain route-local; next backlog is no longer parser drift, but warning density, negative/control contour and scan OCR blocker handling."
+    },
+    {
+      "feature_id": "arch-converter-protocol",
+      "area": "architecture",
+      "title": "Converter protocol and route registry",
+      "status": "validated",
+      "behavior": "Inventory route detection and run orchestration dispatch both flow through a shared `doc_converter.converters` registry with `ConverterProtocol` adapters, so future converter registration no longer requires hard-coded imports or route branches inside orchestration.",
+      "owner_docs": [
+        "docs/production-roadmap.md",
+        "src/doc_converter/converters/__init__.py",
+        "src/doc_converter/converters/protocol.py",
+        "src/doc_converter/inventory.py",
+        "src/doc_converter/run/orchestration.py",
+        "tests/test_cli_smoke.py",
+        "tests/test_converter_registry.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_cli_smoke tests.test_converter_registry tests.test_inventory -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m ruff check src tests scripts"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m pyright"
+        }
+      ],
+      "evidence": [
+        "docs/production-roadmap.md",
+        "src/doc_converter/converters/__init__.py",
+        "src/doc_converter/converters/protocol.py",
+        "src/doc_converter/converters/txt.py",
+        "src/doc_converter/inventory.py",
+        "src/doc_converter/run/orchestration.py",
+        "tests/test_cli_smoke.py",
+        "tests/test_converter_registry.py",
+        "tests/test_inventory.py"
+      ],
+      "residual_risk": "Stable manifest and document schemas still enumerate the current product formats, so architecture-only demo converters should stay opt-in and isolate schema validation unless the public format contract is intentionally expanded."
     },
     {
       "feature_id": "pdf-text-route",

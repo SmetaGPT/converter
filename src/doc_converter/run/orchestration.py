@@ -9,10 +9,7 @@ from typing import Any, Callable
 
 from .. import __version__
 from ..config import AgentRunMetadata, ConverterConfig, serialize_converter_options
-from ..converters.docx import ConversionResult, convert_docx
-from ..converters.pdf_scan import PdfScanConversionResult, convert_pdf_scan
-from ..converters.pdf_text import PdfTextConversionResult, convert_pdf_text
-from ..converters.xlsx import XlsxConversionResult, convert_xlsx
+from ..converters import get_converter
 from ..inventory import build_inventory
 from ..schema_validation import validate_payload
 from .catalog import _write_processed_documents_catalog
@@ -126,204 +123,175 @@ def run_convert_folder(
             break
 
         manifest_record = record.to_manifest_record(run_id)
-        if record.route in {"docx_native", "pdf_text", "pdf_scan", "xlsx_native"}:
-            document_dir = _document_output_path(documents_dir, record.sha256)
+        document_dir = _document_output_path(documents_dir, record.sha256)
+        _emit_progress(
+            progress_callback,
+            {
+                "event": "document_started",
+                "run_id": run_id,
+                "relative_path": record.relative_path,
+                "total_files": total_files,
+                "processed_files": len(completed) + len(partial) + len(failed),
+            },
+        )
+        if record.duplicate_of is not None:
+            primary_manifest = manifest_by_relative_path.get(record.duplicate_of)
+            if primary_manifest is None:
+                raise ConverterError(f"Primary duplicate record was not processed first: {record.duplicate_of}")
+            manifest_record["status"] = "skipped_duplicate"
+            if "output_dir" in primary_manifest:
+                manifest_record["output_dir"] = primary_manifest["output_dir"]
+            _copy_result_metadata(primary_manifest, manifest_record)
+            if config.options.include_originals and "output_dir" in manifest_record:
+                _copy_original_file(
+                    input_dir / record.relative_path,
+                    run_dir / str(manifest_record["output_dir"]),
+                    record.relative_path,
+                )
+            completed.append(record.relative_path)
+            _append_jsonl(
+                log_path,
+                {
+                    "event": "document_skipped_duplicate",
+                    "run_id": run_id,
+                    "relative_path": record.relative_path,
+                    "duplicate_of": record.duplicate_of,
+                    "status": "skipped_duplicate",
+                },
+            )
             _emit_progress(
                 progress_callback,
                 {
-                    "event": "document_started",
+                    "event": "document_finished",
                     "run_id": run_id,
                     "relative_path": record.relative_path,
+                    "status": "skipped_duplicate",
                     "total_files": total_files,
                     "processed_files": len(completed) + len(partial) + len(failed),
                 },
             )
-            if record.duplicate_of is not None:
-                primary_manifest = manifest_by_relative_path.get(record.duplicate_of)
-                if primary_manifest is None:
-                    raise ConverterError(f"Primary duplicate record was not processed first: {record.duplicate_of}")
-                manifest_record["status"] = "skipped_duplicate"
-                if "output_dir" in primary_manifest:
-                    manifest_record["output_dir"] = primary_manifest["output_dir"]
-                _copy_result_metadata(primary_manifest, manifest_record)
-                if config.options.include_originals and "output_dir" in manifest_record:
-                    _copy_original_file(
-                        input_dir / record.relative_path,
-                        run_dir / str(manifest_record["output_dir"]),
-                        record.relative_path,
-                    )
+            final_manifest_records.append(manifest_record)
+            manifest_by_relative_path[record.relative_path] = manifest_record
+            continue
+
+        resume_hit = resume_index.get((record.sha256, record.relative_path))
+        if resume_hit is not None:
+            source_document_dir = (output_dir / "runs" / resume_hit.run_id / resume_hit.output_dir).resolve()
+            _reuse_document_dir(source_document_dir, document_dir)
+            manifest_record["status"] = resume_hit.status
+            manifest_record["output_dir"] = document_dir.relative_to(run_dir).as_posix()
+            manifest_record["resumed_from_run_id"] = resume_hit.run_id
+            manifest_record["reused_previous_output"] = True
+            _copy_result_metadata(resume_hit.manifest_record, manifest_record)
+            if config.options.include_originals:
+                _copy_original_file(input_dir / record.relative_path, document_dir, record.relative_path)
+            if resume_hit.status == "partial_success":
+                partial.append(record.relative_path)
+            else:
                 completed.append(record.relative_path)
-                _append_jsonl(
-                    log_path,
-                    {
-                        "event": "document_skipped_duplicate",
-                        "run_id": run_id,
-                        "relative_path": record.relative_path,
-                        "duplicate_of": record.duplicate_of,
-                        "status": "skipped_duplicate",
-                    },
-                )
-                _emit_progress(
-                    progress_callback,
-                    {
-                        "event": "document_finished",
-                        "run_id": run_id,
-                        "relative_path": record.relative_path,
-                        "status": "skipped_duplicate",
-                        "total_files": total_files,
-                        "processed_files": len(completed) + len(partial) + len(failed),
-                    },
-                )
-                final_manifest_records.append(manifest_record)
-                manifest_by_relative_path[record.relative_path] = manifest_record
-                continue
+            _append_jsonl(
+                log_path,
+                {
+                    "event": "document_reused",
+                    "run_id": run_id,
+                    "relative_path": record.relative_path,
+                    "route": record.route,
+                    "status": resume_hit.status,
+                    "resumed_from_run_id": resume_hit.run_id,
+                },
+            )
+            _emit_progress(
+                progress_callback,
+                {
+                    "event": "document_finished",
+                    "run_id": run_id,
+                    "relative_path": record.relative_path,
+                    "status": resume_hit.status,
+                    "total_files": total_files,
+                    "processed_files": len(completed) + len(partial) + len(failed),
+                },
+            )
+            final_manifest_records.append(manifest_record)
+            manifest_by_relative_path[record.relative_path] = manifest_record
+            continue
 
-            resume_hit = resume_index.get((record.sha256, record.relative_path))
-            if resume_hit is not None:
-                source_document_dir = (output_dir / "runs" / resume_hit.run_id / resume_hit.output_dir).resolve()
-                _reuse_document_dir(source_document_dir, document_dir)
-                manifest_record["status"] = resume_hit.status
-                manifest_record["output_dir"] = document_dir.relative_to(run_dir).as_posix()
-                manifest_record["resumed_from_run_id"] = resume_hit.run_id
-                manifest_record["reused_previous_output"] = True
-                _copy_result_metadata(resume_hit.manifest_record, manifest_record)
-                if config.options.include_originals:
-                    _copy_original_file(input_dir / record.relative_path, document_dir, record.relative_path)
-                if resume_hit.status == "partial_success":
-                    partial.append(record.relative_path)
-                else:
-                    completed.append(record.relative_path)
-                _append_jsonl(
-                    log_path,
-                    {
-                        "event": "document_reused",
-                        "run_id": run_id,
-                        "relative_path": record.relative_path,
-                        "route": record.route,
-                        "status": resume_hit.status,
-                        "resumed_from_run_id": resume_hit.run_id,
-                    },
-                )
-                _emit_progress(
-                    progress_callback,
-                    {
-                        "event": "document_finished",
-                        "run_id": run_id,
-                        "relative_path": record.relative_path,
-                        "status": resume_hit.status,
-                        "total_files": total_files,
-                        "processed_files": len(completed) + len(partial) + len(failed),
-                    },
-                )
-                final_manifest_records.append(manifest_record)
-                manifest_by_relative_path[record.relative_path] = manifest_record
-                continue
+        try:
+            converter = get_converter(record.route)
+        except KeyError as exc:
+            raise ConverterError(f"Unsupported converter route in inventory: {record.route}") from exc
 
-            try:
-                result: ConversionResult | PdfTextConversionResult | PdfScanConversionResult | XlsxConversionResult
-                if record.route == "docx_native":
-                    result = convert_docx(
-                        input_dir / record.relative_path,
-                        document_dir,
-                        record.sha256,
-                        relative_source_path=record.relative_path,
-                    )
-                    manifest_record["assets_count"] = result.assets_count
-                    manifest_record["search_text_chars"] = result.search_text_chars
-                elif record.route == "pdf_text":
-                    result = convert_pdf_text(
-                        input_dir / record.relative_path,
-                        document_dir,
-                        record.sha256,
-                        relative_source_path=record.relative_path,
-                    )
-                    manifest_record["pages"] = result.pages
-                    manifest_record["search_text_chars"] = result.text_chars
-                elif record.route == "xlsx_native":
-                    result = convert_xlsx(
-                        input_dir / record.relative_path,
-                        document_dir,
-                        record.sha256,
-                        relative_source_path=record.relative_path,
-                    )
-                    manifest_record["sheets"] = result.sheets
-                    manifest_record["search_text_chars"] = result.text_chars
-                    manifest_record["formula_cells"] = result.formula_cells
-                    manifest_record["warnings"] = list(result.warnings)
-                else:
-                    result = convert_pdf_scan(
-                        input_dir / record.relative_path,
-                        document_dir,
-                        record.sha256,
-                        config.options.ocr_languages,
-                        relative_source_path=record.relative_path,
-                    )
-                    manifest_record["pages"] = result.pages
-                    manifest_record["search_text_chars"] = result.text_chars
-                    manifest_record["warnings"] = list(result.warnings)
-                manifest_record["status"] = result.status
-                manifest_record["output_dir"] = document_dir.relative_to(run_dir).as_posix()
-                manifest_record["units_count"] = result.units_count
-                formula_result = _run_formula_recognition_stage(document_dir, config)
-                _merge_formula_recognition_manifest_data(manifest_record, formula_result)
-                if config.options.include_originals:
-                    manifest_record["original_copy_path"] = _copy_original_file(
-                        input_dir / record.relative_path,
-                        document_dir,
-                        record.relative_path,
-                    )
-                if result.status == "partial_success":
-                    partial.append(record.relative_path)
-                else:
-                    completed.append(record.relative_path)
-                _append_jsonl(
-                    log_path,
-                    {
-                        "event": "document_converted",
-                        "run_id": run_id,
-                        "relative_path": record.relative_path,
-                        "route": record.route,
-                        "status": result.status,
-                    },
+        try:
+            result = converter.convert(
+                input_dir / record.relative_path,
+                document_dir,
+                record.sha256,
+                config=config,
+                relative_source_path=record.relative_path,
+            )
+            manifest_record.update(result.manifest_data)
+            manifest_record["status"] = result.status
+            manifest_record["output_dir"] = document_dir.relative_to(run_dir).as_posix()
+            manifest_record["units_count"] = result.units_count
+            formula_result = _run_formula_recognition_stage(document_dir, config)
+            _merge_formula_recognition_manifest_data(manifest_record, formula_result)
+            if config.options.include_originals:
+                manifest_record["original_copy_path"] = _copy_original_file(
+                    input_dir / record.relative_path,
+                    document_dir,
+                    record.relative_path,
                 )
-                _emit_progress(
-                    progress_callback,
-                    {
-                        "event": "document_finished",
-                        "run_id": run_id,
-                        "relative_path": record.relative_path,
-                        "status": result.status,
-                        "total_files": total_files,
-                        "processed_files": len(completed) + len(partial) + len(failed),
-                    },
-                )
-            except Exception as exc:  # noqa: BLE001 - batch run records per-document failures.
-                manifest_record["status"] = "failed"
-                manifest_record["error"] = type(exc).__name__
-                error_details_by_relative_path[record.relative_path] = str(exc)
-                failed.append(record.relative_path)
-                _append_jsonl(
-                    errors_path,
-                    {
-                        "event": "document_failed",
-                        "run_id": run_id,
-                        "relative_path": record.relative_path,
-                        "route": record.route,
-                        "error_type": type(exc).__name__,
-                        "error": str(exc),
-                    },
-                )
-                _emit_progress(
-                    progress_callback,
-                    {
-                        "event": "document_finished",
-                        "run_id": run_id,
-                        "relative_path": record.relative_path,
-                        "status": "failed",
-                        "total_files": total_files,
-                        "processed_files": len(completed) + len(partial) + len(failed),
-                    },
-                )
+            if result.status == "partial_success":
+                partial.append(record.relative_path)
+            else:
+                completed.append(record.relative_path)
+            _append_jsonl(
+                log_path,
+                {
+                    "event": "document_converted",
+                    "run_id": run_id,
+                    "relative_path": record.relative_path,
+                    "route": record.route,
+                    "status": result.status,
+                },
+            )
+            _emit_progress(
+                progress_callback,
+                {
+                    "event": "document_finished",
+                    "run_id": run_id,
+                    "relative_path": record.relative_path,
+                    "status": result.status,
+                    "total_files": total_files,
+                    "processed_files": len(completed) + len(partial) + len(failed),
+                },
+            )
+        except Exception as exc:  # noqa: BLE001 - batch run records per-document failures.
+            manifest_record["status"] = "failed"
+            manifest_record["error"] = type(exc).__name__
+            error_details_by_relative_path[record.relative_path] = str(exc)
+            failed.append(record.relative_path)
+            _append_jsonl(
+                errors_path,
+                {
+                    "event": "document_failed",
+                    "run_id": run_id,
+                    "relative_path": record.relative_path,
+                    "route": record.route,
+                    "error_type": type(exc).__name__,
+                    "error": str(exc),
+                },
+            )
+            _emit_progress(
+                progress_callback,
+                {
+                    "event": "document_finished",
+                    "run_id": run_id,
+                    "relative_path": record.relative_path,
+                    "status": "failed",
+                    "total_files": total_files,
+                    "processed_files": len(completed) + len(partial) + len(failed),
+                },
+            )
         manifest_by_relative_path[record.relative_path] = manifest_record
         final_manifest_records.append(manifest_record)
 

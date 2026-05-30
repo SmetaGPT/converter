@@ -1,7 +1,7 @@
 # Current Status
 
-Последнее обновление: 2026-05-29
-Статус контура: wave 1 complete, operational use ready
+Последнее обновление: 2026-05-30
+Статус контура: wave 2 complete, operational use ready
 
 ## 1. Краткий снимок состояния
 
@@ -14,6 +14,7 @@
 - Sprint 5 завершён;
 - Sprint 6 завершён;
 - roadmap wave 1 завершена;
+- roadmap wave 2 завершена;
 - state layer уже создан;
 - repo-memory, lifecycle hooks, routing, eval loop и release loop завершены;
 - machine-readable harness and product feature spine, bootstrap contract, clean-exit contract, telemetry companion, generated scorecard companion и generated weekly eval companion добавлены.
@@ -145,6 +146,7 @@
 121. Закрыт production roadmap Sprint S2.1: монолит `src/doc_converter/converters/docx.py` заменён на package `src/doc_converter/converters/docx/` с модулями `pipeline.py`, `inline_glyph.py`, `formulas/text.py` и `formulas/wmf.py`, а `__init__.py` сохраняет публичный import surface для runner, formula-recognition и тестов. Focused DOCX, CLI/formula-recognition и full-suite gates прошли зелёно; remaining repo-wide file-size debt теперь явно локализован в `src/doc_converter/runner.py` и `src/doc_converter/formula_benchmark.py` как следующий architecture backlog.
 122. Закрыт production roadmap Sprint S2.2: `src/doc_converter/runner.py` превращён в thin compatibility wrapper, а orchestration/path/resume/catalog/postprocess logic вынесены в `src/doc_converter/run/`. Focused runner/CLI slices, полный unittest с `PYTHONPATH=src`, `ruff` и `pyright` прошли зелёно; remaining repo-wide oversize debt теперь сосредоточен в `src/doc_converter/formula_benchmark.py`.
 123. Закрыт production roadmap Sprint S2.3: shared table normalizer вынесен в `src/doc_converter/tables/`, а `pdf_text` и `pdf_scan` теперь импортируют один и тот же parser для dominant-width inference, continuation merge и `table_structure_warning`. Focused PDF/table tests, свежий `table-anchors` pilot `runs\s23-table-anchors\runs\20260529T162149Z`, subset validator для `sample_009/018`, полный suite, `ruff` и `pyright` прошли зелёно.
+124. Закрыт production roadmap Sprint S2.4 и вся Wave 2: `inventory.py` и `run/orchestration.py` теперь используют shared `doc_converter.converters` registry + `ConverterProtocol`, direct format-specific imports/branches убраны из orchestration path, runner tests патчат lookup layer вместо direct converter symbols, а opt-in dummy `txt` converter regression доказывает extensibility без изменения default supported-format contract. Focused runner/inventory slice, полный suite (200 tests), `pip check`, `ruff`, `pyright` и `validate_harness_assets.py` проходят зелёно.
 
 ### Готовые артефакты
 
@@ -235,32 +237,32 @@
 
 ## 3. Что делается сейчас
 
-Текущий фокус: после закрытия S2.3 следующий official tranche production roadmap — S2.4, то есть отделение route registry/protocol слоя от `runner` и текущих format-specific imports без потери существующего CLI/runtime contract.
+Текущий фокус: после закрытия S2.4 и всей Wave 2 следующий critical-path sprint production roadmap — S6.1, то есть structured CLI с machine-readable `--output-format=json`, явной exit-code matrix и отдельными doctor/dry-run subcommands.
 
-Новый architecture-learning по table split: cheapest shared-package extraction для PDF tables оказался уже partly prepared, потому что `pdf_scan` и так импортировал parser helpers из `pdf_text`; перенос в `src/doc_converter/tables/` сохранил поведение routes и убрал table normalization из converter-local ownership.
+Новый architecture-learning по route registry: cheapest root-cause fix для extensibility лежал не в одном `run/orchestration.py`, а в связке `inventory.classify_route` + orchestration dispatch. Перенос только conversion calls оставил бы hard-coded suffix/route coupling в inventory и не закрыл бы sprint exit criteria.
 
-Новый test-learning по measured table loop: для S2.3 достаточно не только unit quartet на continuation/ragged rows, но и fresh `table-anchors` run с `validate_sample_expectations.py` по `sample_009/018`, потому что exit criterion завязан не на synthetic helper behaviour, а на сохранение measured contour.
+Новый test-learning по extensibility: architecture-only demo converters упираются в stable manifest/document contract не по вине runner, а по schema enums текущего product scope. Для proof-style regression такой converter нужно держать opt-in и изолировать от schema validation, пока product contract сознательно не расширяется.
 
-Новый validation-learning по file-size debt: после закрытия runner monolith и вынесения shared table parser repo-wide oversize debt по-прежнему локализован только в `src/doc_converter/formula_benchmark.py`; table architecture tranche не вернул monolith pressure в converters.
+Новый validation-learning по runner hooks: после registry split resilience tests должны патчить `get_converter`, а не direct `convert_docx` import; это сохраняет reuse/failure assertions устойчивыми к дальнейшим refactor-ам dispatch layer.
 
 В работе:
 
-- начать production roadmap S2.4 и отделить `ConverterProtocol`/route registry от конкретных format imports в orchestration path;
-- вывести `src/doc_converter/formula_benchmark.py` из oversize-состояния отдельным architecture slice без слома benchmark report и CLI wrappers;
-- удержать measured table backlog на `sample_009/018/020` и negative/control contour после архитектурного переноса table parser;
-- держать state docs, feature spine, telemetry и generated eval companions синхронными после каждого architecture tranche.
+- открыть production roadmap S6.1 и сделать structured CLI основным contract для автономных агентов;
+- держать `src/doc_converter/formula_benchmark.py` как отдельный non-critical architecture follow-up по file-size debt;
+- удержать measured table backlog на `sample_009/018/020` и negative/control contour как parallel quality loop, не подменяя им critical path;
+- держать state docs, feature spine, telemetry и generated eval companions синхронными после каждого следующего sprint tranche.
 
 ## 4. Что идёт дальше
 
-Следующая последовательность после закрытия S2.3:
+Следующая последовательность после закрытия S2.4:
 
-1. Закрыть production roadmap S2.4: ввести `ConverterProtocol` + route registry, чтобы orchestration не знала про конкретные форматы напрямую.
-2. Зафиксировать отдельный follow-up по `src/doc_converter/formula_benchmark.py`, чтобы repo-wide file-size ceiling не зависел от одного benchmark monolith.
-3. После S2.4 продолжить measured backlog по `sample_020`, warning density на `sample_009/018` и negative/control false-positive contour уже поверх shared `tables/` package.
-4. Затем вернуться к richer DOCX table semantics и generalized WMF parser backlog для formula-rich DOCX.
-5. Держать product-aware feature spine, sprint contract, checkpoint template и evaluator rubric обязательными на новых cross-module задачах.
-6. Не допускать пропусков в machine-readable telemetry companion на новых нетривиальных задачах.
-7. Поддерживать `scripts/refresh_agent_eval.py` и `docs/agent-weekly-reviews.v1.json` как штатный eval loop.
+1. Закрыть production roadmap S6.1: structured CLI JSON output, exit-code matrix, `doctor` и `dry-run`.
+2. Затем закрыть S6.2 и перевести runtime events на structured telemetry/log contract.
+3. После operator surface перейти к S7.1 input hardening и формализованному `docs/security.md`.
+4. Держать `src/doc_converter/formula_benchmark.py` как отдельный follow-up по repo-wide file-size debt вне critical path.
+5. Продолжать measured table backlog по `sample_020`, warning density на `sample_009/018` и negative/control false-positive contour уже поверх shared `tables/` package.
+6. Затем вернуться к richer DOCX table semantics и generalized WMF parser backlog для formula-rich DOCX.
+7. Держать product-aware feature spine, sprint contract, checkpoint template, telemetry JSONL и evaluator rubric обязательными на новых cross-module задачах.
 
 ## 5. Открытые gaps
 

@@ -8,7 +8,7 @@ from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 from urllib.parse import unquote, urlparse
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from docx import Document
 from openpyxl import Workbook, load_workbook
@@ -456,7 +456,9 @@ class CliSmokeTests(unittest.TestCase):
             document.add_paragraph("boom")
             document.save(str(source_path))
 
-            with patch("doc_converter.run.orchestration.convert_docx", side_effect=OSError("broken docx extractor")):
+            converter = Mock()
+            converter.convert.side_effect = OSError("broken docx extractor")
+            with patch("doc_converter.run.orchestration.get_converter", return_value=converter):
                 result = run_convert_folder(
                     ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir), options=ConverterOptions())
                 )
@@ -559,11 +561,11 @@ class CliSmokeTests(unittest.TestCase):
                 if line.strip()
             ]
 
-            with patch("doc_converter.run.orchestration.convert_docx") as convert_docx:
+            with patch("doc_converter.run.orchestration.get_converter") as get_converter:
                 second_result = run_convert_folder(
                     ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir), options=ConverterOptions())
                 )
-                convert_docx.assert_not_called()
+                get_converter.assert_not_called()
 
             second_manifest = [
                 json.loads(line)

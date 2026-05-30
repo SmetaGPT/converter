@@ -126,6 +126,8 @@ graph LR
 
 ## Wave 2 — Demonolize
 
+**Wave status:** completed 2026-05-30. Evidence: S2.1-S2.4 all closed with green focused/full validation; remaining architecture backlog on the critical path moved from converter coupling to structured CLI/operator surface.
+
 ### Sprint S2.1 — Split `converters/docx.py`
 
 **Status:** completed 2026-05-29. Evidence: `src/doc_converter/converters/docx.py` заменён на package `converters/docx/`, package scope проходит лимит `< 800` строк на файл, focused DOCX + CLI/formula-recognition tests зелёные, full suite/ruff/pyright зелёные.
@@ -163,11 +165,13 @@ graph LR
 
 ### Sprint S2.4 — `ConverterProtocol` + route registry
 
+**Status:** completed 2026-05-30. Evidence: `inventory.py` и `run/orchestration.py` теперь dispatch-ят через shared `doc_converter.converters` registry + `ConverterProtocol`, focused `tests.test_cli_smoke`/`tests.test_converter_registry`/`tests.test_inventory` slice зелёный, full suite (200 tests), `pip check`, `ruff`, `pyright` и `validate_harness_assets.py` зелёные.
+
 - **Goal:** добавление нового конвертера = новый файл + одна строка регистрации.
 - **Scope:** `src/doc_converter/converters/protocol.py` с `ConverterProtocol(detect, convert)`; registry в `converters/__init__.py`; [runner.py](../src/doc_converter/runner.py) больше не знает про конкретные форматы.
 - **Exit:** добавить dummy `txt` конвертер за < 50 строк, тест зелёный; удалить после демонстрации (или оставить как baseline).
 - **depends_on:** S2.1, S2.2, S2.3.
-- **feature_ids:** `arch.converter-protocol`.
+- **feature_ids:** `arch-converter-protocol`.
 
 ---
 

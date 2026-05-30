@@ -1,10 +1,10 @@
 {
   "schema_version": "agent-weekly-eval.v1",
-  "as_of_date": "2026-05-29",
+  "as_of_date": "2026-05-30",
   "window": {
     "days": 7,
-    "start_date": "2026-05-23",
-    "end_date": "2026-05-29"
+    "start_date": "2026-05-24",
+    "end_date": "2026-05-30"
   },
   "overall_status": "strong",
   "sources": {
@@ -16,44 +16,35 @@
     "eval_instructions": "docs/agent-evals.md"
   },
   "telemetry_window_summary": {
-    "total_entries": 65,
+    "total_entries": 47,
     "validation_results": {
-      "passed": 58,
-      "passed_after_repair": 7,
+      "passed": 39,
+      "passed_after_repair": 8,
       "failed": 0,
       "blocked": 0
     },
-    "state_updates": 65,
-    "feature_traceable_entries": 65,
+    "state_updates": 47,
+    "feature_traceable_entries": 47,
     "task_types": {
-      "code/ci/docs/runtime": 1,
-      "code/docs/process": 1,
-      "code/docs/release/process": 1,
-      "code/docs/runtime": 2,
       "code/docs/tests/schema": 1,
-      "code/release/runtime": 1,
       "code/runtime/docs": 2,
       "code/tests/data/docs": 1,
-      "code/tests/docs": 5,
+      "code/tests/docs": 6,
       "code/tests/docs/state": 1,
       "code/tests/release/docs": 1,
-      "code/tests/runtime": 3,
       "code/tests/runtime/docs": 30,
       "code/tests/runtime/research": 1,
-      "docs/process": 1,
-      "docs/process/ci": 1,
-      "docs/process/observability": 6,
-      "docs/process/product": 3,
+      "docs/process/product": 2,
       "prompt/docs": 1,
-      "release/runtime": 1,
-      "scripts/docs/runtime": 1
+      "release/runtime": 1
     }
   },
   "scorecard_snapshot": {
-    "scorecard_as_of_date": "2026-05-29",
-    "validated_features": 32,
-    "referenced_features": 32,
+    "scorecard_as_of_date": "2026-05-30",
+    "validated_features": 33,
+    "referenced_features": 33,
     "referenced_feature_ids": [
+      "arch-converter-protocol",
       "arch-docx-split",
       "arch-runner-split",
       "arch-tables-shared",
@@ -94,156 +85,35 @@
         "title": "Validation discipline",
         "score": 5,
         "scale_max": 5,
-        "basis": "69/69 telemetry entries have pass-like validation results."
+        "basis": "70/70 telemetry entries have pass-like validation results."
       },
       {
         "signal_id": "state-hygiene",
         "title": "State hygiene",
         "score": 5,
         "scale_max": 5,
-        "basis": "69/69 telemetry entries report state_update=true."
+        "basis": "70/70 telemetry entries report state_update=true."
       },
       {
         "signal_id": "feature-traceability",
         "title": "Feature traceability",
         "score": 5,
         "scale_max": 5,
-        "basis": "69/69 telemetry entries reference at least one feature_id."
+        "basis": "70/70 telemetry entries reference at least one feature_id."
       },
       {
         "signal_id": "feature-coverage",
         "title": "Feature coverage in telemetry",
         "score": 5,
         "scale_max": 5,
-        "basis": "32/32 validated features are referenced by structured telemetry."
+        "basis": "33/33 validated features are referenced by structured telemetry."
       }
     ]
   },
   "qualitative_sampling": {
-    "completed_reviews_in_window": 1,
-    "sampled_tasks_in_window": 5,
-    "reviews": [
-      {
-        "review_id": "2026-05-23-first-completed-weekly-review",
-        "review_date": "2026-05-23",
-        "window": {
-          "days": 7,
-          "start_date": "2026-05-17",
-          "end_date": "2026-05-23"
-        },
-        "summary": "Первый completed weekly review после telemetry backfill; проверяет generated snapshot на реальных задачах из разных категорий.",
-        "average_score": 12.6,
-        "max_score": 14,
-        "sampled_tasks": [
-          {
-            "task": "Sprint 1 state foundation",
-            "task_type": "docs/process",
-            "feature_ids": [
-              "state-layer"
-            ],
-            "scores": {
-              "scope_control": 2,
-              "feature_traceability": 1,
-              "hypothesis_quality": 1,
-              "validation_quality": 2,
-              "evidence_quality": 2,
-              "state_hygiene": 2,
-              "closeout_quality": 2
-            },
-            "total_score": 12,
-            "max_score": 14,
-            "interpretation": "strong closeout",
-            "note": "Исторический task slice до feature spine и формализованной local-hypothesis discipline."
-          },
-          {
-            "task": "Sprint 3 workflow hooks",
-            "task_type": "docs/process",
-            "feature_ids": [
-              "lifecycle-validation",
-              "clean-exit-checklist"
-            ],
-            "scores": {
-              "scope_control": 2,
-              "feature_traceability": 1,
-              "hypothesis_quality": 1,
-              "validation_quality": 2,
-              "evidence_quality": 2,
-              "state_hygiene": 2,
-              "closeout_quality": 2
-            },
-            "total_score": 12,
-            "max_score": 14,
-            "interpretation": "strong closeout",
-            "note": "Историческая задача до явной traceability discipline; quality подтверждена evidence и state sync."
-          },
-          {
-            "task": "Sprint 4 specialist routing",
-            "task_type": "docs/process",
-            "feature_ids": [
-              "routing-matrix"
-            ],
-            "scores": {
-              "scope_control": 2,
-              "feature_traceability": 1,
-              "hypothesis_quality": 1,
-              "validation_quality": 2,
-              "evidence_quality": 2,
-              "state_hygiene": 2,
-              "closeout_quality": 2
-            },
-            "total_score": 12,
-            "max_score": 14,
-            "interpretation": "strong closeout",
-            "note": "Ранний routing slice с retroactive traceability, но без quality defect в закрытии задачи."
-          },
-          {
-            "task": "SP folder e2e",
-            "task_type": "code/runtime/docs",
-            "feature_ids": [
-              "real-e2e-and-run-validation",
-              "pdf-text-route",
-              "docx-native-route",
-              "semantic-document-metadata"
-            ],
-            "scores": {
-              "scope_control": 2,
-              "feature_traceability": 1,
-              "hypothesis_quality": 2,
-              "validation_quality": 2,
-              "evidence_quality": 2,
-              "state_hygiene": 2,
-              "closeout_quality": 2
-            },
-            "total_score": 13,
-            "max_score": 14,
-            "interpretation": "strong closeout",
-            "note": "Сильный product-facing slice; единственный потерянный балл связан с ранней формализацией traceability."
-          },
-          {
-            "task": "Generated weekly eval companion",
-            "task_type": "docs/process/observability",
-            "feature_ids": [
-              "weekly-eval-companion",
-              "machine-readable-scorecard",
-              "evaluator-rubric"
-            ],
-            "scores": {
-              "scope_control": 2,
-              "feature_traceability": 2,
-              "hypothesis_quality": 2,
-              "validation_quality": 2,
-              "evidence_quality": 2,
-              "state_hygiene": 2,
-              "closeout_quality": 2
-            },
-            "total_score": 14,
-            "max_score": 14,
-            "interpretation": "strong closeout",
-            "note": "Полный closeout после structured telemetry backfill и generated companion sync."
-          }
-        ]
-      }
-    ]
+    "completed_reviews_in_window": 0,
+    "sampled_tasks_in_window": 0,
+    "reviews": []
   },
   "findings": []
 }

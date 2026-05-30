@@ -4,9 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .canonical import sha256_file
-
-
-SUPPORTED_SUFFIXES = {".docx", ".pdf", ".xlsx"}
+from .converters import DetectionResult, detect_converter
 
 
 @dataclass(frozen=True)
@@ -55,15 +53,16 @@ class InventoryScanResult:
 
 
 def build_inventory(input_dir: Path) -> InventoryScanResult:
-    supported_candidates: list[Path] = []
+    supported_candidates: list[tuple[Path, DetectionResult]] = []
     unsupported_records: list[UnsupportedInventoryRecord] = []
     for item in _iter_input_files(input_dir):
-        if item.suffix.lower() in SUPPORTED_SUFFIXES:
-            supported_candidates.append(item)
+        detection = detect_converter(item)
+        if detection is not None:
+            supported_candidates.append((item, DetectionResult(warnings=detection.warnings)))
             continue
         unsupported_records.append(_build_unsupported_record(input_dir, item))
 
-    raw_records = [_build_record(input_dir, item) for item in supported_candidates]
+    raw_records = [_build_record(input_dir, item, detection) for item, detection in supported_candidates]
     supported_records = _attach_duplicate_info(raw_records)
     return InventoryScanResult(
         scanned_files=len(supported_records) + len(unsupported_records),
@@ -73,14 +72,10 @@ def build_inventory(input_dir: Path) -> InventoryScanResult:
 
 
 def classify_route(path: Path) -> tuple[str, tuple[str, ...]]:
-    suffix = path.suffix.lower()
-    if suffix == ".docx":
-        return "docx_native", ()
-    if suffix == ".xlsx":
-        return "xlsx_native", ()
-    if suffix == ".pdf":
-        return _classify_pdf_route(path)
-    return "not_classified", ("unsupported_suffix",)
+    detection = detect_converter(path)
+    if detection is None:
+        return "not_classified", ("unsupported_suffix",)
+    return detection.route, detection.warnings
 
 
 def _iter_input_files(input_dir: Path) -> list[Path]:
@@ -94,7 +89,7 @@ def _iter_input_files(input_dir: Path) -> list[Path]:
     return sorted(files, key=lambda item: item.relative_to(input_dir).as_posix().lower())
 
 
-def _build_record(input_dir: Path, path: Path) -> InventoryRecord:
+def _build_record(input_dir: Path, path: Path, detection: DetectionResult) -> InventoryRecord:
     route, warnings = classify_route(path)
     digest = sha256_file(path)
     return InventoryRecord(
@@ -105,7 +100,7 @@ def _build_record(input_dir: Path, path: Path) -> InventoryRecord:
         sha256=digest,
         route=route,
         status="queued",
-        warnings=warnings,
+        warnings=detection.warnings or warnings,
     )
 
 
@@ -117,26 +112,6 @@ def _build_unsupported_record(input_dir: Path, path: Path) -> UnsupportedInvento
         size_bytes=path.stat().st_size,
         warnings=("unsupported_suffix",),
     )
-
-
-def _classify_pdf_route(path: Path) -> tuple[str, tuple[str, ...]]:
-    try:
-        from pypdf import PdfReader
-    except ImportError:
-        return "pdf_scan", ("pypdf_not_available", "ocr_required")
-
-    try:
-        reader = PdfReader(str(path))
-        pages = len(reader.pages)
-        text_chars = 0
-        for page in reader.pages[:5]:
-            text_chars += len((page.extract_text() or "").strip())
-        threshold = max(200, min(max(pages, 1), 5) * 40)
-        if text_chars >= threshold:
-            return "pdf_text", ()
-        return "pdf_scan", ("ocr_required",)
-    except Exception as exc:  # noqa: BLE001 - route detection must not stop inventory.
-        return "pdf_scan", ("pdf_text_layer_check_failed", type(exc).__name__, "ocr_required")
 
 
 def _attach_duplicate_info(records: list[InventoryRecord]) -> list[InventoryRecord]:
