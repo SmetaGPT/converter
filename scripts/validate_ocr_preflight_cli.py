@@ -11,10 +11,10 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from doc_converter.schema_validation import validate_payload
-
 
 def main(argv: list[str] | None = None) -> int:
+    from doc_converter.schema_validation import validate_payload
+
     parser = argparse.ArgumentParser(
         description="Validate the JSON envelope emitted by doc_converter.cli check-ocr."
     )
