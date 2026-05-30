@@ -1,0 +1,52 @@
+{
+  "schema_version": "formula-benchmark-thresholds.v1",
+  "baseline_run_id": "ci-subset-v1",
+  "description": "Required CI-safe subset for formula benchmark coverage on repo-tracked fixtures.",
+  "checks": [
+    {
+      "label": "Anchor gold stays green",
+      "scope": "anchor",
+      "metric": "gold_pass_rate",
+      "op": ">=",
+      "value": 1.0
+    },
+    {
+      "label": "Gate calc_expr coverage stays complete on CI fixtures",
+      "scope": "gate",
+      "metric": "calc_expr_coverage",
+      "op": ">=",
+      "value": 1.0
+    },
+    {
+      "label": "Gate native coverage stays present on CI fixtures",
+      "scope": "gate",
+      "metric": "native_coverage",
+      "op": ">=",
+      "value": 0.5
+    },
+    {
+      "label": "Control corpus stays false-positive free",
+      "scope": "control",
+      "metric": "false_positive_rate",
+      "op": "<=",
+      "value": 0.0
+    },
+    {
+      "label": "Control gold stays green",
+      "scope": "control",
+      "metric": "gold_pass_rate",
+      "op": ">=",
+      "value": 1.0
+    },
+    {
+      "label": "Overall benchmark stays provider-free by default",
+      "scope": "overall",
+      "metric": "provider_dependency_rate",
+      "op": "<=",
+      "value": 0.0
+    }
+  ],
+  "monitor_only_scopes": [
+    "rolling"
+  ]
+}

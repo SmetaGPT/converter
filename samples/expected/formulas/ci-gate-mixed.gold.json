@@ -1,0 +1,37 @@
+{
+  "schema_version": "formula-gold.v1",
+  "document_label": "ci-gate-mixed",
+  "document_expectations": {
+    "formula_units": 2,
+    "calc_expr_units": 2,
+    "banned_substrings_absent": []
+  },
+  "unit_expectations": [
+    {
+      "formula_index": 0,
+      "type": "formula",
+      "order": 1,
+      "text": "n = 1 / N",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "n = 1 / N",
+      "display_latex": "n = 1 / N",
+      "calc_expr": "n = 1 / N",
+      "confidence": "high",
+      "warnings": [],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 1,
+      "type": "formula",
+      "order": 2,
+      "text": "S = A + B",
+      "source_format": "docx_text_linearized",
+      "linear_text": "S = A + B",
+      "display_latex": "S = A + B",
+      "calc_expr": "S = A + B",
+      "confidence": "high",
+      "warnings": [],
+      "quality_warnings": []
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "schema_version": "document.v1",
+  "document_id": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+  "source": {
+    "original_path": "ci-control-empty.pdf",
+    "relative_input_path": null,
+    "filename": "ci-control-empty.pdf",
+    "format": "pdf",
+    "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "size_bytes": 0
+  },
+  "processing": {
+    "route": "pdf_text",
+    "status": "success",
+    "warnings": []
+  },
+  "metadata": {
+    "title": "CI control without formulas",
+    "document_type": "свод правил",
+    "short_summary": "Repo-tracked negative control for CI formula benchmark.",
+    "confidence": "high",
+    "method": "filename_fallback"
+  },
+  "units": [
+    {
+      "unit_id": "u_000000",
+      "parent_id": null,
+      "type": "document",
+      "order": 0,
+      "text": null,
+      "asset_ref": null,
+      "formula": null,
+      "cell": null,
+      "source_ref": {
+        "document_id": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "page": null,
+        "bbox": null,
+        "docx_path": null,
+        "coordinate_system": null,
+        "page_width": null,
+        "page_height": null
+      },
+      "quality": {
+        "flags": [],
+        "warnings": []
+      }
+    }
+  ],
+  "assets": [],
+  "quality": {
+    "flags": [],
+    "warnings": []
+  }
+}

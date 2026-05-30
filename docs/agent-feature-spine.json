@@ -459,7 +459,10 @@
         "tests/test_pdf_text_converter.py",
         "tests/test_pdf_scan_converter.py",
         "tests/test_sample_expectations.py",
-        "runs/s23-table-anchors/runs/20260529T162149Z"
+        "samples/manifest.table-anchors.jsonl",
+        "samples/expected/sample_009.expected-units.json",
+        "samples/expected/sample_018.expected-units.json",
+        "samples/expected/sample_020.expected-units.json"
       ],
       "residual_risk": "Shared parser logic is centralized, but table unit assembly and richer semantics still remain route-local; next backlog is no longer parser drift, but warning density, negative/control contour and scan OCR blocker handling."
     },

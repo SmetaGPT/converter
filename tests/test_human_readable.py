@@ -190,7 +190,7 @@ class HumanReadableExportTests(unittest.TestCase):
 
             html_path = export_document_html(document_path)
 
-            self.assertEqual(html_path, document_dir / "human-readable.html")
+            self.assertEqual(html_path, (document_dir / "human-readable.html").resolve())
             self.assertTrue(html_path.exists())
             self.assertIn("MathJax", html_path.read_text(encoding="utf-8"))
 
@@ -229,7 +229,7 @@ class HumanReadableExportTests(unittest.TestCase):
 
             index_path = export_run_human_readable_html(run_dir)
 
-            self.assertEqual(index_path, run_dir / "human-readable-index.html")
+            self.assertEqual(index_path, (run_dir / "human-readable-index.html").resolve())
             self.assertTrue(index_path.exists())
             self.assertTrue((document_dir / "human-readable.html").exists())
             index_html = index_path.read_text(encoding="utf-8")

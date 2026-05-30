@@ -157,7 +157,385 @@ jobs:
       - name: Run formula benchmark required gate
         shell: pwsh
         run: |
-          python scripts\run_formula_benchmark.py samples\formula-benchmark.manifest.jsonl --output-root runs\formula-benchmark-ci
+          python scripts\run_formula_benchmark.py samples\formula-benchmark.ci.manifest.jsonl --thresholds samples\formula-benchmark.ci.thresholds.json --output-root runs\formula-benchmark-ci
+*** Add File: d:\Конвертер файлов\samples\formula-benchmark.ci.manifest.jsonl
+{"schema_version":"formula-benchmark.manifest-entry.v1","benchmark_id":"ci-anchor-native","tier":"anchor","label":"CI anchor native formula","required":true,"input_kind":"document_json","input_path":"fixtures/formula-benchmark/ci-anchor-native.document.v1.json","gold_path":"expected/formulas/ci-anchor-native.gold.json","tags":["ci","anchor","native"]}
+{"schema_version":"formula-benchmark.manifest-entry.v1","benchmark_id":"ci-gate-mixed","tier":"gate","label":"CI gate mixed formula coverage","required":true,"input_kind":"document_json","input_path":"fixtures/formula-benchmark/ci-gate-mixed.document.v1.json","gold_path":"expected/formulas/ci-gate-mixed.gold.json","tags":["ci","gate","native","heuristic"]}
+{"schema_version":"formula-benchmark.manifest-entry.v1","benchmark_id":"ci-control-empty","tier":"control","label":"CI control without formulas","required":true,"input_kind":"document_json","input_path":"fixtures/formula-benchmark/ci-control-empty.document.v1.json","gold_path":"expected/formulas/sp-control-absence.gold.json","tags":["ci","control","negative"]}
+*** Add File: d:\Конвертер файлов\samples\formula-benchmark.ci.thresholds.json
+{
+  "schema_version": "formula-benchmark-thresholds.v1",
+  "baseline_run_id": "ci-subset-v1",
+  "description": "Required CI-safe subset for formula benchmark coverage on repo-tracked fixtures.",
+  "checks": [
+    {
+      "label": "Anchor gold stays green",
+      "scope": "anchor",
+      "metric": "gold_pass_rate",
+      "op": ">=",
+      "value": 1.0
+    },
+    {
+      "label": "Gate calc_expr coverage stays complete on CI fixtures",
+      "scope": "gate",
+      "metric": "calc_expr_coverage",
+      "op": ">=",
+      "value": 1.0
+    },
+    {
+      "label": "Gate native coverage stays present on CI fixtures",
+      "scope": "gate",
+      "metric": "native_coverage",
+      "op": ">=",
+      "value": 0.5
+    },
+    {
+      "label": "Control corpus stays false-positive free",
+      "scope": "control",
+      "metric": "false_positive_rate",
+      "op": "<=",
+      "value": 0.0
+    },
+    {
+      "label": "Control gold stays green",
+      "scope": "control",
+      "metric": "gold_pass_rate",
+      "op": ">=",
+      "value": 1.0
+    },
+    {
+      "label": "Overall benchmark stays provider-free by default",
+      "scope": "overall",
+      "metric": "provider_dependency_rate",
+      "op": "<=",
+      "value": 0.0
+    }
+  ],
+  "monitor_only_scopes": [
+    "rolling"
+  ]
+}
+*** Add File: d:\Конвертер файлов\samples\fixtures\formula-benchmark\ci-anchor-native.document.v1.json
+{
+  "schema_version": "document.v1",
+  "document_id": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "source": {
+    "original_path": "ci-anchor-native.docx",
+    "relative_input_path": null,
+    "filename": "ci-anchor-native.docx",
+    "format": "docx",
+    "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "size_bytes": 0
+  },
+  "processing": {
+    "route": "docx_native",
+    "status": "success",
+    "warnings": []
+  },
+  "metadata": {
+    "title": "CI anchor native formula",
+    "document_type": "приказ",
+    "short_summary": "Repo-tracked anchor fixture for CI formula benchmark.",
+    "confidence": "high",
+    "method": "fixture"
+  },
+  "units": [
+    {
+      "unit_id": "u_000000",
+      "parent_id": null,
+      "type": "document",
+      "order": 0,
+      "text": null,
+      "asset_ref": null,
+      "formula": null,
+      "cell": null,
+      "source_ref": {
+        "document_id": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "page": null,
+        "bbox": null,
+        "docx_path": "/word/document.xml",
+        "coordinate_system": null,
+        "page_width": null,
+        "page_height": null
+      },
+      "quality": {
+        "flags": [],
+        "warnings": []
+      }
+    },
+    {
+      "unit_id": "u_000001",
+      "parent_id": "u_000000",
+      "type": "formula",
+      "order": 1,
+      "text": "n = 1 / N",
+      "asset_ref": null,
+      "formula": {
+        "source_format": "mathtype_wmf_text_records",
+        "linear_text": "n = 1 / N",
+        "display_latex": "n = 1 / N",
+        "calc_expr": "n = 1 / N",
+        "variables": {},
+        "confidence": "high",
+        "warnings": []
+      },
+      "cell": null,
+      "source_ref": {
+        "document_id": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "page": null,
+        "bbox": null,
+        "docx_path": "/word/document.xml/body/p[1]",
+        "coordinate_system": null,
+        "page_width": null,
+        "page_height": null
+      },
+      "quality": {
+        "flags": [],
+        "warnings": []
+      }
+    }
+  ],
+  "assets": [],
+  "quality": {
+    "flags": [],
+    "warnings": []
+  }
+}
+*** Add File: d:\Конвертер файлов\samples\fixtures\formula-benchmark\ci-gate-mixed.document.v1.json
+{
+  "schema_version": "document.v1",
+  "document_id": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+  "source": {
+    "original_path": "ci-gate-mixed.docx",
+    "relative_input_path": null,
+    "filename": "ci-gate-mixed.docx",
+    "format": "docx",
+    "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "size_bytes": 0
+  },
+  "processing": {
+    "route": "docx_native",
+    "status": "success",
+    "warnings": []
+  },
+  "metadata": {
+    "title": "CI gate mixed formula fixture",
+    "document_type": "приказ",
+    "short_summary": "Repo-tracked mixed native and heuristic fixture for CI formula benchmark.",
+    "confidence": "high",
+    "method": "fixture"
+  },
+  "units": [
+    {
+      "unit_id": "u_000000",
+      "parent_id": null,
+      "type": "document",
+      "order": 0,
+      "text": null,
+      "asset_ref": null,
+      "formula": null,
+      "cell": null,
+      "source_ref": {
+        "document_id": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "page": null,
+        "bbox": null,
+        "docx_path": "/word/document.xml",
+        "coordinate_system": null,
+        "page_width": null,
+        "page_height": null
+      },
+      "quality": {
+        "flags": [],
+        "warnings": []
+      }
+    },
+    {
+      "unit_id": "u_000001",
+      "parent_id": "u_000000",
+      "type": "formula",
+      "order": 1,
+      "text": "n = 1 / N",
+      "asset_ref": null,
+      "formula": {
+        "source_format": "mathtype_wmf_text_records",
+        "linear_text": "n = 1 / N",
+        "display_latex": "n = 1 / N",
+        "calc_expr": "n = 1 / N",
+        "variables": {},
+        "confidence": "high",
+        "warnings": []
+      },
+      "cell": null,
+      "source_ref": {
+        "document_id": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "page": null,
+        "bbox": null,
+        "docx_path": "/word/document.xml/body/p[1]",
+        "coordinate_system": null,
+        "page_width": null,
+        "page_height": null
+      },
+      "quality": {
+        "flags": [],
+        "warnings": []
+      }
+    },
+    {
+      "unit_id": "u_000002",
+      "parent_id": "u_000000",
+      "type": "formula",
+      "order": 2,
+      "text": "S = A + B",
+      "asset_ref": null,
+      "formula": {
+        "source_format": "docx_text_linearized",
+        "linear_text": "S = A + B",
+        "display_latex": "S = A + B",
+        "calc_expr": "S = A + B",
+        "variables": {},
+        "confidence": "high",
+        "warnings": []
+      },
+      "cell": null,
+      "source_ref": {
+        "document_id": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "page": null,
+        "bbox": null,
+        "docx_path": "/word/document.xml/body/p[2]",
+        "coordinate_system": null,
+        "page_width": null,
+        "page_height": null
+      },
+      "quality": {
+        "flags": [],
+        "warnings": []
+      }
+    }
+  ],
+  "assets": [],
+  "quality": {
+    "flags": [],
+    "warnings": []
+  }
+}
+*** Add File: d:\Конвертер файлов\samples\fixtures\formula-benchmark\ci-control-empty.document.v1.json
+{
+  "schema_version": "document.v1",
+  "document_id": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+  "source": {
+    "original_path": "ci-control-empty.pdf",
+    "relative_input_path": null,
+    "filename": "ci-control-empty.pdf",
+    "format": "pdf",
+    "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "size_bytes": 0
+  },
+  "processing": {
+    "route": "pdf_text",
+    "status": "success",
+    "warnings": []
+  },
+  "metadata": {
+    "title": "CI control without formulas",
+    "document_type": "свод правил",
+    "short_summary": "Repo-tracked negative control for CI formula benchmark.",
+    "confidence": "high",
+    "method": "fixture"
+  },
+  "units": [
+    {
+      "unit_id": "u_000000",
+      "parent_id": null,
+      "type": "document",
+      "order": 0,
+      "text": null,
+      "asset_ref": null,
+      "formula": null,
+      "cell": null,
+      "source_ref": {
+        "document_id": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "page": null,
+        "bbox": null,
+        "docx_path": null,
+        "coordinate_system": null,
+        "page_width": null,
+        "page_height": null
+      },
+      "quality": {
+        "flags": [],
+        "warnings": []
+      }
+    }
+  ],
+  "assets": [],
+  "quality": {
+    "flags": [],
+    "warnings": []
+  }
+}
+*** Add File: d:\Конвертер файлов\samples\expected\formulas\ci-anchor-native.gold.json
+{
+  "schema_version": "formula-gold.v1",
+  "document_label": "ci-anchor-native",
+  "document_expectations": {
+    "formula_units": 1,
+    "calc_expr_units": 1,
+    "banned_substrings_absent": []
+  },
+  "unit_expectations": [
+    {
+      "formula_index": 0,
+      "type": "formula",
+      "order": 1,
+      "text": "n = 1 / N",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "n = 1 / N",
+      "display_latex": "n = 1 / N",
+      "calc_expr": "n = 1 / N",
+      "confidence": "high",
+      "warnings": [],
+      "quality_warnings": []
+    }
+  ]
+}
+*** Add File: d:\Конвертер файлов\samples\expected\formulas\ci-gate-mixed.gold.json
+{
+  "schema_version": "formula-gold.v1",
+  "document_label": "ci-gate-mixed",
+  "document_expectations": {
+    "formula_units": 2,
+    "calc_expr_units": 2,
+    "banned_substrings_absent": []
+  },
+  "unit_expectations": [
+    {
+      "formula_index": 0,
+      "type": "formula",
+      "order": 1,
+      "text": "n = 1 / N",
+      "source_format": "mathtype_wmf_text_records",
+      "linear_text": "n = 1 / N",
+      "display_latex": "n = 1 / N",
+      "calc_expr": "n = 1 / N",
+      "confidence": "high",
+      "warnings": [],
+      "quality_warnings": []
+    },
+    {
+      "formula_index": 1,
+      "type": "formula",
+      "order": 2,
+      "text": "S = A + B",
+      "source_format": "docx_text_linearized",
+      "linear_text": "S = A + B",
+      "display_latex": "S = A + B",
+      "calc_expr": "S = A + B",
+      "confidence": "high",
+      "warnings": [],
+      "quality_warnings": []
+    }
+  ]
+}
 
   document-package-validator:
     name: document-package-validator
