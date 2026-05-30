@@ -1,7 +1,7 @@
 # Current Status
 
 Последнее обновление: 2026-05-30
-Статус контура: wave 2 complete, S9.2 nightly burn-in active, S9.3 release automation implemented locally
+Статус контура: wave 2 complete, S9.2 nightly burn-in active, S9.3 and S3.1 implemented locally
 
 ## 1. Краткий снимок состояния
 
@@ -17,6 +17,7 @@
 - critical-path sprint S9.1 завершён;
 - critical-path sprint S9.2 активирован;
 - critical-path sprint S9.3 реализован локально; первый tag proof pending;
+- независимый sprint S3.1 реализован локально поверх активного S9.2 wait-state;
 - roadmap wave 1 завершена;
 - roadmap wave 2 завершена;
 - state layer уже создан;
@@ -254,7 +255,7 @@
 
 ## 3. Что делается сейчас
 
-Текущий фокус: S9.2 остаётся активным как hosted nightly burn-in contour, а S9.3 уже реализован локально через tag-driven release workflow, changelog-backed release notes и GitHub Release publish path. Следующий внешний proof теперь не в коде, а в первом GitHub run для nightly и первом `v*` tag push для release automation.
+Текущий фокус: S9.2 остаётся активным как hosted nightly burn-in contour, S9.3 уже реализован локально через tag-driven release workflow, а во время этого wait-state уже закрыт независимый S3.1 с `FormulaProvider Protocol` и тремя реализациями (`LocalTesseractProvider`, `OpenRouterProvider`, `NullProvider`). Следующий внешний proof теперь не в коде, а в первом GitHub run для nightly и первом `v*` tag push для release automation.
 
 Новый architecture-learning по input hardening: самые дешёвые security controls снова закрываются в shared admission boundary, а не в route-specific хвостах. Один guard в `run/paths.py` и один DOCX archive preflight дают больше контроля, чем поздние локальные проверки после начала extraction.
 
@@ -270,10 +271,13 @@
 
 Новый release-automation-learning по S9.3: portable package notes должны рендериться из git-tracked `CHANGELOG.md`, а не из захардкоженного шаблона в PowerShell, иначе nightly/pre-release и stable tag paths расходятся и перестают быть тестируемым единым контрактом.
 
+Новый provider-learning по S3.1: pluggable protocol начинает окупаться только когда fallback chain перестаёт быть ручной `if`-лесенкой в orchestration-коде. Явный `FormulaProvider` contract плюс `NullProvider` даёт тестируемый no-network path и убирает special-case knowledge о провайдере из postprocess loop.
+
 В работе:
 
 - дождаться первого GitHub evidence для `nightly-full-e2e` и зафиксировать artifact bundle или auto-issue path в state layer;
 - снять первый `v*` tag proof для `.github/workflows/release.yml`, чтобы S9.3 получил не только локальную, но и hosted GitHub Release evidence;
+- продолжить Wave 3 после локального закрытия S3.1: ближайшие исполнимые независимые спринты теперь S3.2 (`OCRBackend`/`CatalogWriter` protocols) и S3.3 (secret redaction guarantee);
 - держать contract required-status contexts и label `agent:autonomous` синхронными с `.github/workflows/windows-ci.yml` и `.github/workflows/autonomous-pr-auto-merge.yml`;
 - удерживать `.gitleaks.toml` allowlist узким и не расширять его за пределы test/example surfaces без нового evidence;
 - держать `src/doc_converter/formula_benchmark.py` как отдельный non-critical architecture follow-up по file-size debt;
@@ -286,7 +290,7 @@
 
 1. Зафиксировать hosted evidence для `S9.2`: первый `nightly-full-e2e` artifact bundle или auto-issue path на GitHub.
 2. Зафиксировать hosted evidence для `S9.3`: первый `v*` tag release с опубликованными zip/checksum и notes из `CHANGELOG.md`.
-3. Затем возвращаться к ближайшему независимому product-hardening sprint из W3/W4/W5/W8, не конфликтующему с ожиданием S9.2 burn-in.
+3. Затем возвращаться к ближайшему независимому product-hardening sprint из W3/W4/W5/W8, не конфликтующему с ожиданием S9.2 burn-in; следующий на очереди после локального S3.1 — S3.2 или S3.3.
 4. Держать `src/doc_converter/formula_benchmark.py` как отдельный follow-up по repo-wide file-size debt вне critical path.
 5. Продолжать measured table backlog по `sample_020`, warning density на `sample_009/018` и negative/control false-positive contour уже поверх shared `tables/` package.
 6. Затем вернуться к richer DOCX table semantics и generalized WMF parser backlog для formula-rich DOCX.

@@ -179,6 +179,8 @@ graph LR
 
 ### Sprint S3.1 — `FormulaProvider Protocol`
 
+**Status:** completed locally 2026-05-30. Evidence: `src/doc_converter/formulas/providers.py` now defines `FormulaProvider`, `LocalTesseractProvider`, `OpenRouterProvider` and `NullProvider`; `src/doc_converter/formula_recognition.py` uses a provider chain instead of hard-coded backend/provider branches; `tests/test_formula_recognition.py` covers each provider plus the `NullProvider` no-network integration path; full `unittest`, `ruff` and `pyright` stayed green.
+
 - **Goal:** formula recognition pluggable.
 - **Scope:** [src/doc_converter/formula_recognition.py](../src/doc_converter/formula_recognition.py) расщепить на:
   - `FormulaProvider Protocol` (`predict(asset, ctx) -> FormulaPrediction`);
@@ -186,7 +188,7 @@ graph LR
   - провайдер выбирается через config + env, fallback chain — данные, не код.
 - **Exit:** unit-тесты на каждый provider; интеграционный тест с `NullProvider` стабильно зелёный без сети.
 - **depends_on:** S2.2.
-- **feature_ids:** `providers.formula-protocol`.
+- **feature_ids:** `providers-formula-protocol`.
 
 ### Sprint S3.2 — `OCRBackend Protocol` и `CatalogWriter Protocol`
 
@@ -194,7 +196,7 @@ graph LR
 - **Scope:** аналогично S3.1; `OcrmypdfBackend`, `NullOcrBackend`; `JsonCatalogWriter`, `XlsxCatalogWriter`.
 - **Exit:** замена backend через config работает в тесте.
 - **depends_on:** S3.1.
-- **feature_ids:** `providers.ocr-protocol`, `providers.catalog-protocol`.
+- **feature_ids:** `providers-ocr-protocol`, `providers-catalog-protocol`.
 
 ### Sprint S3.3 — Secret redaction guarantee
 

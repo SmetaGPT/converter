@@ -1297,6 +1297,44 @@
       "residual_risk": "The code path is validated locally, but the first hosted proof still depends on a real `v*` tag push; stable tags intentionally fail if `CHANGELOG.md` does not contain an exact version section."
     },
     {
+      "feature_id": "providers-formula-protocol",
+      "area": "architecture",
+      "title": "Pluggable formula provider chain",
+      "status": "validated",
+      "behavior": "Formula-recognition postprocess no longer hard-codes backend/provider branching; it dispatches through a `FormulaProvider` protocol with `LocalTesseractProvider`, `OpenRouterProvider` and `NullProvider`, so fallback order is explicit data rather than orchestration-specific conditionals.",
+      "owner_docs": [
+        "src/doc_converter/formulas/providers.py",
+        "src/doc_converter/formula_recognition.py",
+        "tests/test_formula_recognition.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_formula_recognition -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m pyright src/doc_converter/formula_recognition.py src/doc_converter/formulas/providers.py tests/test_formula_recognition.py"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest discover -v"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/formulas/providers.py",
+        "src/doc_converter/formula_recognition.py",
+        "tests/test_formula_recognition.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "residual_risk": "Formula providers are now abstracted, but the wider pluggable surface still depends on S3.2 for OCR and catalog writers, and live provider quality/cost remains an operator-triggered concern outside automated tests."
+    },
+    {
       "feature_id": "machine-readable-telemetry",
       "area": "observability",
       "title": "Machine-readable telemetry companion",
