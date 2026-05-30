@@ -1251,6 +1251,52 @@
       "residual_risk": "GitHub-hosted runners still cannot access the external D:\\ corpus, so the full formula manifest currently runs as monitor-only without thresholds and the failure issue can fall back to head_ref/author for historical merges that predate the explicit PR template field."
     },
     {
+      "feature_id": "ci-release-automation",
+      "area": "process",
+      "title": "Tag-driven release publication",
+      "status": "validated",
+      "behavior": "A dedicated release workflow reacts to `v*` tags, rebuilds the portable Windows package, regenerates changelog-backed release notes, and publishes the zip plus checksum to GitHub Releases without a manual publication step.",
+      "owner_docs": [
+        "CHANGELOG.md",
+        ".github/workflows/release.yml",
+        "scripts/package-release.ps1",
+        "scripts/render_release_notes.py",
+        "src/doc_converter/release_notes.py",
+        "tests/test_release_notes.py",
+        "docs/current-status.md",
+        "docs/current-sprint.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_release_notes -v"
+        },
+        {
+          "type": "command",
+          "target": "powershell -ExecutionPolicy Bypass -File scripts\\package-release.ps1 -Name DocumentConverter -Version 0.3.0-nightly -SkipBuild"
+        },
+        {
+          "type": "procedure",
+          "target": "Push a `v0.x.y` tag and confirm `.github/workflows/release.yml` creates or updates the matching GitHub Release with the portable zip, checksum and notes rendered from `CHANGELOG.md`."
+        }
+      ],
+      "evidence": [
+        "CHANGELOG.md",
+        ".github/workflows/release.yml",
+        "scripts/package-release.ps1",
+        "scripts/render_release_notes.py",
+        "src/doc_converter/release_notes.py",
+        "tests/test_release_notes.py",
+        "docs/current-status.md",
+        "docs/current-sprint.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "residual_risk": "The code path is validated locally, but the first hosted proof still depends on a real `v*` tag push; stable tags intentionally fail if `CHANGELOG.md` does not contain an exact version section."
+    },
+    {
       "feature_id": "machine-readable-telemetry",
       "area": "observability",
       "title": "Machine-readable telemetry companion",

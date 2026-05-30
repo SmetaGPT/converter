@@ -367,6 +367,8 @@ Status: completed (2026-05-30). Evidence: added `docs/security.md`, hardened `sr
 
 ### Sprint S9.3 — Release automation
 
+**Status:** completed locally 2026-05-30. Evidence: `.github/workflows/release.yml` publishes GitHub Releases on `v*` tags, `scripts/package-release.ps1` now renders `release-notes.md` from `CHANGELOG.md` through `scripts/render_release_notes.py` / `src/doc_converter/release_notes.py`, `tests/test_release_notes.py` covers exact-version and nightly fallback behavior, and local smoke `powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 -Name DocumentConverter -Version 0.3.0-nightly -SkipBuild` generated a changelog-backed release bundle.
+
 - **Goal:** релиз без ручного шага.
 - **Scope:** tag `v0.x.y` → build portable + checksum + GitHub Release + release-notes из CHANGELOG, который пишут агенты.
 - **Exit:** релиз `v0.3.1` (или ближайший) уходит автоматически.

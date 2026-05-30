@@ -16,18 +16,19 @@
     "eval_instructions": "docs/agent-evals.md"
   },
   "telemetry_window_summary": {
-    "total_entries": 53,
+    "total_entries": 54,
     "validation_results": {
-      "passed": 41,
+      "passed": 42,
       "passed_after_repair": 12,
       "failed": 0,
       "blocked": 0
     },
-    "state_updates": 53,
-    "feature_traceable_entries": 53,
+    "state_updates": 54,
+    "feature_traceable_entries": 54,
     "task_types": {
       "code/ci/docs": 2,
       "code/ci/docs/tests": 1,
+      "code/ci/release/docs": 1,
       "code/docs/tests/schema": 1,
       "code/runtime/docs": 2,
       "code/tests/data/docs": 1,
@@ -43,8 +44,8 @@
   },
   "scorecard_snapshot": {
     "scorecard_as_of_date": "2026-05-30",
-    "validated_features": 42,
-    "referenced_features": 43,
+    "validated_features": 43,
+    "referenced_features": 44,
     "referenced_feature_ids": [
       "arch-converter-protocol",
       "arch-docx-split",
@@ -56,6 +57,7 @@
       "ci-auto-merge",
       "ci-nightly-e2e",
       "ci-pr-gates",
+      "ci-release-automation",
       "clean-exit-checklist",
       "contracts-stable-v1",
       "docx-native-route",
@@ -97,28 +99,28 @@
         "title": "Validation discipline",
         "score": 5,
         "scale_max": 5,
-        "basis": "76/76 telemetry entries have pass-like validation results."
+        "basis": "77/77 telemetry entries have pass-like validation results."
       },
       {
         "signal_id": "state-hygiene",
         "title": "State hygiene",
         "score": 5,
         "scale_max": 5,
-        "basis": "76/76 telemetry entries report state_update=true."
+        "basis": "77/77 telemetry entries report state_update=true."
       },
       {
         "signal_id": "feature-traceability",
         "title": "Feature traceability",
         "score": 5,
         "scale_max": 5,
-        "basis": "76/76 telemetry entries reference at least one feature_id."
+        "basis": "77/77 telemetry entries reference at least one feature_id."
       },
       {
         "signal_id": "feature-coverage",
         "title": "Feature coverage in telemetry",
         "score": 5,
         "scale_max": 5,
-        "basis": "43/42 validated features are referenced by structured telemetry."
+        "basis": "44/43 validated features are referenced by structured telemetry."
       }
     ]
   },

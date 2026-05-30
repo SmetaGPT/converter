@@ -16,11 +16,16 @@
 
 - .github/PULL_REQUEST_TEMPLATE.md
 - .github/workflows/nightly-full-e2e.yml
+- .github/workflows/release.yml
+- CHANGELOG.md
 - samples/manifest.table-anchors.ci.jsonl
 - scripts/create_nightly_failure_issue.py
+- scripts/render_release_notes.py
 - scripts/run_sample_pilot.py
+- src/doc_converter/release_notes.py
 - src/doc_converter/formula_benchmark.py
 - tests/test_nightly_failure_issue.py
+- tests/test_release_notes.py
 - tests/test_sample_pilot.py
 - tests/test_formula_benchmark.py
 - docs/current-status.md
@@ -43,6 +48,7 @@
 | Сделать table anchor manifest repo-safe и независимым от `cwd`/`D:\...` | Готово |
 | Развести full formula monitor и CI-safe required gate | Готово |
 | Открыть auto-issue path на failure с контекстом latest merged PR | Готово |
+| Собрать tag-driven release automation с changelog-backed release notes и GitHub Release publish path | Готово |
 | Набрать 7 ночей burn-in evidence и убедиться, что auto-issue path не флапает | В работе |
 
 ## 4. Validation targets спринта
@@ -57,6 +63,7 @@
 - GitHub-hosted runner не видит внешний `D:\ФСНБ\...` corpus, поэтому full formula manifest в nightly идёт в monitor-only режиме без thresholds, а required gate пока держится на CI-safe subset.
 - `agent_id` для failure issue будет точным только для PR, где заполнен новый template field; для старых merges helper честно падает назад на `head_ref`, затем author login.
 - Exit спринта зависит не от локального validation, а от 7-night burn-in/auto-issue evidence на GitHub.
+- Для `S9.3` локальный workflow/script proof уже есть, но первый hosted `v*` tag run ещё не зафиксирован в state layer, поэтому wave W9 остаётся открытой до GitHub evidence.
 
 ## 6. Критерий выхода
 
@@ -65,6 +72,6 @@
 ## 7. Следующий operational focus
 
 1. Дождаться первого GitHub run `nightly-full-e2e` и зафиксировать artifact/issue evidence в state layer.
-2. Затем открыть S9.3 и перевести release automation на уже работающий nightly/regression контур.
+2. Снять первый hosted proof для `.github/workflows/release.yml`: `v*` tag должен опубликовать GitHub Release с zip, checksum и notes из `CHANGELOG.md`.
 3. Держать `agent_id` field обязательной частью agent PR closeout, чтобы auto-issue path перестал зависеть от fallback inference.
-4. После critical path продолжать measured table backlog и richer DOCX semantics.
+4. После hosted proof по S9.x продолжать ближайший независимый sprint из W3/W4/W5/W8 и measured DOCX/table backlog.
