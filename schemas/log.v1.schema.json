@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/SmetaGPT/converter/schemas/log.v1.schema.json",
+  "title": "Runtime Log V1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "timestamp",
+    "run_id",
+    "event",
+    "level",
+    "status",
+    "relative_path",
+    "filename",
+    "format",
+    "size_bytes",
+    "warnings",
+    "route",
+    "duplicate_of",
+    "resumed_from_run_id",
+    "error_type",
+    "error",
+    "total_files",
+    "processed_files"
+  ],
+  "properties": {
+    "schema_version": { "const": "log.v1" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "event": {
+      "enum": [
+        "run_started",
+        "inventory_built",
+        "run_cancelled",
+        "document_started",
+        "document_skipped_unsupported",
+        "document_skipped_duplicate",
+        "document_reused",
+        "document_converted",
+        "document_failed",
+        "document_finished",
+        "run_completed"
+      ]
+    },
+    "level": { "enum": ["info", "warning", "error"] },
+    "status": { "type": ["string", "null"] },
+    "relative_path": { "type": ["string", "null"] },
+    "filename": { "type": ["string", "null"] },
+    "format": { "type": ["string", "null"] },
+    "size_bytes": { "type": ["integer", "null"], "minimum": 0 },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "route": { "type": ["string", "null"] },
+    "duplicate_of": { "type": ["string", "null"] },
+    "resumed_from_run_id": { "type": ["string", "null"] },
+    "error_type": { "type": ["string", "null"] },
+    "error": { "type": ["string", "null"] },
+    "total_files": { "type": ["integer", "null"], "minimum": 0 },
+    "processed_files": { "type": ["integer", "null"], "minimum": 0 }
+  },
+  "additionalProperties": false
+}

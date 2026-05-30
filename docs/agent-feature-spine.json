@@ -1028,6 +1028,38 @@
       "residual_risk": "Dry-run stops at inventory/classification and does not exercise per-route converter startup requirements; full `convert-folder` runs remain the conversion gate."
     },
     {
+      "feature_id": "operator-structured-logs",
+      "area": "product",
+      "title": "Structured runtime telemetry log",
+      "status": "validated",
+      "behavior": "Every converter run emits a schema-backed `telemetry.jsonl` event stream through a central logger adapter, and `validate_run_package.py` validates `log.v1` alongside the rest of the run package.",
+      "owner_docs": [
+        "src/doc_converter/run/logging.py",
+        "src/doc_converter/run/orchestration.py",
+        "schemas/log.v1.schema.json",
+        "scripts/validate_run_package.py",
+        "tests/test_cli_smoke.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": "runTests tests/test_cli_smoke.py"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_run_package.py <run_dir>"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/run/logging.py",
+        "src/doc_converter/run/orchestration.py",
+        "schemas/log.v1.schema.json",
+        "scripts/validate_run_package.py",
+        "tests/test_cli_smoke.py"
+      ],
+      "residual_risk": "Legacy `processing-log.jsonl` and `errors.jsonl` are still emitted as compatibility mirrors until a later operator-facing deprecation tranche removes them."
+    },
+    {
       "feature_id": "machine-readable-telemetry",
       "area": "observability",
       "title": "Machine-readable telemetry companion",

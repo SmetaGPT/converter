@@ -281,6 +281,8 @@ graph LR
 
 ### Sprint S6.2 — Structured logs and telemetry
 
+Status: completed (2026-05-30). Evidence: added `schemas/log.v1.schema.json`, introduced central `RuntimeLogger` in `src/doc_converter/run/logging.py`, every run now emits `runs/<id>/telemetry.jsonl`, `scripts/validate_run_package.py` validates telemetry, `runTests tests/test_cli_smoke.py` passed `29/29`, in-process `validate_run_package.py` smoke on a fresh run package passed, `runTests` passed `203/0`, `ruff` and `pyright` passed.
+
 - **Goal:** 100 % событий runtime — structured JSONL по схеме `log.v1`.
 - **Scope:** `schemas/log.v1.schema.json`; logger adapter; `runs/<id>/telemetry.jsonl` со схемой; legacy текстовые логи → опционально через flag.
 - **Exit:** валидатор `scripts/validate_run_package.py` дополнен проверкой telemetry/logs; зелёный.

@@ -13,6 +13,7 @@ from ..converters import get_converter
 from ..inventory import build_inventory
 from ..schema_validation import validate_payload
 from .catalog import _write_processed_documents_catalog
+from .logging import RuntimeLogger
 from .paths import ConverterError, _allocate_run_dir, _document_output_path, _new_run_id, validate_run_directories
 from .postprocess import (
     _build_review_required_records,
@@ -55,42 +56,40 @@ def run_convert_folder(
     unsupported_records = inventory.unsupported_records
 
     manifest_path = run_dir / "manifest.jsonl"
+    telemetry_path = run_dir / "telemetry.jsonl"
     log_path = run_dir / "processing-log.jsonl"
     errors_path = run_dir / "errors.jsonl"
     queue_state_path = run_dir / "queue-state.json"
     review_required_path = run_dir / "review-required.jsonl"
 
+    _write_text(telemetry_path, "")
     _write_text(manifest_path, "")
     _write_text(errors_path, "")
     _write_text(review_required_path, "")
-    _append_jsonl(log_path, {"event": "run_started", "run_id": run_id, "status": "ok"})
+    logger = RuntimeLogger(
+        run_id=run_id,
+        telemetry_path=telemetry_path,
+        progress_callback=progress_callback,
+        legacy_log_path=log_path,
+        legacy_error_path=errors_path,
+    )
+    logger.emit("run_started", status="ok", legacy=True)
 
     resume_index = _load_resume_index(output_dir / "runs", run_dir)
     total_files = len(inventory_records)
     error_details_by_relative_path: dict[str, str] = {}
     for unsupported_record in unsupported_records:
-        _append_jsonl(
-            log_path,
-            {
-                "event": "document_skipped_unsupported",
-                "run_id": run_id,
-                "relative_path": unsupported_record.relative_path,
-                "filename": unsupported_record.filename,
-                "format": unsupported_record.format,
-                "size_bytes": unsupported_record.size_bytes,
-                "warnings": list(unsupported_record.warnings),
-                "status": "skipped_unsupported",
-            },
+        logger.emit(
+            "document_skipped_unsupported",
+            relative_path=unsupported_record.relative_path,
+            filename=unsupported_record.filename,
+            format=unsupported_record.format,
+            size_bytes=unsupported_record.size_bytes,
+            warnings=list(unsupported_record.warnings),
+            status="skipped_unsupported",
+            legacy=True,
         )
-    _emit_progress(
-        progress_callback,
-        {
-            "event": "inventory_built",
-            "run_id": run_id,
-            "total_files": total_files,
-            "processed_files": 0,
-        },
-    )
+    logger.emit("inventory_built", total_files=total_files, processed_files=0, progress=True)
 
     completed: list[str] = []
     partial: list[str] = []
@@ -102,37 +101,24 @@ def run_convert_folder(
     for record in inventory_records:
         if should_cancel is not None and should_cancel():
             cancelled = True
-            _append_jsonl(
-                log_path,
-                {
-                    "event": "run_cancelled",
-                    "run_id": run_id,
-                    "status": "cancelled",
-                    "processed_files": len(completed) + len(partial) + len(failed),
-                },
-            )
-            _emit_progress(
-                progress_callback,
-                {
-                    "event": "run_cancelled",
-                    "run_id": run_id,
-                    "total_files": total_files,
-                    "processed_files": len(completed) + len(partial) + len(failed),
-                },
+            logger.emit(
+                "run_cancelled",
+                status="cancelled",
+                total_files=total_files,
+                processed_files=len(completed) + len(partial) + len(failed),
+                progress=True,
+                legacy=True,
             )
             break
 
         manifest_record = record.to_manifest_record(run_id)
         document_dir = _document_output_path(documents_dir, record.sha256)
-        _emit_progress(
-            progress_callback,
-            {
-                "event": "document_started",
-                "run_id": run_id,
-                "relative_path": record.relative_path,
-                "total_files": total_files,
-                "processed_files": len(completed) + len(partial) + len(failed),
-            },
+        logger.emit(
+            "document_started",
+            relative_path=record.relative_path,
+            total_files=total_files,
+            processed_files=len(completed) + len(partial) + len(failed),
+            progress=True,
         )
         if record.duplicate_of is not None:
             primary_manifest = manifest_by_relative_path.get(record.duplicate_of)
@@ -149,26 +135,20 @@ def run_convert_folder(
                     record.relative_path,
                 )
             completed.append(record.relative_path)
-            _append_jsonl(
-                log_path,
-                {
-                    "event": "document_skipped_duplicate",
-                    "run_id": run_id,
-                    "relative_path": record.relative_path,
-                    "duplicate_of": record.duplicate_of,
-                    "status": "skipped_duplicate",
-                },
+            logger.emit(
+                "document_skipped_duplicate",
+                relative_path=record.relative_path,
+                duplicate_of=record.duplicate_of,
+                status="skipped_duplicate",
+                legacy=True,
             )
-            _emit_progress(
-                progress_callback,
-                {
-                    "event": "document_finished",
-                    "run_id": run_id,
-                    "relative_path": record.relative_path,
-                    "status": "skipped_duplicate",
-                    "total_files": total_files,
-                    "processed_files": len(completed) + len(partial) + len(failed),
-                },
+            logger.emit(
+                "document_finished",
+                relative_path=record.relative_path,
+                status="skipped_duplicate",
+                total_files=total_files,
+                processed_files=len(completed) + len(partial) + len(failed),
+                progress=True,
             )
             final_manifest_records.append(manifest_record)
             manifest_by_relative_path[record.relative_path] = manifest_record
@@ -189,27 +169,21 @@ def run_convert_folder(
                 partial.append(record.relative_path)
             else:
                 completed.append(record.relative_path)
-            _append_jsonl(
-                log_path,
-                {
-                    "event": "document_reused",
-                    "run_id": run_id,
-                    "relative_path": record.relative_path,
-                    "route": record.route,
-                    "status": resume_hit.status,
-                    "resumed_from_run_id": resume_hit.run_id,
-                },
+            logger.emit(
+                "document_reused",
+                relative_path=record.relative_path,
+                route=record.route,
+                status=resume_hit.status,
+                resumed_from_run_id=resume_hit.run_id,
+                legacy=True,
             )
-            _emit_progress(
-                progress_callback,
-                {
-                    "event": "document_finished",
-                    "run_id": run_id,
-                    "relative_path": record.relative_path,
-                    "status": resume_hit.status,
-                    "total_files": total_files,
-                    "processed_files": len(completed) + len(partial) + len(failed),
-                },
+            logger.emit(
+                "document_finished",
+                relative_path=record.relative_path,
+                status=resume_hit.status,
+                total_files=total_files,
+                processed_files=len(completed) + len(partial) + len(failed),
+                progress=True,
             )
             final_manifest_records.append(manifest_record)
             manifest_by_relative_path[record.relative_path] = manifest_record
@@ -244,53 +218,41 @@ def run_convert_folder(
                 partial.append(record.relative_path)
             else:
                 completed.append(record.relative_path)
-            _append_jsonl(
-                log_path,
-                {
-                    "event": "document_converted",
-                    "run_id": run_id,
-                    "relative_path": record.relative_path,
-                    "route": record.route,
-                    "status": result.status,
-                },
+            logger.emit(
+                "document_converted",
+                relative_path=record.relative_path,
+                route=record.route,
+                status=result.status,
+                legacy=True,
             )
-            _emit_progress(
-                progress_callback,
-                {
-                    "event": "document_finished",
-                    "run_id": run_id,
-                    "relative_path": record.relative_path,
-                    "status": result.status,
-                    "total_files": total_files,
-                    "processed_files": len(completed) + len(partial) + len(failed),
-                },
+            logger.emit(
+                "document_finished",
+                relative_path=record.relative_path,
+                status=result.status,
+                total_files=total_files,
+                processed_files=len(completed) + len(partial) + len(failed),
+                progress=True,
             )
         except Exception as exc:  # noqa: BLE001 - batch run records per-document failures.
             manifest_record["status"] = "failed"
             manifest_record["error"] = type(exc).__name__
             error_details_by_relative_path[record.relative_path] = str(exc)
             failed.append(record.relative_path)
-            _append_jsonl(
-                errors_path,
-                {
-                    "event": "document_failed",
-                    "run_id": run_id,
-                    "relative_path": record.relative_path,
-                    "route": record.route,
-                    "error_type": type(exc).__name__,
-                    "error": str(exc),
-                },
+            logger.emit(
+                "document_failed",
+                relative_path=record.relative_path,
+                route=record.route,
+                error_type=type(exc).__name__,
+                error=str(exc),
+                legacy=True,
             )
-            _emit_progress(
-                progress_callback,
-                {
-                    "event": "document_finished",
-                    "run_id": run_id,
-                    "relative_path": record.relative_path,
-                    "status": "failed",
-                    "total_files": total_files,
-                    "processed_files": len(completed) + len(partial) + len(failed),
-                },
+            logger.emit(
+                "document_finished",
+                relative_path=record.relative_path,
+                status="failed",
+                total_files=total_files,
+                processed_files=len(completed) + len(partial) + len(failed),
+                progress=True,
             )
         manifest_by_relative_path[record.relative_path] = manifest_record
         final_manifest_records.append(manifest_record)
@@ -355,16 +317,13 @@ def run_convert_folder(
     }
     _write_validated_json(run_dir / "summary.json", summary, "summary.v1.schema.json")
     final_status = _summary_status(cancelled, completed, partial, failed)
-    _append_jsonl(log_path, {"event": "run_completed", "run_id": run_id, "status": final_status})
-    _emit_progress(
-        progress_callback,
-        {
-            "event": "run_completed",
-            "run_id": run_id,
-            "status": final_status,
-            "total_files": total_files,
-            "processed_files": len(completed) + len(partial) + len(failed),
-        },
+    logger.emit(
+        "run_completed",
+        status=final_status,
+        total_files=total_files,
+        processed_files=len(completed) + len(partial) + len(failed),
+        progress=True,
+        legacy=True,
     )
 
     return RunResult(
@@ -417,14 +376,6 @@ def _nonempty_string(value: str | None) -> str | None:
     return stripped or None
 
 
-def _emit_progress(
-    progress_callback: Callable[[dict[str, object]], None] | None,
-    payload: dict[str, object],
-) -> None:
-    if progress_callback is not None:
-        progress_callback(payload)
-
-
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
@@ -439,16 +390,16 @@ def _append_validated_jsonl(path: Path, payload: dict[str, Any], schema_filename
     _append_jsonl(path, payload)
 
 
+def _append_jsonl(path: Path, payload: dict[str, Any]) -> None:
+    with path.open("a", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n")
+
+
 def _copy_original_file(source_path: Path, document_dir: Path, relative_path: str) -> str:
     target = document_dir / "originals" / Path(relative_path)
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source_path, target)
     return target.relative_to(document_dir).as_posix()
-
-
-def _append_jsonl(path: Path, payload: dict[str, Any]) -> None:
-    with path.open("a", encoding="utf-8", newline="\n") as handle:
-        handle.write(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n")
 
 
 def _write_text(path: Path, text: str) -> None:

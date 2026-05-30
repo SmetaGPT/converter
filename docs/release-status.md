@@ -14,6 +14,8 @@
 
 Critical-path operator surface S6.1 закрыт: CLI по умолчанию остаётся human-readable для ручного использования, а `--output-format=json` выдаёт fixed `cli-result.v1` envelope с exit-code matrix `0/10/20/30/40/50`. Дополнительно появились `doctor` и `dry-run`, поэтому агент может различать `input_invalid`, `environment_invalid`, `review_required` и `partial` без парсинга prose и без пробного запуска полного conversion path.
 
+Следом закрыт и S6.2 structured telemetry tranche: каждый run теперь эмитит schema-backed `telemetry.jsonl` по `log.v1` через central logger adapter, а `scripts/validate_run_package.py` валидирует этот event stream вместе с остальными run-package артефактами. Legacy `processing-log.jsonl` и `errors.jsonl` пока сохранены как compatibility mirrors, поэтому operator/debug привычки не ломаются одномоментно.
+
 Готово:
 
 - baseline;
@@ -79,8 +81,8 @@ Critical-path operator surface S6.1 закрыт: CLI по умолчанию о
 
 Следующий backlog:
 
-- production roadmap S6.2: structured runtime logs/telemetry schema после machine-readable CLI contract.
-- production roadmap S7.1: threat model, input hardening и `docs/security.md` после operator surface.
+- production roadmap S7.1: threat model, input hardening и `docs/security.md` после закрытия structured operator/runtime contracts.
+- production roadmap S7.2: secret-scan CI после threat model и input hardening.
 - отдельный architecture follow-up: вывести `src/doc_converter/formula_benchmark.py` из oversize-состояния без ломки benchmark CLI/report contracts.
 - table benchmark follow-up на `sample_009`, `sample_018` и `sample_020`: next sprint должен не создавать baseline с нуля, а снижать `table_structure_warning` density на text-layer anchors, вывести explicit negative/control false-positive contour и устранить OCR blocker на `sample_020`, чтобы scan route тоже вошёл в measured table loop.
 - richer DOCX table semantics: после formula-in-cell closure следующий backlog лежит в header-like rows, merged-cell hints и richer review signals для operator QC.
@@ -118,7 +120,7 @@ Critical-path operator surface S6.1 закрыт: CLI по умолчанию о
 
 ## 7. Текущий release risk
 
-Предыдущий critical-path risk по отсутствию structured CLI/operator contract закрыт в S6.1; ближайший critical path теперь смещён на structured runtime logs/telemetry contract в S6.2 и последующий security hardening в S7.x.
+Предыдущие critical-path risks по structured CLI/operator contract и structured runtime telemetry contract закрыты в S6.1-S6.2; ближайший critical path теперь смещён на security hardening в S7.1-S7.2.
 
 Операционных blocker-ов для релиза v0.3.0 не осталось. Последний внешний production audit больше не оставляет runtime- или CI-blocker: self-ingestion guard и unsupported accounting закрыты в runtime, OCR traineddata direct downloads проверяются по pinned SHA-256, а lint/type/pip/package smoke выполняются в штатном workflow. Runner monolith risk тоже закрыт: orchestration теперь живёт в smaller `run/` modules, а compatibility surface сохраняется через thin wrapper. Route-coupling risk закрыт следующим архитектурным шагом: `inventory` и `run.orchestration` теперь используют shared converter registry вместо hard-coded format-specific imports и route branches. Table parser ownership тоже приведён к архитектурному baseline: dominant-width inference, continuation merge и `table_structure_warning` больше не размазаны по converters, а живут в shared `tables/` package с подтверждённым fresh anchor run `20260529T162149Z`. Новый table benchmark contour остаётся measured: `sample_009` и `sample_018` держат executable row/cell baseline, warning density всё ещё высокая, а `sample_020` по-прежнему OCR-blocked scan baseline с `partial_success` и `OCRmyPDF failed`. Значит ближайший release-risk по tables теперь ещё уже локализован: не parser drift между routes, а warning-heavy parse, missing negative/control false-positive contour и OCR blocker на одном scan anchor. Следующий critical-path release-risk смещается с route architecture на отсутствие structured CLI/operator contract и последующий security hardening в S6.x/S7.x. Formula benchmark manifest по-прежнему зелёный на curated `metod`/`SP` set и подтверждён run `20260526T054732Z` под executable policy `samples/formula-benchmark.thresholds.json`, поэтому formula backlog можно возвращать после operator-surface tranche. Optional OCR helpers `jbig2`, `pngquant`, `verapdf` остаются необязательными и не блокируют core OCR path. Для harness layer остаточный риск теперь в основном операционный: thresholds уже executable и перепроверены, но telemetry, generated scorecard, generated weekly eval, machine-readable weekly reviews и schedule helper всё ещё требуют дисциплины обновления, а из repo-wide file-size debt остался только `src/doc_converter/formula_benchmark.py`.
 
@@ -175,7 +177,7 @@ Critical-path operator surface S6.1 закрыт: CLI по умолчанию о
 ## 14. Harness assets validation
 
 - Команда: `.\.venv\Scripts\python.exe scripts\validate_harness_assets.py`.
-- Результат: `status: ok`, `features: 36`, `validated: 36`, `active: 0`, `backlog: 0`, `telemetry_entries: 71`.
+- Результат: `status: ok`, `features: 37`, `validated: 37`, `active: 0`, `backlog: 0`, `telemetry_entries: 72`.
 - Назначение: ранний провал CI при потере feature spine, feature-traceability markers в шаблонах, machine-readable telemetry companion, generated scorecard companion, generated weekly eval companion, machine-readable weekly reviews source, markdown structured companion sync, qualitative weekly review evidence или core product-capabilities ссылок.
 
 ## 15. Latest Audit Remediation

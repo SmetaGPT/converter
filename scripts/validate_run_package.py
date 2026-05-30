@@ -26,6 +26,7 @@ def main(argv: list[str] | None = None) -> int:
     validate_json_file(run_dir / "queue-state.json", "queue-state.v1.schema.json")
     validate_json_file(run_dir / "processed-documents-catalog.json", "processed-documents-catalog.v1.schema.json")
     _validate_workbook(run_dir / "processed-documents-catalog.xlsx")
+    _validate_jsonl(run_dir / "telemetry.jsonl", "log.v1.schema.json")
     _validate_jsonl(run_dir / "manifest.jsonl", "manifest.v1.schema.json")
     _validate_jsonl(run_dir / "review-required.jsonl", "review-required.v1.schema.json")
 

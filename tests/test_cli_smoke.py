@@ -302,6 +302,7 @@ class CliSmokeTests(unittest.TestCase):
             self.assertEqual(result.supported_files, 0)
             self.assertTrue((result.run_dir / "run.json").exists())
             self.assertTrue((result.run_dir / "manifest.jsonl").exists())
+            self.assertTrue((result.run_dir / "telemetry.jsonl").exists())
             self.assertTrue((result.run_dir / "processing-log.jsonl").exists())
             self.assertTrue((result.run_dir / "summary.json").exists())
             self.assertTrue((result.run_dir / "errors.jsonl").exists())
@@ -319,6 +320,13 @@ class CliSmokeTests(unittest.TestCase):
             validate_payload(summary, "summary.v1.schema.json")
             validate_payload(queue_state, "queue-state.v1.schema.json")
             validate_payload(catalog, "processed-documents-catalog.v1.schema.json")
+            telemetry_records = [
+                json.loads(line)
+                for line in (result.run_dir / "telemetry.jsonl").read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            for record in telemetry_records:
+                validate_payload(record, "log.v1.schema.json")
 
             self.assertEqual(summary["schema_version"], "summary.v1")
             self.assertEqual(summary["status"], "success")
@@ -583,11 +591,13 @@ class CliSmokeTests(unittest.TestCase):
             result = run_convert_folder(ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir)))
 
             summary = json.loads((result.run_dir / "summary.json").read_text(encoding="utf-8"))
-            log_records = [
+            telemetry_records = [
                 json.loads(line)
-                for line in (result.run_dir / "processing-log.jsonl").read_text(encoding="utf-8").splitlines()
+                for line in (result.run_dir / "telemetry.jsonl").read_text(encoding="utf-8").splitlines()
                 if line.strip()
             ]
+            for record in telemetry_records:
+                validate_payload(record, "log.v1.schema.json")
 
             self.assertEqual(result.discovered_files, 2)
             self.assertEqual(result.supported_files, 1)
@@ -595,7 +605,7 @@ class CliSmokeTests(unittest.TestCase):
             self.assertEqual(summary["supported_files"], 1)
             self.assertEqual(summary["unsupported_files"], 1)
             unsupported_records = [
-                record for record in log_records if record.get("event") == "document_skipped_unsupported"
+                record for record in telemetry_records if record.get("event") == "document_skipped_unsupported"
             ]
             self.assertEqual(len(unsupported_records), 1)
             self.assertEqual(unsupported_records[0]["relative_path"], "ignored.txt")

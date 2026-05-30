@@ -148,6 +148,7 @@
 123. Закрыт production roadmap Sprint S2.3: shared table normalizer вынесен в `src/doc_converter/tables/`, а `pdf_text` и `pdf_scan` теперь импортируют один и тот же parser для dominant-width inference, continuation merge и `table_structure_warning`. Focused PDF/table tests, свежий `table-anchors` pilot `runs\s23-table-anchors\runs\20260529T162149Z`, subset validator для `sample_009/018`, полный suite, `ruff` и `pyright` прошли зелёно.
 124. Закрыт production roadmap Sprint S2.4 и вся Wave 2: `inventory.py` и `run/orchestration.py` теперь используют shared `doc_converter.converters` registry + `ConverterProtocol`, direct format-specific imports/branches убраны из orchestration path, runner tests патчат lookup layer вместо direct converter symbols, а opt-in dummy `txt` converter regression доказывает extensibility без изменения default supported-format contract. Focused runner/inventory slice, полный suite (200 tests), `pip check`, `ruff`, `pyright` и `validate_harness_assets.py` проходят зелёно.
 125. Закрыт production roadmap Sprint S6.1: CLI теперь по умолчанию выводит human-readable summary, а `--output-format=json` эмитит schema-backed envelope `cli-result.v1` с явной exit-code matrix `0/10/20/30/40/50`. Добавлены subcommands `doctor` и `dry-run`, focused `tests.test_cli_smoke` slice покрывает каждый subcommand и каждый exit code, а narrow smoke (29 tests), full suite (203 tests), `ruff` и `pyright` прошли зелёно.
+126. Закрыт production roadmap Sprint S6.2: весь runtime event stream теперь проходит через central `RuntimeLogger`, каждый run получает schema-backed `telemetry.jsonl` по `log.v1`, а `scripts/validate_run_package.py` валидирует telemetry вместе с остальными run-package артефактами. Legacy `processing-log.jsonl` и `errors.jsonl` оставлены как compatibility mirrors; focused CLI smoke (29 tests), validator smoke на fresh run package, full suite (203 tests), `ruff` и `pyright` прошли зелёно.
 
 ### Готовые артефакты
 
@@ -238,29 +239,29 @@
 
 ## 3. Что делается сейчас
 
-Текущий фокус: после закрытия S6.1 следующий critical-path sprint production roadmap — S6.2, то есть structured runtime logs/telemetry schema и machine-readable event stream для каждого run.
+Текущий фокус: после закрытия S6.2 следующий critical-path sprint production roadmap — S7.1, то есть threat model, input hardening limits и формализация `docs/security.md` для untrusted документов.
 
-Новый architecture-learning по structured CLI: cheapest stable rollout лежал не в переписывании runner/converters, а в одном envelope поверх уже существующих summary/inventory/runtime surfaces. Дублировать отдельную status-machine в каждом command branch оказалось бы дороже и хрупче, чем свести команды к общему `cli-result.v1` contract.
+Новый architecture-learning по structured telemetry: cheapest stable rollout снова лежал на orchestration boundary, а не в переписывании route-specific converter code. Central logger adapter в `run/` дал единый event stream и не размазал schema-логику по каждому conversion path.
 
-Новый operator-learning по `doctor`: preflight-команда может честно подсвечивать ещё не закрытые infrastructural gaps, например отсутствие bundled fonts до S4.3, не ломая human default path и не требуя парсинга prose со стороны автономного агента.
+Новый compatibility-learning по logs: schema-backed `telemetry.jsonl` можно вводить без ломки existing operator/debug habits, если legacy `processing-log.jsonl` и `errors.jsonl` временно оставить как compatibility mirrors и не менять run package одномоментно.
 
-Новый validation-learning по CLI envelope: как только команда получает structured output, каждая ветка ошибки обязана печатать ровно один JSON envelope. Focused smoke сразу поймал leftover raw JSON в missing-variables branch, и этот класс drift лучше ловить узким command-slice до запуска full suite.
+Новый validation-learning по event contracts: schema для event stream нужно подтверждать не только unit/smoke assertions, но и реальным `validate_run_package.py` на fresh run package. Такая проверка сразу ловит drift между writer-слоем и validator-слоем, который не виден на isolated helper tests.
 
 В работе:
 
-- открыть production roadmap S6.2 и перевести runtime events на structured telemetry/log contract;
-- после S6.2 закрыть S7.1 input hardening и формализовать `docs/security.md`;
+- закрыть production roadmap S7.1: threat model, input hardening limits и `docs/security.md`;
+- затем закрыть S7.2 secret-scan CI как следующий security tranche;
 - держать `src/doc_converter/formula_benchmark.py` как отдельный non-critical architecture follow-up по file-size debt;
 - удержать measured table backlog на `sample_009/018/020` и negative/control contour как parallel quality loop, не подменяя им critical path;
 - держать state docs, feature spine, telemetry и generated eval companions синхронными после каждого следующего sprint tranche.
 
 ## 4. Что идёт дальше
 
-Следующая последовательность после закрытия S6.1:
+Следующая последовательность после закрытия S6.2:
 
-1. Закрыть production roadmap S6.2: structured runtime logs/telemetry schema и validator coverage для run package.
-2. Затем закрыть S7.1 и формализовать `docs/security.md` вместе с input hardening limits.
-3. После этого закрыть S7.2 secret-scan CI и только затем выходить на S9.x critical path automation.
+1. Закрыть production roadmap S7.1: threat model, input hardening limits и `docs/security.md`.
+2. Затем закрыть S7.2 secret-scan CI и только потом возвращаться к следующему critical-path automation tranche.
+3. После security baseline продолжить S9.x automation, не размывая S7.x hardening measured backlog-ами.
 4. Держать `src/doc_converter/formula_benchmark.py` как отдельный follow-up по repo-wide file-size debt вне critical path.
 5. Продолжать measured table backlog по `sample_020`, warning density на `sample_009/018` и negative/control false-positive contour уже поверх shared `tables/` package.
 6. Затем вернуться к richer DOCX table semantics и generalized WMF parser backlog для formula-rich DOCX.
