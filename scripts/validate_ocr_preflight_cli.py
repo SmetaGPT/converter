@@ -39,19 +39,16 @@ def main(argv: list[str] | None = None) -> int:
     if completed.stderr:
         sys.stderr.write(completed.stderr)
 
-    if completed.returncode not in (0, 1):
-        if completed.stdout:
-            sys.stdout.write(completed.stdout)
-        return completed.returncode
-
     stdout = completed.stdout.strip()
     if not stdout:
-        raise SystemExit("check-ocr produced empty stdout")
+        raise SystemExit(f"check-ocr produced empty stdout with exit code {completed.returncode}")
 
     payload = json.loads(stdout)
     validate_payload(payload, "cli-result.v1.schema.json")
     if payload.get("command") != "check-ocr":
         raise SystemExit(f"Unexpected command payload: {payload.get('command')!r}")
+    if payload.get("status") not in {"ok", "environment_invalid"}:
+        raise SystemExit(f"Unexpected check-ocr status: {payload.get('status')!r}")
     if payload.get("exit_code") != completed.returncode:
         raise SystemExit(
             f"CLI exit code mismatch: payload={payload.get('exit_code')!r}, process={completed.returncode!r}"
