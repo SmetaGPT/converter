@@ -1149,6 +1149,68 @@
       "residual_risk": "The required check covers committed git content for the repository and intentionally does not substitute for workstation hygiene on untracked local artifacts or external release bundles."
     },
     {
+      "feature_id": "ci-pr-gates",
+      "area": "process",
+      "title": "Protected PR gate surface on main",
+      "status": "validated",
+      "behavior": "`main` requires strict PR status checks `secret-scan`, `lint`, `typecheck`, `unit-tests`, `harness-validator`, `formula-benchmark-gate`, `document-package-validator` and `release-smoke`, while PR closeout must include feature/state/validation fields via the pull request template.",
+      "owner_docs": [
+        ".github/PULL_REQUEST_TEMPLATE.md",
+        ".github/workflows/windows-ci.yml",
+        "docs/current-sprint.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": "gh api repos/SmetaGPT/converter/branches/main/protection"
+        },
+        {
+          "type": "procedure",
+          "target": "Open a same-repo PR against main and confirm merge eligibility stays blocked until all required checks are green."
+        }
+      ],
+      "evidence": [
+        ".github/PULL_REQUEST_TEMPLATE.md",
+        ".github/workflows/windows-ci.yml",
+        "docs/current-sprint.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "residual_risk": "Required contexts are coupled to workflow job names, so any rename in windows-ci must be synchronized with branch protection on main."
+    },
+    {
+      "feature_id": "ci-auto-merge",
+      "area": "process",
+      "title": "Label-driven autonomous PR merge",
+      "status": "validated",
+      "behavior": "`.github/workflows/autonomous-pr-auto-merge.yml` runs from `main` on `pull_request_target` and enables squash auto-merge for same-repo non-draft PRs labeled `agent:autonomous`, so merge completes automatically after all required checks succeed.",
+      "owner_docs": [
+        ".github/PULL_REQUEST_TEMPLATE.md",
+        ".github/workflows/autonomous-pr-auto-merge.yml",
+        ".github/workflows/windows-ci.yml",
+        "docs/current-sprint.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "verification": [
+        {
+          "type": "procedure",
+          "target": "Create a same-repo non-draft PR, add label agent:autonomous, confirm autoMergeRequest becomes non-null, and let the PR merge automatically after required checks succeed."
+        }
+      ],
+      "evidence": [
+        ".github/PULL_REQUEST_TEMPLATE.md",
+        ".github/workflows/autonomous-pr-auto-merge.yml",
+        ".github/workflows/windows-ci.yml",
+        "docs/current-sprint.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "residual_risk": "This proof must happen on a PR opened after the workflow already exists on the base branch; the bootstrap PR that first introduces the workflow cannot prove the path by itself."
+    },
+    {
       "feature_id": "machine-readable-telemetry",
       "area": "observability",
       "title": "Machine-readable telemetry companion",

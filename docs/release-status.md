@@ -20,6 +20,8 @@ Critical-path operator surface S6.1 закрыт: CLI по умолчанию о
 
 Следом закрыт и S7.2 secret-scan CI tranche: `windows-ci` теперь устанавливает Gitleaks и выполняет required git-backed scan `gitleaks git --config .gitleaks.toml --exit-code 1 .`. Конфиг расширяет default rules узким product-specific rule для `OPENROUTER_API_KEY` / `FORMULA_RECOGNITION_API_KEY`, а global allowlist intentionally покрывает только known fake fixtures и `.env.example`, поэтому clean repo проходит без ручного baseline файла, а synthetic git canary валится детерминированно.
 
+Следом закрыт и S9.1 PR-gates tranche: `main` теперь защищён strict required contexts `secret-scan`, `lint`, `typecheck`, `unit-tests`, `harness-validator`, `formula-benchmark-gate`, `document-package-validator` и `release-smoke`, PR template фиксирует feature/state/validation closeout, а `.github/workflows/autonomous-pr-auto-merge.yml` на base branch включает squash auto-merge для same-repo non-draft PR с label `agent:autonomous`.
+
 Готово:
 
 - baseline;
@@ -37,6 +39,8 @@ Critical-path operator surface S6.1 закрыт: CLI по умолчанию о
 - structured CLI operator surface: `cli-result.v1`, exit-code matrix, `doctor` и `dry-run`.
 - security hardening baseline: `docs/security.md`, symlink-safe startup path admission, DOCX archive limits и WMF parser limits.
 - required secret-scan gate: `windows-ci` ставит Gitleaks, использует `.gitleaks.toml`, сохраняет узкий allowlist для fixtures/examples и валит synthetic API-key canary.
+- protected PR gate surface на `main`: strict branch protection удерживает required contexts `secret-scan`, `lint`, `typecheck`, `unit-tests`, `harness-validator`, `formula-benchmark-gate`, `document-package-validator`, `release-smoke`, а PR template требует feature/state/validation closeout.
+- label-driven autonomous merge: `.github/workflows/autonomous-pr-auto-merge.yml` на `main` через `pull_request_target` включает squash auto-merge для same-repo non-draft PR с label `agent:autonomous`.
 - Windows CI workflow, synthetic e2e и portable release package с checksum/release notes.
 - schema-backed semantic metadata block в `document.v1.json`, подтверждённый real-folder e2e на 52 DOCX из `metod`.
 - machine-readable `docs/agent-feature-spine.json` и validator `scripts/validate_harness_assets.py`, встроенный в CI.
@@ -87,7 +91,8 @@ Critical-path operator surface S6.1 закрыт: CLI по умолчанию о
 
 Следующий backlog:
 
-- production roadmap S9.1: PR-gates и branch protection после закрытия security baseline.
+- production roadmap S9.2: nightly full e2e поверх уже закрытого S9.1 gate automation.
+- production roadmap S9.3: release automation поверх стабильного nightly/regression контура.
 - отдельный security follow-up: parser-level hardening для PDF/XLSX только если эти surfaces станут release-critical.
 - отдельный architecture follow-up: вывести `src/doc_converter/formula_benchmark.py` из oversize-состояния без ломки benchmark CLI/report contracts.
 - table benchmark follow-up на `sample_009`, `sample_018` и `sample_020`: next sprint должен не создавать baseline с нуля, а снижать `table_structure_warning` density на text-layer anchors, вывести explicit negative/control false-positive contour и устранить OCR blocker на `sample_020`, чтобы scan route тоже вошёл в measured table loop.
@@ -126,11 +131,11 @@ Critical-path operator surface S6.1 закрыт: CLI по умолчанию о
 
 ## 7. Текущий release risk
 
-Предыдущие critical-path risks по structured CLI/operator contract, structured runtime telemetry contract, input hardening baseline и missing leak gate закрыты в S6.1-S7.2; ближайший critical path теперь смещён на PR-gates и branch protection в S9.1.
+Предыдущие critical-path risks по structured CLI/operator contract, structured runtime telemetry contract, input hardening baseline, missing leak gate и protected merge surface закрыты в S6.1-S9.1; ближайший critical path теперь смещён на nightly full e2e и release automation в S9.2-S9.3.
 
 Leak-gate risk закрыт предметно: CI теперь проверяет git-tracked репозиторный контур через Gitleaks без broad filesystem scan по локальным `.venv`/`dist` артефактам, а custom rule доказан synthetic canary-run без ослабления default secret rules.
 
-Операционных blocker-ов для релиза v0.3.0 не осталось. Последний внешний production audit больше не оставляет runtime- или CI-blocker: self-ingestion guard и unsupported accounting закрыты в runtime, OCR traineddata direct downloads проверяются по pinned SHA-256, а lint/type/pip/package smoke выполняются в штатном workflow. Runner monolith risk тоже закрыт: orchestration теперь живёт в smaller `run/` modules, а compatibility surface сохраняется через thin wrapper. Route-coupling risk закрыт следующим архитектурным шагом: `inventory` и `run.orchestration` теперь используют shared converter registry вместо hard-coded format-specific imports и route branches. Table parser ownership тоже приведён к архитектурному baseline: dominant-width inference, continuation merge и `table_structure_warning` больше не размазаны по converters, а живут в shared `tables/` package с подтверждённым fresh anchor run `20260529T162149Z`. Новый table benchmark contour остаётся measured: `sample_009` и `sample_018` держат executable row/cell baseline, warning density всё ещё высокая, а `sample_020` по-прежнему OCR-blocked scan baseline с `partial_success` и `OCRmyPDF failed`. Значит ближайший release-risk по tables теперь ещё уже локализован: не parser drift между routes, а warning-heavy parse, missing negative/control false-positive contour и OCR blocker на одном scan anchor. Следующий critical-path release-risk смещается с route architecture на отсутствие structured CLI/operator contract и последующий security hardening в S6.x/S7.x. Formula benchmark manifest по-прежнему зелёный на curated `metod`/`SP` set и подтверждён run `20260526T054732Z` под executable policy `samples/formula-benchmark.thresholds.json`, поэтому formula backlog можно возвращать после operator-surface tranche. Optional OCR helpers `jbig2`, `pngquant`, `verapdf` остаются необязательными и не блокируют core OCR path. Для harness layer остаточный риск теперь в основном операционный: thresholds уже executable и перепроверены, но telemetry, generated scorecard, generated weekly eval, machine-readable weekly reviews и schedule helper всё ещё требуют дисциплины обновления, а из repo-wide file-size debt остался только `src/doc_converter/formula_benchmark.py`.
+Операционных blocker-ов для релиза v0.3.0 не осталось. Последний внешний production audit больше не оставляет runtime- или CI-blocker: self-ingestion guard и unsupported accounting закрыты в runtime, OCR traineddata direct downloads проверяются по pinned SHA-256, а lint/type/pip/package smoke выполняются в штатном workflow. Runner monolith risk тоже закрыт: orchestration теперь живёт в smaller `run/` modules, а compatibility surface сохраняется через thin wrapper. Route-coupling risk закрыт следующим архитектурным шагом: `inventory` и `run.orchestration` теперь используют shared converter registry вместо hard-coded format-specific imports и route branches. Table parser ownership тоже приведён к архитектурному baseline: dominant-width inference, continuation merge и `table_structure_warning` больше не размазаны по converters, а живут в shared `tables/` package с подтверждённым fresh anchor run `20260529T162149Z`. Новый table benchmark contour остаётся measured: `sample_009` и `sample_018` держат executable row/cell baseline, warning density всё ещё высокая, а `sample_020` по-прежнему OCR-blocked scan baseline с `partial_success` и `OCRmyPDF failed`. Значит ближайший release-risk по tables теперь ещё уже локализован: не parser drift между routes, а warning-heavy parse, missing negative/control false-positive contour и OCR blocker на одном scan anchor. Protected merge risk тоже закрыт предметно: `main` держит strict required contexts, а same-repo PR с label `agent:autonomous` может получить auto-merge через workflow на base branch. Следующий critical-path release-risk смещается на отсутствие nightly full e2e burn-in и release automation, а не на уже закрытые S6.x/S7.x/S9.1 controls. Formula benchmark manifest по-прежнему зелёный на curated `metod`/`SP` set и подтверждён run `20260526T054732Z` под executable policy `samples/formula-benchmark.thresholds.json`, поэтому formula backlog можно возвращать после operator-surface tranche. Optional OCR helpers `jbig2`, `pngquant`, `verapdf` остаются необязательными и не блокируют core OCR path. Для harness layer остаточный риск теперь в основном операционный: thresholds уже executable и перепроверены, но telemetry, generated scorecard, generated weekly eval, machine-readable weekly reviews и schedule helper всё ещё требуют дисциплины обновления, а из repo-wide file-size debt остался только `src/doc_converter/formula_benchmark.py`.
 
 ## 8. Последняя сборка
 
@@ -185,7 +190,7 @@ Leak-gate risk закрыт предметно: CI теперь проверяе
 ## 14. Harness assets validation
 
 - Команда: `.\.venv\Scripts\python.exe scripts\validate_harness_assets.py`.
-- Результат: `status: ok`, `features: 40`, `validated: 40`, `active: 0`, `backlog: 0`, `telemetry_entries: 74`.
+- Результат: `status: ok`, `features: 42`, `validated: 42`, `active: 0`, `backlog: 0`, `telemetry_entries: 75`.
 - Назначение: ранний провал CI при потере feature spine, feature-traceability markers в шаблонах, machine-readable telemetry companion, generated scorecard companion, generated weekly eval companion, machine-readable weekly reviews source, markdown structured companion sync, qualitative weekly review evidence или core product-capabilities ссылок.
 
 ## 15. Latest Audit Remediation
