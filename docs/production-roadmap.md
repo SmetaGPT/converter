@@ -295,6 +295,8 @@ Status: completed (2026-05-30). Evidence: added `schemas/log.v1.schema.json`, in
 
 ### Sprint S7.1 — Threat model и input hardening
 
+Status: completed (2026-05-30). Evidence: added `docs/security.md`, hardened `src/doc_converter/run/paths.py` against symlink-based path confusion for `input_dir`/`output_dir`/`runs_dir`, added DOCX archive entry/uncompressed-size admission checks in `src/doc_converter/converters/docx/pipeline.py`, added WMF blob/record-count limits in `src/doc_converter/converters/docx/formulas/wmf.py`, `runTests tests/test_docx_converter.py tests/test_run_paths.py` passed `88/88`, `.\.venv\Scripts\python.exe -m unittest discover -v` passed `156` tests with `skipped=4`, `ruff` and `pyright` passed.
+
 - **Goal:** безопасная обработка untrusted documents.
 - **Scope:**
   - `docs/security.md`: модель угроз, список subprocess, политика по шрифтам и paths.

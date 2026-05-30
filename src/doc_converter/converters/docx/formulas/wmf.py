@@ -14,9 +14,15 @@ META_CREATEFONTINDIRECT = 0x02FB
 META_SELECTOBJECT = 0x012D
 META_DELETEOBJECT = 0x01F0
 WMF_RUSSIAN_CHARSET = 204
+MAX_WMF_BYTES = 8 * 1024 * 1024
+MAX_WMF_RECORDS = 20000
 SYMBOL_FONT_MAP = {
     0xB8: "÷",
 }
+
+
+class WmfParseLimitError(ValueError):
+    """Raised when a WMF blob exceeds safe parsing limits."""
 
 
 @dataclass(frozen=True)
@@ -68,6 +74,11 @@ def _extract_mathtype_wmf_text(blob: bytes) -> str | None:
 
 
 def _extract_wmf_text_chunks(blob: bytes) -> list[WmfTextChunk]:
+    if len(blob) > MAX_WMF_BYTES:
+        raise WmfParseLimitError(
+            f"WMF blob exceeds the maximum allowed size: bytes={len(blob)}, limit={MAX_WMF_BYTES}"
+        )
+
     offset = 22 if blob[:4] == b"\xd7\xcd\xc6\x9a" else 0
     if len(blob) < offset + 18:
         return []
@@ -77,8 +88,14 @@ def _extract_wmf_text_chunks(blob: bytes) -> list[WmfTextChunk]:
     selected_handle: int | None = None
     chunks: list[WmfTextChunk] = []
     order = 0
+    record_count = 0
 
     while offset + 6 <= len(blob):
+        record_count += 1
+        if record_count > MAX_WMF_RECORDS:
+            raise WmfParseLimitError(
+                f"WMF record count exceeds the maximum allowed limit: records={record_count}, limit={MAX_WMF_RECORDS}"
+            )
         size_words = struct.unpack_from("<I", blob, offset)[0]
         func = struct.unpack_from("<H", blob, offset + 4)[0]
         if size_words == 0:

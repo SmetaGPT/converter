@@ -5,6 +5,7 @@ import shutil
 import zipfile
 from dataclasses import dataclass, replace
 from pathlib import Path
+from pathlib import PurePosixPath
 from typing import Any, cast
 from xml.etree import ElementTree
 
@@ -36,6 +37,12 @@ from .formulas.text import (
 from .inline_glyph import _inline_drawing_placeholders
 
 WORD_NS = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+MAX_DOCX_ARCHIVE_ENTRIES = 4096
+MAX_DOCX_UNCOMPRESSED_BYTES = 128 * 1024 * 1024
+
+
+class DocxSecurityError(RuntimeError):
+    """Raised when an untrusted DOCX archive violates admission limits."""
 
 
 @dataclass(frozen=True)
@@ -54,6 +61,7 @@ def convert_docx(
     *,
     relative_source_path: str | None = None,
 ) -> ConversionResult:
+    _validate_docx_archive(source_path)
     output_dir.mkdir(parents=True, exist_ok=True)
     assets_dir = output_dir / "assets"
     assets_dir.mkdir(exist_ok=True)
@@ -245,7 +253,7 @@ def convert_docx(
 def _extract_docx_media(source_path: Path, assets_dir: Path) -> list[Path]:
     extracted: list[Path] = []
     try:
-        with zipfile.ZipFile(source_path) as archive:
+        with _open_validated_docx_archive(source_path) as archive:
             media_names = sorted(name for name in archive.namelist() if name.startswith("word/media/"))
             for index, media_name in enumerate(media_names, start=1):
                 suffix = Path(media_name).suffix.lower() or ".bin"
@@ -253,6 +261,8 @@ def _extract_docx_media(source_path: Path, assets_dir: Path) -> list[Path]:
                 with archive.open(media_name) as source, target.open("wb") as destination:
                     shutil.copyfileobj(source, destination)
                 extracted.append(target)
+    except DocxSecurityError:
+        raise
     except zipfile.BadZipFile:
         return extracted
     return extracted
@@ -431,10 +441,12 @@ def _iter_header_footer_units(document: Any) -> list[tuple[str, str, str]]:
 def _extract_docx_footnotes(source_path: Path) -> list[tuple[str, str]]:
     footnotes: list[tuple[str, str]] = []
     try:
-        with zipfile.ZipFile(source_path) as archive:
+        with _open_validated_docx_archive(source_path) as archive:
             if "word/footnotes.xml" not in archive.namelist():
                 return footnotes
             root = ElementTree.fromstring(archive.read("word/footnotes.xml"))
+    except DocxSecurityError:
+        raise
     except (zipfile.BadZipFile, ElementTree.ParseError):
         return footnotes
 
@@ -460,3 +472,42 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
 def _write_validated_json(path: Path, payload: dict[str, Any], schema_filename: str) -> None:
     validate_payload(payload, schema_filename)
     _write_json(path, payload)
+
+
+def _open_validated_docx_archive(source_path: Path) -> zipfile.ZipFile:
+    _validate_docx_archive(source_path)
+    return zipfile.ZipFile(source_path)
+
+
+def _validate_docx_archive(source_path: Path) -> None:
+    try:
+        with zipfile.ZipFile(source_path) as archive:
+            entries = archive.infolist()
+    except zipfile.BadZipFile as exc:
+        raise DocxSecurityError(f"Invalid DOCX archive: {source_path}") from exc
+
+    if len(entries) > MAX_DOCX_ARCHIVE_ENTRIES:
+        raise DocxSecurityError(
+            "DOCX archive exceeds the maximum allowed entry count: "
+            f"entries={len(entries)}, limit={MAX_DOCX_ARCHIVE_ENTRIES}, source={source_path}"
+        )
+
+    total_uncompressed_bytes = 0
+    for entry in entries:
+        _validate_docx_archive_member_name(entry.filename, source_path)
+        total_uncompressed_bytes += entry.file_size
+        if total_uncompressed_bytes > MAX_DOCX_UNCOMPRESSED_BYTES:
+            raise DocxSecurityError(
+                "DOCX archive exceeds the maximum allowed uncompressed size: "
+                f"bytes={total_uncompressed_bytes}, limit={MAX_DOCX_UNCOMPRESSED_BYTES}, source={source_path}"
+            )
+
+
+def _validate_docx_archive_member_name(member_name: str, source_path: Path) -> None:
+    normalized = PurePosixPath(member_name)
+    if not member_name or normalized.is_absolute() or "\\" in member_name:
+        raise DocxSecurityError(f"DOCX archive contains an invalid member path: {member_name!r} in {source_path}")
+    if any(part in {"", ".", ".."} for part in normalized.parts):
+        raise DocxSecurityError(f"DOCX archive contains a traversal-like member path: {member_name!r} in {source_path}")
+    if normalized.parts and ":" in normalized.parts[0]:
+        raise DocxSecurityError(f"DOCX archive contains a drive-qualified member path: {member_name!r} in {source_path}")

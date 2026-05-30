@@ -149,6 +149,7 @@
 124. Закрыт production roadmap Sprint S2.4 и вся Wave 2: `inventory.py` и `run/orchestration.py` теперь используют shared `doc_converter.converters` registry + `ConverterProtocol`, direct format-specific imports/branches убраны из orchestration path, runner tests патчат lookup layer вместо direct converter symbols, а opt-in dummy `txt` converter regression доказывает extensibility без изменения default supported-format contract. Focused runner/inventory slice, полный suite (200 tests), `pip check`, `ruff`, `pyright` и `validate_harness_assets.py` проходят зелёно.
 125. Закрыт production roadmap Sprint S6.1: CLI теперь по умолчанию выводит human-readable summary, а `--output-format=json` эмитит schema-backed envelope `cli-result.v1` с явной exit-code matrix `0/10/20/30/40/50`. Добавлены subcommands `doctor` и `dry-run`, focused `tests.test_cli_smoke` slice покрывает каждый subcommand и каждый exit code, а narrow smoke (29 tests), full suite (203 tests), `ruff` и `pyright` прошли зелёно.
 126. Закрыт production roadmap Sprint S6.2: весь runtime event stream теперь проходит через central `RuntimeLogger`, каждый run получает schema-backed `telemetry.jsonl` по `log.v1`, а `scripts/validate_run_package.py` валидирует telemetry вместе с остальными run-package артефактами. Legacy `processing-log.jsonl` и `errors.jsonl` оставлены как compatibility mirrors; focused CLI smoke (29 tests), validator smoke на fresh run package, full suite (203 tests), `ruff` и `pyright` прошли зелёно.
+127. Закрыт production roadmap Sprint S7.1: `validate_run_directories` теперь fail-closed отклоняет symlink components в `input_dir`/`output_dir`/`runs_dir`, DOCX admission проверяет entry-count и uncompressed-size limits до `python-docx`, WMF parser ограничен по размеру blob и количеству records, а новый `docs/security.md` фиксирует threat model, subprocess inventory и font/path policy. Focused security slice (`tests/test_docx_converter.py` + `tests/test_run_paths.py`, 88 tests), `python -m unittest discover -v` (156 tests, skipped 4), `ruff` и `pyright` прошли зелёно.
 
 ### Готовые артефакты
 
@@ -188,6 +189,7 @@
 - docs/document-converter-roadmap.md
 - docs/document-converter-acceptance.md
 - docs/production-roadmap.md
+- docs/security.md
 - docs/formula-production-plan.md
 - samples/formula-benchmark.manifest.jsonl
 - samples/expected/formulas/
@@ -239,29 +241,29 @@
 
 ## 3. Что делается сейчас
 
-Текущий фокус: после закрытия S6.2 следующий critical-path sprint production roadmap — S7.1, то есть threat model, input hardening limits и формализация `docs/security.md` для untrusted документов.
+Текущий фокус: после закрытия S7.1 следующий critical-path sprint production roadmap — S7.2, то есть secret-scan CI и required leak gate для репозитория.
 
-Новый architecture-learning по structured telemetry: cheapest stable rollout снова лежал на orchestration boundary, а не в переписывании route-specific converter code. Central logger adapter в `run/` дал единый event stream и не размазал schema-логику по каждому conversion path.
+Новый architecture-learning по input hardening: самые дешёвые security controls снова закрываются в shared admission boundary, а не в route-specific хвостах. Один guard в `run/paths.py` и один DOCX archive preflight дают больше контроля, чем поздние локальные проверки после начала extraction.
 
-Новый compatibility-learning по logs: schema-backed `telemetry.jsonl` можно вводить без ломки existing operator/debug habits, если legacy `processing-log.jsonl` и `errors.jsonl` временно оставить как compatibility mirrors и не менять run package одномоментно.
+Новый archive-learning по OOXML: лимиты нужно ставить до передачи файла в `python-docx` и до ручного extraction `word/media/*`/`footnotes.xml`; если ждать library-level parse, zip-bomb class risks уже прошёл admission boundary.
 
-Новый validation-learning по event contracts: schema для event stream нужно подтверждать не только unit/smoke assertions, но и реальным `validate_run_package.py` на fresh run package. Такая проверка сразу ловит drift между writer-слоем и validator-слоем, который не виден на isolated helper tests.
+Новый documentation-learning по security: `docs/security.md` должен перечислять реальные subprocess surfaces и конкретные hard limits из кода, а не абстрактные пожелания. Иначе документ не помогает ни review, ни operator troubleshooting.
 
 В работе:
 
-- закрыть production roadmap S7.1: threat model, input hardening limits и `docs/security.md`;
-- затем закрыть S7.2 secret-scan CI как следующий security tranche;
+- закрыть production roadmap S7.2: secret-scan CI и required leak gate;
+- затем вернуться к следующему critical-path automation tranche после security baseline;
 - держать `src/doc_converter/formula_benchmark.py` как отдельный non-critical architecture follow-up по file-size debt;
 - удержать measured table backlog на `sample_009/018/020` и negative/control contour как parallel quality loop, не подменяя им critical path;
 - держать state docs, feature spine, telemetry и generated eval companions синхронными после каждого следующего sprint tranche.
 
 ## 4. Что идёт дальше
 
-Следующая последовательность после закрытия S6.2:
+Следующая последовательность после закрытия S7.1:
 
-1. Закрыть production roadmap S7.1: threat model, input hardening limits и `docs/security.md`.
-2. Затем закрыть S7.2 secret-scan CI и только потом возвращаться к следующему critical-path automation tranche.
-3. После security baseline продолжить S9.x automation, не размывая S7.x hardening measured backlog-ами.
+1. Закрыть production roadmap S7.2: secret-scan CI и required leak gate.
+2. Затем продолжить S9.x automation, не размывая S7.x hardening measured backlog-ами.
+3. После security baseline решить отдельным tranche дальнейший hardening для PDF/XLSX admission, если он станет критичным.
 4. Держать `src/doc_converter/formula_benchmark.py` как отдельный follow-up по repo-wide file-size debt вне critical path.
 5. Продолжать measured table backlog по `sample_020`, warning density на `sample_009/018` и negative/control false-positive contour уже поверх shared `tables/` package.
 6. Затем вернуться к richer DOCX table semantics и generalized WMF parser backlog для formula-rich DOCX.

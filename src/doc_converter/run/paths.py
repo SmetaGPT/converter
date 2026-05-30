@@ -9,26 +9,57 @@ class ConverterError(RuntimeError):
 
 
 def validate_run_directories(input_dir: Path, output_dir: Path) -> tuple[Path, Path]:
-    resolved_input_dir = input_dir.expanduser().resolve()
-    resolved_output_dir = output_dir.expanduser().resolve()
+    resolved_input_dir = _resolve_startup_directory(input_dir, label="Input", must_exist=True)
+    resolved_output_dir = _resolve_startup_directory(output_dir, label="Output", must_exist=False)
 
     _validate_startup_paths(resolved_input_dir, resolved_output_dir)
     return resolved_input_dir, resolved_output_dir
 
 
 def _validate_startup_paths(input_dir: Path, output_dir: Path) -> None:
-    if not input_dir.exists():
-        raise ConverterError(f"Input directory does not exist: {input_dir}")
-    if not input_dir.is_dir():
-        raise ConverterError(f"Input path is not a directory: {input_dir}")
-    if output_dir.exists() and not output_dir.is_dir():
-        raise ConverterError(f"Output path is not a directory: {output_dir}")
     if _paths_overlap(input_dir, output_dir):
         raise ConverterError(
             "Input and output directories must be different and must not be nested inside each other: "
             f"input={input_dir}, output={output_dir}"
         )
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    runs_dir = _resolve_startup_directory(output_dir / "runs", label="Runs", must_exist=False)
+    if not _is_relative_to(runs_dir, output_dir):
+        raise ConverterError(
+            "Runs directory must stay inside the resolved output directory: "
+            f"runs_dir={runs_dir}, output_dir={output_dir}"
+        )
+
+
+def _resolve_startup_directory(path: Path, *, label: str, must_exist: bool) -> Path:
+    candidate = _absolute_startup_path(path)
+    _assert_no_symlink_components(candidate, label=label)
+
+    resolved = candidate.resolve()
+    if must_exist and not resolved.exists():
+        raise ConverterError(f"{label} directory does not exist: {path}")
+    if resolved.exists() and not resolved.is_dir():
+        raise ConverterError(f"{label} path is not a directory: {path}")
+    return resolved
+
+
+def _absolute_startup_path(path: Path) -> Path:
+    expanded = path.expanduser()
+    if expanded.is_absolute():
+        return expanded
+    return (Path.cwd() / expanded).absolute()
+
+
+def _assert_no_symlink_components(path: Path, *, label: str) -> None:
+    current = path
+    while True:
+        if current.exists() and current.is_symlink():
+            raise ConverterError(f"{label} directory must not include symlink components: {path}")
+        parent = current.parent
+        if parent == current:
+            break
+        current = parent
 
 
 def _paths_overlap(first_path: Path, second_path: Path) -> bool:

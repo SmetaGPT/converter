@@ -19,6 +19,7 @@ from doc_converter.converters.docx import (
     _build_wmf_formula_ir,
     _formula_representation_from_text,
 )
+from doc_converter.converters.docx.formulas.wmf import WmfParseLimitError, _extract_wmf_text_chunks
 from doc_converter.config import ConverterConfig, ConverterOptions, FormulaRecognitionConfig
 from doc_converter.runner import run_convert_folder
 from doc_converter.schema_validation import validate_payload
@@ -138,6 +139,36 @@ class DocxConverterTests(unittest.TestCase):
             search_text = (document_dir / "search_text.txt").read_text(encoding="utf-8")
             self.assertIn("E = mc^2", search_text)
             self.assertIn("Текст сноски", search_text)
+
+    def test_runner_rejects_docx_with_excessive_archive_entries(self) -> None:
+        with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:
+            source_path = Path(input_dir) / "oversized-entries.docx"
+            document = Document()
+            document.add_paragraph("normal docx")
+            document.save(str(source_path))
+
+            with patch("doc_converter.converters.docx.pipeline.MAX_DOCX_ARCHIVE_ENTRIES", 1):
+                result = run_convert_folder(_docx_converter_config(input_dir, output_dir))
+
+            summary = json.loads((result.run_dir / "summary.json").read_text(encoding="utf-8"))
+            self.assertEqual(result.status, "failed")
+            self.assertEqual(summary["failed_files"], 1)
+            self.assertEqual(summary["failed_reasons"], {"DocxSecurityError": 1})
+
+    def test_runner_rejects_docx_with_excessive_uncompressed_size(self) -> None:
+        with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:
+            source_path = Path(input_dir) / "oversized-bytes.docx"
+            document = Document()
+            document.add_paragraph("normal docx")
+            document.save(str(source_path))
+
+            with patch("doc_converter.converters.docx.pipeline.MAX_DOCX_UNCOMPRESSED_BYTES", 1):
+                result = run_convert_folder(_docx_converter_config(input_dir, output_dir))
+
+            summary = json.loads((result.run_dir / "summary.json").read_text(encoding="utf-8"))
+            self.assertEqual(result.status, "failed")
+            self.assertEqual(summary["failed_files"], 1)
+            self.assertEqual(summary["failed_reasons"], {"DocxSecurityError": 1})
 
     def test_docx_table_cells_preserve_multiline_text_and_formula_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_dir:
@@ -364,6 +395,16 @@ class DocxConverterTests(unittest.TestCase):
         ]
 
         self.assertEqual(_assemble_mathtype_wmf_formula(chunks), "n = 1 ÷ N")
+
+    def test_extract_wmf_text_chunks_rejects_oversized_blob(self) -> None:
+        with patch("doc_converter.converters.docx.formulas.wmf.MAX_WMF_BYTES", 8):
+            with self.assertRaisesRegex(WmfParseLimitError, "maximum allowed size"):
+                _extract_wmf_text_chunks(b"123456789")
+
+    def test_extract_wmf_text_chunks_rejects_excessive_record_count(self) -> None:
+        with patch("doc_converter.converters.docx.formulas.wmf.MAX_WMF_RECORDS", 3):
+            with self.assertRaisesRegex(WmfParseLimitError, "record count exceeds"):
+                _extract_wmf_text_chunks(_build_test_wmf_blob())
 
     def test_mathtype_wmf_formula_assembly_restores_scripts(self) -> None:
         chunks = [
@@ -1115,6 +1156,29 @@ def _add_footnotes_xml(source_path: Path, footnote_text: str) -> None:
             target_archive.writestr(item, source_archive.read(item.filename))
         target_archive.writestr("word/footnotes.xml", footnotes_xml.encode("utf-8"))
     temp_path.replace(source_path)
+
+
+def _build_test_wmf_blob() -> bytes:
+    font_params = bytearray(50)
+    font_params[0:2] = (-384).to_bytes(2, byteorder="little", signed=True)
+    font_params[13] = 0
+    font_params[18:34] = b"Times New Roman\x00"
+
+    records = [
+        _wmf_record(0x02FB, bytes(font_params)),
+        _wmf_record(0x012D, (0).to_bytes(2, byteorder="little", signed=False)),
+        _wmf_record(0x0521, (2).to_bytes(2, byteorder="little", signed=True) + b"AB"),
+        _wmf_record(0x0521, (2).to_bytes(2, byteorder="little", signed=True) + b"CD"),
+        _wmf_record(0x0000, b""),
+    ]
+    return b"\x00" * 18 + b"".join(records)
+
+
+def _wmf_record(func: int, params: bytes) -> bytes:
+    if len(params) % 2 != 0:
+        params += b"\x00"
+    size_words = (6 + len(params)) // 2
+    return size_words.to_bytes(4, byteorder="little", signed=False) + func.to_bytes(2, byteorder="little", signed=False) + params
 
 
 def _write_tiny_png(path: Path) -> None:

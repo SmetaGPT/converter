@@ -1060,6 +1060,64 @@
       "residual_risk": "Legacy `processing-log.jsonl` and `errors.jsonl` are still emitted as compatibility mirrors until a later operator-facing deprecation tranche removes them."
     },
     {
+      "feature_id": "security-input-hardening",
+      "area": "product",
+      "title": "Input hardening for untrusted documents",
+      "status": "validated",
+      "behavior": "Startup admission rejects symlinked `input_dir`/`output_dir`/`runs_dir`, DOCX archives are bounded by entry-count and uncompressed-size limits before parse/extraction, and the WMF parser enforces blob-size and record-count limits so malicious inputs fail closed.",
+      "owner_docs": [
+        "src/doc_converter/run/paths.py",
+        "src/doc_converter/converters/docx/pipeline.py",
+        "src/doc_converter/converters/docx/formulas/wmf.py",
+        "tests/test_run_paths.py",
+        "tests/test_docx_converter.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": "runTests tests/test_docx_converter.py tests/test_run_paths.py"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest discover -v"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/run/paths.py",
+        "src/doc_converter/converters/docx/pipeline.py",
+        "src/doc_converter/converters/docx/formulas/wmf.py",
+        "tests/test_run_paths.py",
+        "tests/test_docx_converter.py"
+      ],
+      "residual_risk": "PDF and XLSX parser surfaces still rely mostly on library-level limits and do not yet have the same document-specific admission thresholds as DOCX and WMF."
+    },
+    {
+      "feature_id": "security-threat-model",
+      "area": "product",
+      "title": "Operational security threat model",
+      "status": "validated",
+      "behavior": "`docs/security.md` records the trust boundaries, threat classes, subprocess inventory, and font/path policies that govern untrusted document handling in the current product scope.",
+      "owner_docs": [
+        "docs/security.md",
+        "src/doc_converter/run/paths.py",
+        "src/doc_converter/converters/docx/pipeline.py",
+        "src/doc_converter/converters/docx/formulas/wmf.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest discover -v"
+        }
+      ],
+      "evidence": [
+        "docs/security.md",
+        "src/doc_converter/run/paths.py",
+        "src/doc_converter/converters/docx/pipeline.py",
+        "src/doc_converter/converters/docx/formulas/wmf.py"
+      ],
+      "residual_risk": "The threat model is an operational baseline, not a sandbox guarantee or a formal external security review."
+    },
+    {
       "feature_id": "machine-readable-telemetry",
       "area": "observability",
       "title": "Machine-readable telemetry companion",
