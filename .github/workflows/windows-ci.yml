@@ -238,7 +238,7 @@ jobs:
         shell: pwsh
         run: |
           $PSNativeCommandUseErrorActionPreference = $false
-          $ocrJson = python -m doc_converter.cli check-ocr
+          $ocrJson = python -m doc_converter.cli check-ocr --output-format=json
           $exitCode = $LASTEXITCODE
           $ocrJson | ConvertFrom-Json | Out-Null
           if ($exitCode -notin @(0, 1)) { exit $exitCode }

@@ -21,8 +21,26 @@ if (Test-Path $releaseDir) {
 }
 New-Item -ItemType Directory -Path $releaseDir | Out-Null
 
+$stagingDir = Join-Path $releaseDir "package-staging"
+New-Item -ItemType Directory -Path $stagingDir | Out-Null
+
+$copied = $false
+for ($attempt = 1; $attempt -le 10 -and -not $copied; $attempt++) {
+    try {
+        Copy-Item -Path (Join-Path $distDir "*") -Destination $stagingDir -Recurse -Force
+        $copied = $true
+    }
+    catch {
+        if ($attempt -ge 10) {
+            throw
+        }
+        Start-Sleep -Milliseconds 500
+    }
+}
+
 $zipPath = Join-Path $releaseDir "$Name-$Version-windows-portable.zip"
-Compress-Archive -Path (Join-Path $distDir "*") -DestinationPath $zipPath -Force
+Compress-Archive -Path (Join-Path $stagingDir "*") -DestinationPath $zipPath -Force
+Remove-Item -Recurse -Force $stagingDir
 
 $hash = Get-FileHash -Path $zipPath -Algorithm SHA256
 $checksumPath = Join-Path $releaseDir "$Name-$Version-windows-portable.sha256.txt"
