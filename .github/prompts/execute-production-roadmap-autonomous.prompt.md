@@ -11,6 +11,28 @@ agent: "agent"
 
 Этот prompt является явным разрешением выполнять полный engineering cycle: читать state layer, выбирать следующий незакрытый спринт, менять код/тесты/схемы/docs/CI/scripts, запускать проверки, чинить найденные ошибки, обновлять state/telemetry, делать commit и push. Не завершай ответом-планом. Выполняй работу.
 
+Критически важно: завершение одного sprint, одной wave, одного commit/push или одного turn не является завершением пользовательской задачи. Единственные допустимые terminal states для возврата пользователю:
+
+1. все критерии `S10.1` закрыты и v1.0 действительно готов;
+2. возник настоящий внешний blocker из раздела 7.
+
+Во всех остальных случаях после closeout текущего sprint агент обязан немедленно перейти к выбору следующего sprint и продолжать работу в той же сессии.
+
+Операционный цикл должен трактоваться буквально так:
+
+```text
+while true:
+	select next sprint
+	if no remaining sprint and S10.1 complete:
+		final response
+	elif external blocker:
+		blocked response
+	else:
+		execute sprint end-to-end
+		commit + push
+		continue immediately with the next sprint
+```
+
 ## 0. Hard Rules
 
 1. Работай автономно и последовательно. Не спрашивай пользователя, какой спринт выбрать, если это выводится из roadmap, dependencies и текущего state.
@@ -22,6 +44,8 @@ agent: "agent"
 7. Не сериализуй secrets. Никогда не выводи и не записывай значения `*API_KEY*`, `*TOKEN*`, `*SECRET*`.
 8. Если команда требует секрет, останови только этот внешний шаг и попроси пользователя ввести секрет напрямую в терминал. Все локальные non-secret задачи продолжай.
 9. Если push/tag/release publication невозможны из-за прав или сети, сделай локальный commit/tag/package, зафиксируй blocker и точную команду для повторения. Это единственный допустимый внешний blocker.
+10. Закрытый sprint сам по себе не является valid stopping point. Если существует следующий исполнимый sprint, не возвращайся к пользователю и не завершай turn.
+11. Не оставляй [docs/current-sprint.md](../../docs/current-sprint.md) в состоянии `completed` и не останавливайся на этом. После closeout текущего sprint либо сразу открой следующий sprint со статусом `in_progress`, либо честно зафиксируй blocker.
 
 ## 1. Startup Contract
 
@@ -55,6 +79,8 @@ git log -1 --oneline
 4. Если все dependencies этого sprint закрыты, выполняй его.
 5. Если dependency не закрыта, сначала выполни dependency.
 6. Если критический путь заблокирован внешней причиной, выполняй ближайший независимый sprint из W3/W4/W5/W8, который повышает v1.0 readiness и не конфликтует с blocked path.
+7. После любого successful sprint closeout немедленно вернись к этому алгоритму и выбери следующий sprint в той же сессии.
+8. `Completed current sprint`, `green validation`, `commit pushed` и `wave closed` не являются условиями остановки.
 
 Не создавай новый roadmap, пока текущий [docs/production-roadmap.md](../../docs/production-roadmap.md) не исчерпан. Если roadmap устарел относительно кода, обнови его как часть state update, но не используй это как повод остановиться.
 
@@ -115,6 +141,8 @@ powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 -Name Docum
 .\.venv\Scripts\python.exe scripts\validate_harness_assets.py
 ```
 
+Если validator зелёный и внешний blocker отсутствует, это означает не `finish`, а `advance to the next sprint`.
+
 ## 4. Commit And Push Protocol
 
 После каждого закрытого sprint:
@@ -153,6 +181,8 @@ git commit -m "<summary>"
 git push
 ```
 
+6. Если push прошёл и внешний blocker отсутствует, немедленно вернись к разделу 2 и начинай следующий sprint. Не выдавай финальный ответ между sprint-ами.
+
 Если push rejected из-за remote updates, выполни non-destructive sync:
 
 ```powershell
@@ -170,6 +200,7 @@ git rebase origin/main
 1. Обнови [docs/production-roadmap.md](../../docs/production-roadmap.md): отметь wave/sprints как completed через status note, evidence и дату, не удаляя исходные требования.
 2. Запусти wave-level checks из всех sprint этой wave.
 3. Commit + push wave closeout, если state-only изменения появились после sprint commits.
+4. Wave closeout не является terminal state. После него немедленно вернись к разделу 2 и продолжай следующий sprint.
 
 ## 6. Final v1.0 Validation
 
@@ -231,6 +262,13 @@ Blocker допустим только если:
 6. В финальном ответе дай один конкретный внешний шаг, который разблокирует выполнение.
 
 ## 8. Final Response Format
+
+Используй этот раздел только если выполнено одно из двух условий:
+
+1. `S10.1` действительно закрыт и v1.0 criteria доказаны проверками.
+2. Есть настоящий внешний blocker из раздела 7.
+
+Если закрыт только очередной sprint или wave, финальный ответ запрещён: вместо этого продолжай следующий sprint.
 
 Финальный ответ должен быть коротким, но доказательным:
 
