@@ -1,7 +1,7 @@
 # Current Status
 
 Последнее обновление: 2026-05-31
-Статус контура: wave 2 complete, S9.2 nightly burn-in active, S9.3/S3.1/S3.2/S3.3 implemented locally
+Статус контура: wave 2 complete, S9.2 nightly burn-in active, S9.3/S3.1/S3.2/S3.3/S4.1 implemented locally
 
 ## 1. Краткий снимок состояния
 
@@ -20,6 +20,7 @@
 - независимый sprint S3.1 реализован локально поверх активного S9.2 wait-state;
 - независимый sprint S3.2 реализован локально поверх активного S9.2 wait-state;
 - независимый sprint S3.3 реализован локально поверх активного S9.2 wait-state;
+- независимый sprint S4.1 реализован локально поверх активного S9.2 wait-state;
 - roadmap wave 1 завершена;
 - roadmap wave 2 завершена;
 - state layer уже создан;
@@ -162,6 +163,7 @@
 130. Открыт production roadmap Sprint S9.2: добавлен hosted-runner workflow `.github/workflows/nightly-full-e2e.yml`, repo-safe `samples/manifest.table-anchors.ci.jsonl`, monitor-only path `--no-thresholds` для полного formula manifest на GitHub-hosted runner и helper `scripts/create_nightly_failure_issue.py`, который при падении nightly создаёт issue с latest merged PR context и `agent_id` из PR body с fallback на `head_ref`/author.
 131. Закрыт production roadmap Sprint S3.2: `src/doc_converter/ocr/backends.py` вводит `OcrmypdfBackend` и `NullOcrBackend`, `src/doc_converter/run/catalog_writers.py` выносит `JsonCatalogWriter` и `XlsxCatalogWriter`, `ConverterOptions` сериализует `ocr_backend`/`catalog_writers` в `run.json`, а config-driven smoke подтверждает explicit null OCR backend и json-only catalog без поломки default operator path.
 132. Закрыт production roadmap Sprint S3.3: добавлен общий `src/doc_converter/redaction.py`, который применяется на границах `run.json`, `manifest/review JSONL`, telemetry/error mirrors, `formula-recognition.jsonl` и catalog outputs; новый `tests/test_provider_secret_redaction.py` побайтно сканирует temp run artifacts и подтверждает, что значения env vars `*API_KEY*/*TOKEN*/*SECRET*` не утекают ни в primary JSON, ни в legacy compatibility mirrors.
+133. Закрыт production roadmap Sprint S4.1: `src/doc_converter/inventory.py` теперь сортирует finalized supported/unsupported records и duplicate groups по deterministic key `relative_path + sha256`, поэтому primary duplicate больше не зависит от iterator order; новый `tests/test_run_determinism.py` принудительно подаёт два разных порядка `_iter_input_files` и всё равно получает идентичный clean-run `manifest.jsonl`.
 
 ### Готовые артефакты
 
@@ -279,11 +281,13 @@
 
 Новый secret-redaction-learning по S3.3: compatibility mirrors и альтернативные operator formats (`errors.jsonl`, `processing-log.jsonl`, XLSX catalog) являются той же leak surface, что и primary schema-backed JSON/JSONL. Redaction нужно ставить на последней serialization boundary, а не только на «главных» артефактах.
 
+Новый determinism-ordering-learning по S4.1: одного sorted traversal недостаточно для устойчивого rerun diff. Ordering contract нужно закреплять на уже собранных inventory records и duplicate groups, иначе любой альтернативный iterator source или case-tie возвращает filesystem order обратно в manifest semantics.
+
 В работе:
 
 - дождаться первого GitHub evidence для `nightly-full-e2e` и зафиксировать artifact bundle или auto-issue path в state layer;
 - снять первый `v*` tag proof для `.github/workflows/release.yml`, чтобы S9.3 получил не только локальную, но и hosted GitHub Release evidence;
-- после локального закрытия Wave 3 вернуться к ближайшему independent hardening sprint вне critical-path wait-state; следующий на очереди теперь S4.1 (stable ordering);
+- после локального закрытия S4.1 вернуться к следующему independent hardening sprint вне critical-path wait-state; следующий на очереди теперь S4.2 (incremental formula benchmark);
 - держать contract required-status contexts и label `agent:autonomous` синхронными с `.github/workflows/windows-ci.yml` и `.github/workflows/autonomous-pr-auto-merge.yml`;
 - удерживать `.gitleaks.toml` allowlist узким и не расширять его за пределы test/example surfaces без нового evidence;
 - держать `src/doc_converter/formula_benchmark.py` как отдельный non-critical architecture follow-up по file-size debt;
@@ -292,11 +296,11 @@
 
 ## 4. Что идёт дальше
 
-Следующая последовательность после локального закрытия S9.3:
+Следующая последовательность после локального закрытия S4.1 при продолжающемся ожидании hosted proof по S9.x:
 
 1. Зафиксировать hosted evidence для `S9.2`: первый `nightly-full-e2e` artifact bundle или auto-issue path на GitHub.
 2. Зафиксировать hosted evidence для `S9.3`: первый `v*` tag release с опубликованными zip/checksum и notes из `CHANGELOG.md`.
-3. Затем возвращаться к ближайшему независимому product-hardening sprint из W4/W5/W8, не конфликтующему с ожиданием S9.2 burn-in; следующий на очереди после локального закрытия Wave 3 — S4.1.
+3. Затем возвращаться к ближайшему независимому product-hardening sprint из W4/W5/W8, не конфликтующему с ожиданием S9.2 burn-in; после локального закрытия S4.1 следующий на очереди — S4.2.
 4. Держать `src/doc_converter/formula_benchmark.py` как отдельный follow-up по repo-wide file-size debt вне critical path.
 5. Продолжать measured table backlog по `sample_020`, warning density на `sample_009/018` и negative/control false-positive contour уже поверх shared `tables/` package.
 6. Затем вернуться к richer DOCX table semantics и generalized WMF parser backlog для formula-rich DOCX.

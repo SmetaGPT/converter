@@ -7,15 +7,15 @@
     "scorecard_markdown": "docs/agent-quality-scorecard.md"
   },
   "telemetry_summary": {
-    "total_entries": 80,
+    "total_entries": 81,
     "validation_results": {
-      "passed": 66,
+      "passed": 67,
       "passed_after_repair": 14,
       "failed": 0,
       "blocked": 0
     },
-    "state_updates": 80,
-    "feature_traceable_entries": 80,
+    "state_updates": 81,
+    "feature_traceable_entries": 81,
     "task_types": {
       "code/ci/docs": 2,
       "code/ci/docs/runtime": 1,
@@ -27,7 +27,7 @@
       "code/docs/tests/schema": 1,
       "code/release/runtime": 1,
       "code/runtime/docs": 3,
-      "code/runtime/tests/docs": 2,
+      "code/runtime/tests/docs": 3,
       "code/security/tests/docs": 1,
       "code/tests/data/docs": 1,
       "code/tests/docs": 9,
@@ -46,9 +46,9 @@
     }
   },
   "feature_summary": {
-    "total_features": 48,
-    "validated_features": 47,
-    "referenced_features": 48,
+    "total_features": 49,
+    "validated_features": 48,
+    "referenced_features": 49,
     "referenced_feature_ids": [
       "arch-converter-protocol",
       "arch-docx-split",
@@ -63,6 +63,7 @@
       "ci-release-automation",
       "clean-exit-checklist",
       "contracts-stable-v1",
+      "determinism-ordering",
       "docx-native-route",
       "evaluator-rubric",
       "feature-spine",
@@ -108,6 +109,7 @@
       "process": 5,
       "product": 20,
       "routing": 1,
+      "runtime": 1,
       "security": 1,
       "state": 1,
       "validation": 2
@@ -119,28 +121,28 @@
       "title": "Validation discipline",
       "score": 5,
       "scale_max": 5,
-      "basis": "80/80 telemetry entries have pass-like validation results."
+      "basis": "81/81 telemetry entries have pass-like validation results."
     },
     {
       "signal_id": "state-hygiene",
       "title": "State hygiene",
       "score": 5,
       "scale_max": 5,
-      "basis": "80/80 telemetry entries report state_update=true."
+      "basis": "81/81 telemetry entries report state_update=true."
     },
     {
       "signal_id": "feature-traceability",
       "title": "Feature traceability",
       "score": 5,
       "scale_max": 5,
-      "basis": "80/80 telemetry entries reference at least one feature_id."
+      "basis": "81/81 telemetry entries reference at least one feature_id."
     },
     {
       "signal_id": "feature-coverage",
       "title": "Feature coverage in telemetry",
       "score": 5,
       "scale_max": 5,
-      "basis": "48/47 validated features are referenced by structured telemetry."
+      "basis": "49/48 validated features are referenced by structured telemetry."
     }
   ]
 }

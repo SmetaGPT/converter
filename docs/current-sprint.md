@@ -22,6 +22,7 @@
 - scripts/create_nightly_failure_issue.py
 - scripts/render_release_notes.py
 - scripts/run_sample_pilot.py
+- src/doc_converter/inventory.py
 - src/doc_converter/formulas/providers.py
 - src/doc_converter/ocr/backends.py
 - src/doc_converter/redaction.py
@@ -33,9 +34,11 @@
 - tests/test_config.py
 - tests/test_formula_recognition.py
 - tests/test_nightly_failure_issue.py
+- tests/test_inventory.py
 - tests/test_pdf_scan_converter.py
 - tests/test_provider_secret_redaction.py
 - tests/test_release_notes.py
+- tests/test_run_determinism.py
 - tests/test_sample_pilot.py
 - tests/test_formula_benchmark.py
 - memories/repo/backend-notes.md
@@ -85,4 +88,4 @@
 1. Дождаться первого GitHub run `nightly-full-e2e` и зафиксировать artifact/issue evidence в state layer.
 2. Снять первый hosted proof для `.github/workflows/release.yml`: `v*` tag должен опубликовать GitHub Release с zip, checksum и notes из `CHANGELOG.md`.
 3. Держать `agent_id` field обязательной частью agent PR closeout, чтобы auto-issue path перестал зависеть от fallback inference.
-4. Пока hosted proof по S9.x идёт отдельно на GitHub, вся Wave 3 уже закрыта локально через `FormulaProvider` / `OcrBackend` / `CatalogWriter` protocols и общий secret-redaction boundary; следующий parallel follow-up теперь S4.1 и measured DOCX/table backlog.
+4. Пока hosted proof по S9.x идёт отдельно на GitHub, локально уже закрыты Wave 3 и первый determinism tranche `S4.1`; следующий parallel follow-up теперь `S4.2` и measured DOCX/table backlog.

@@ -216,10 +216,12 @@ graph LR
 
 ### Sprint S4.1 — Stable ordering
 
+**Status:** completed locally 2026-05-31. Evidence: [src/doc_converter/inventory.py](../src/doc_converter/inventory.py) now sorts finalized supported/unsupported inventory records and duplicate groups by deterministic path key plus `sha256`; [tests/test_inventory.py](../tests/test_inventory.py) proves duplicate-primary selection no longer depends on iterator order; [tests/test_run_determinism.py](../tests/test_run_determinism.py) forces two different `_iter_input_files` orders and still gets identical clean-run `manifest.jsonl`.
+
 - **Goal:** идентичный input → идентичный output (до timestamps).
 - **Scope:** заменить `os.walk` на детерминированный обход с `sorted`; зафиксировать сортировку по `(source_path, sha256)` в [src/doc_converter/inventory.py](../src/doc_converter/inventory.py).
 - **Exit:** тест `tests/test_run_determinism.py`: два rerun дают идентичные `manifest.jsonl` после нормализации timestamps.
-- **feature_ids:** `determinism.ordering`.
+- **feature_ids:** `determinism-ordering`.
 
 ### Sprint S4.2 — Incremental formula benchmark
 

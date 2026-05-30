@@ -1,6 +1,6 @@
 {
   "schema_version": "agent-feature-spine.v1",
-  "last_updated": "2026-05-30",
+  "last_updated": "2026-05-31",
   "features": [
     {
       "feature_id": "state-layer",
@@ -1465,6 +1465,46 @@
         "memories/repo/backend-notes.md"
       ],
       "residual_risk": "Artifact serialization now redacts env-secret values centrally, but future non-JSON export surfaces and external integrations still need to opt into the same boundary discipline and tests."
+    },
+    {
+      "feature_id": "determinism-ordering",
+      "area": "runtime",
+      "title": "Deterministic inventory ordering",
+      "status": "validated",
+      "behavior": "Manifest order and duplicate-primary selection no longer depend on filesystem iterator order. Finalized supported and unsupported inventory records are sorted by deterministic relative path keys, and duplicate groups use the same key plus sha256 before skip/reuse logic writes run artifacts.",
+      "owner_docs": [
+        "src/doc_converter/inventory.py",
+        "tests/test_inventory.py",
+        "tests/test_run_determinism.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "memories/repo/backend-notes.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_inventory tests.test_run_determinism tests.test_cli_smoke.CliSmokeTests.test_repeated_run_reuses_previous_output_for_unchanged_input -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m ruff check src tests scripts"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest discover -v"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/inventory.py",
+        "tests/test_inventory.py",
+        "tests/test_run_determinism.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "memories/repo/backend-notes.md"
+      ],
+      "residual_risk": "The deterministic contract is currently defined for clean runs. Resume mode still intentionally adds run-scoped reuse markers such as resumed_from_run_id/reused_previous_output, so comparisons across resumed runs must normalize those fields separately."
     },
     {
       "feature_id": "machine-readable-telemetry",
