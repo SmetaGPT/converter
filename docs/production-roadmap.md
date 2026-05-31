@@ -371,7 +371,7 @@ Status: completed (2026-05-30). Evidence: added `docs/security.md`, hardened `sr
 
 ### Sprint S9.2 — Nightly full e2e
 
-**Status:** in_progress 2026-05-31. Evidence: `.github/workflows/nightly-full-e2e.yml`, `samples/manifest.table-anchors.ci.jsonl`, `scripts/create_nightly_failure_issue.py`; hosted dispatches `26707002316` and `26707185880` proved the auto-issue path and opened issue #4, PR #5 repaired the Windows hosted formula monitor bug and fixed dispatch `26707569316` proved that monitor step on `main`, then exposed the next hosted gap: table-anchor external sample PDFs are not git-tracked, so `agent/s9-2-nightly-table-source-guard` adds source preflight/skip artifact semantics.
+**Status:** completed 2026-05-31. Evidence: `.github/workflows/nightly-full-e2e.yml`, `samples/manifest.table-anchors.ci.jsonl`, `scripts/create_nightly_failure_issue.py`; hosted dispatches `26707002316` and `26707185880` proved the auto-issue path and opened issue #4, PR #5 repaired the Windows hosted formula monitor bug and fixed dispatch `26707569316` proved that monitor step on `main`, PR #6 added table-anchor source preflight/skip artifact semantics for hosted runners without ignored local sample caches, and guarded dispatch `26707811922` completed `success` with artifact `nightly-full-e2e-artifacts` (`7315270976`) containing `table-anchor-source-preflight.json` status `skipped_missing_input`.
 
 - **Goal:** ежедневный полный регресс.
 - **Scope:** nightly job: synthetic-e2e + full formula benchmark monitor on hosted runners (`--no-thresholds`) + CI-safe formula required gate + table-anchor source preflight with real table run when external samples are available + portable package build + EXE smoke. Failure → auto-issue с привязкой к latest merged PR и `agent_id` из PR body с fallback на `head_ref`/author.
@@ -381,7 +381,7 @@ Status: completed (2026-05-30). Evidence: added `docs/security.md`, hardened `sr
 
 ### Sprint S9.3 — Release automation
 
-**Status:** completed locally 2026-05-30. Evidence: `.github/workflows/release.yml` publishes GitHub Releases on `v*` tags, `scripts/package-release.ps1` now renders `release-notes.md` from `CHANGELOG.md` through `scripts/render_release_notes.py` / `src/doc_converter/release_notes.py`, `tests/test_release_notes.py` covers exact-version and nightly fallback behavior, and local smoke `powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 -Name DocumentConverter -Version 0.3.0-nightly -SkipBuild` generated a changelog-backed release bundle.
+**Status:** completed 2026-05-31. Evidence: `.github/workflows/release.yml` publishes GitHub Releases on `v*` tags, `scripts/package-release.ps1` renders `release-notes.md` from `CHANGELOG.md` through `scripts/render_release_notes.py` / `src/doc_converter/release_notes.py`, `tests/test_release_notes.py` covers exact-version and nightly fallback behavior, local smoke `powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 -Name DocumentConverter -Version 0.3.0-nightly -SkipBuild` generated a changelog-backed release bundle, and hosted release workflow run `26707894247` on tag `v0.3.0` completed `success` with GitHub Release `https://github.com/SmetaGPT/converter/releases/tag/v0.3.0` plus zip/checksum assets.
 
 - **Goal:** релиз без ручного шага.
 - **Scope:** tag `v0.x.y` → build portable + checksum + GitHub Release + release-notes из CHANGELOG, который пишут агенты.
@@ -394,6 +394,8 @@ Status: completed (2026-05-30). Evidence: added `docs/security.md`, hardened `sr
 ## Wave 10 — v1.0 acceptance
 
 ### Sprint S10.1 — v1.0 gate
+
+**Status:** blocked 2026-05-31. Evidence: W0-W9 are now closed through hosted S9.2/S9.3 proof, but S10.1 requires acceptance evidence that cannot be produced in a single session: 4 weeks telemetry without unresolved regressions, 30 consecutive green portable EXE/package runs and formula benchmark GA thresholds `>=80%` calc / `>=70%` native rather than the current CI-safe gate.
 
 - **Goal:** релиз v1.0.
 - **Exit criteria (все одновременно):**
