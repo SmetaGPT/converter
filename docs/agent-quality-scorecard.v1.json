@@ -7,17 +7,17 @@
     "scorecard_markdown": "docs/agent-quality-scorecard.md"
   },
   "telemetry_summary": {
-    "total_entries": 95,
+    "total_entries": 96,
     "validation_results": {
       "passed": 78,
-      "passed_after_repair": 17,
+      "passed_after_repair": 18,
       "failed": 0,
       "blocked": 0
     },
-    "state_updates": 95,
-    "feature_traceable_entries": 95,
+    "state_updates": 96,
+    "feature_traceable_entries": 96,
     "task_types": {
-      "ci/docs": 1,
+      "ci/docs": 2,
       "code/ci/docs": 2,
       "code/ci/docs/runtime": 1,
       "code/ci/docs/tests": 1,
@@ -129,21 +129,21 @@
       "title": "Validation discipline",
       "score": 5,
       "scale_max": 5,
-      "basis": "95/95 telemetry entries have pass-like validation results."
+      "basis": "96/96 telemetry entries have pass-like validation results."
     },
     {
       "signal_id": "state-hygiene",
       "title": "State hygiene",
       "score": 5,
       "scale_max": 5,
-      "basis": "95/95 telemetry entries report state_update=true."
+      "basis": "96/96 telemetry entries report state_update=true."
     },
     {
       "signal_id": "feature-traceability",
       "title": "Feature traceability",
       "score": 5,
       "scale_max": 5,
-      "basis": "95/95 telemetry entries reference at least one feature_id."
+      "basis": "96/96 telemetry entries reference at least one feature_id."
     },
     {
       "signal_id": "feature-coverage",

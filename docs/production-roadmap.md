@@ -371,10 +371,10 @@ Status: completed (2026-05-30). Evidence: added `docs/security.md`, hardened `sr
 
 ### Sprint S9.2 — Nightly full e2e
 
-**Status:** in_progress 2026-05-31. Initial evidence: `.github/workflows/nightly-full-e2e.yml`, `samples/manifest.table-anchors.ci.jsonl`, `scripts/create_nightly_failure_issue.py`; first hosted dispatches `26707002316` and `26707185880` proved the auto-issue path and opened issue #4, then exposed a Windows hosted monitor bug now repaired locally in `agent/s9-2-nightly-monitor-fix`.
+**Status:** in_progress 2026-05-31. Evidence: `.github/workflows/nightly-full-e2e.yml`, `samples/manifest.table-anchors.ci.jsonl`, `scripts/create_nightly_failure_issue.py`; hosted dispatches `26707002316` and `26707185880` proved the auto-issue path and opened issue #4, PR #5 repaired the Windows hosted formula monitor bug and fixed dispatch `26707569316` proved that monitor step on `main`, then exposed the next hosted gap: table-anchor external sample PDFs are not git-tracked, so `agent/s9-2-nightly-table-source-guard` adds source preflight/skip artifact semantics.
 
 - **Goal:** ежедневный полный регресс.
-- **Scope:** nightly job: synthetic-e2e + full formula benchmark monitor on hosted runners (`--no-thresholds`) + CI-safe formula required gate + repo-tracked table anchors + portable package build + EXE smoke. Failure → auto-issue с привязкой к latest merged PR и `agent_id` из PR body с fallback на `head_ref`/author.
+- **Scope:** nightly job: synthetic-e2e + full formula benchmark monitor on hosted runners (`--no-thresholds`) + CI-safe formula required gate + table-anchor source preflight with real table run when external samples are available + portable package build + EXE smoke. Failure → auto-issue с привязкой к latest merged PR и `agent_id` из PR body с fallback на `head_ref`/author.
 - **Exit:** 7 ночей подряд успешный run или auto-issue с детальной диагностикой.
 - **depends_on:** S9.1.
 - **feature_ids:** `ci-nightly-e2e`.

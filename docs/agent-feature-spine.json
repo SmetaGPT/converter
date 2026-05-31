@@ -1217,7 +1217,7 @@
       "area": "process",
       "title": "Hosted nightly full e2e contour",
       "status": "active",
-      "behavior": "A dedicated nightly workflow runs synthetic e2e, a full formula benchmark monitor, a CI-safe formula gate, repo-tracked table anchors, portable package build, EXE smoke and opens a diagnostic GitHub issue on failure with context from the latest merged PR.",
+      "behavior": "A dedicated nightly workflow runs synthetic e2e, a full formula benchmark monitor, a CI-safe formula gate, table-anchor source preflight with a real table run when external samples are available, portable package build, EXE smoke and opens a diagnostic GitHub issue on failure with context from the latest merged PR.",
       "owner_docs": [
         ".github/PULL_REQUEST_TEMPLATE.md",
         ".github/workflows/nightly-full-e2e.yml",
@@ -1250,7 +1250,7 @@
         "docs/production-roadmap.md",
         "docs/release-status.md"
       ],
-      "residual_risk": "GitHub-hosted runners still cannot access the external D:\\ corpus, so the full formula manifest currently runs as monitor-only without thresholds and the failure issue can fall back to head_ref/author for historical merges that predate the explicit PR template field."
+      "residual_risk": "GitHub-hosted runners still cannot access the external D:\\ corpus or local ignored sample caches, so the full formula manifest currently runs as monitor-only without thresholds and table-anchor samples require source preflight/skip artifacts unless real sample fixtures become git-tracked. The failure issue can fall back to head_ref/author for historical merges that predate the explicit PR template field."
     },
     {
       "feature_id": "ci-release-automation",
