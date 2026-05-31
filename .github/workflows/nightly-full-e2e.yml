@@ -14,6 +14,8 @@ concurrency:
 
 env:
   NIGHTLY_VERSION: 0.3.0-nightly
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: utf-8
 
 jobs:
   nightly-full-e2e:

@@ -2,7 +2,7 @@
 
 Последнее обновление: 2026-05-31
 Релизный контур: Windows Document Converter v0.3.0
-Статус: production-ready within declared scope; локальный critical path теперь blocked only by external GitHub-hosted nightly/tag evidence after full S5.1 `1/пр` closeout
+Статус: production-ready within declared scope; локальный critical path теперь focused on hosted S9.2 monitor repair plus external nightly/tag evidence after full S5.1 `1/пр` closeout
 
 ## 1. Цель релиза
 
@@ -169,11 +169,11 @@ Critical-path operator surface S6.1 закрыт: CLI по умолчанию о
 
 Leak-gate risk закрыт предметно: CI теперь проверяет git-tracked репозиторный контур через Gitleaks без broad filesystem scan по локальным `.venv`/`dist` артефактам, а custom rule доказан synthetic canary-run без ослабления default secret rules.
 
-Nightly infrastructure уже заведена, но burn-in evidence ещё нет: hosted runner не видит внешний `D:\ФСНБ\...` corpus, поэтому full formula manifest идёт как monitor-only contour без thresholds, а required regression gate остаётся на CI-safe subset. Отдельный remaining risk в auto-issue path тоже локализован: `agent_id` будет точным для новых PR с заполненным template field, а исторические merges используют fallback на `head_ref` и author login.
+Nightly infrastructure уже заведена и видна на `main`: PR #3 auto-merged, workflow registry показывает `nightly-full-e2e` и `release`, а первые hosted dispatches `26707002316`/`26707185880` доказали failure issue path и открыли issue #4. Текущий repair scope локален: hosted Windows runner упал в full formula monitor до required gate из-за cp1252 stdout для non-ASCII JSON и nonzero exit в `--no-thresholds` режиме; ветка `agent/s9-2-nightly-monitor-fix` переводит benchmark stdout/stderr на UTF-8 и делает full monitor non-blocking при сохранении `report.status` как artifact signal. Hosted runner по-прежнему не видит внешний `D:\ФСНБ\...` corpus, поэтому required regression gate остаётся на CI-safe subset.
 
 Release automation path уже есть в git-tracked виде, но первый hosted proof ещё не снят: стабильный `v0.x.y` tag обязан иметь точную секцию в `CHANGELOG.md`, после чего `.github/workflows/release.yml` должен пересобрать portable zip, checksum и опубликовать GitHub Release без ручной публикации. Пока этого GitHub evidence нет, remaining risk для S9.3 чисто операционный, а не кодовый.
 
-Formula roadmap risk теперь сузился до двух реальных внешних доказательств: formulas `(10)` и `(13)` по `gate-metod-1-pr` остаются evidence-blocked без локально доступного source DOCX/дополнительного артефакта, а benchmark threshold uplift нельзя честно перевыполнить без fresh rerun на этом исходнике. После локального закрытия formulas `(37)`-`(39)` других неблокированных `1/пр` slices в текущей среде больше не осталось.
+Formula roadmap risk по `gate-metod-1-pr` больше не blocked исходником: предоставленный source DOCX позволил закрыть formulas `(10)` и `(13)`, а cold rerun `runs\formula-debug-1pr-source-fresh\runs\20260531T072130Z` подтвердил `49/49` calc_expr units и `26/49` native formulas. Следующий formula risk теперь лежит не в локальном `1/пр` residue, а в более широком S5.1 threshold uplift/corpus expansion.
 
 Formula/OCR/catalog provider abstractions и artifact redaction boundary больше не блокируют v1.0 acceptance по этой оси: у `FormulaProvider`, `OcrBackend` и `CatalogWriter` уже есть как минимум по две реализации, а redaction path закрывает и primary artifacts, и compatibility mirrors.
 
@@ -200,7 +200,7 @@ Formula/OCR/catalog provider abstractions и artifact redaction boundary бол�
 - Workflow: `.github/workflows/release.yml`.
 - Публикуемые артефакты: portable zip, `.sha256.txt`, GitHub Release notes из `CHANGELOG.md`.
 - Локальная smoke-проверка: `powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 -Name DocumentConverter -Version 0.3.0-nightly -SkipBuild`.
-- Remaining gap: `.github/workflows/release.yml` пока есть только на PR branch `agent/s9-2-nightly-dispatch`, поэтому GitHub workflow registry на `main` его не видит; после merge нужен первый hosted `v*` tag proof в GitHub Actions/Release UI.
+- Remaining gap: `.github/workflows/release.yml` теперь виден на `main`, но первый hosted `v*` tag proof ещё не снят; после S9.2 monitor repair нужен tag run, который опубликует GitHub Release с zip/checksum/notes.
 
 ## 10. Последний representative pilot
 

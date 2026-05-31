@@ -371,7 +371,7 @@ Status: completed (2026-05-30). Evidence: added `docs/security.md`, hardened `sr
 
 ### Sprint S9.2 — Nightly full e2e
 
-**Status:** in_progress 2026-05-30. Initial evidence: `.github/workflows/nightly-full-e2e.yml`, `samples/manifest.table-anchors.ci.jsonl`, `scripts/create_nightly_failure_issue.py`.
+**Status:** in_progress 2026-05-31. Initial evidence: `.github/workflows/nightly-full-e2e.yml`, `samples/manifest.table-anchors.ci.jsonl`, `scripts/create_nightly_failure_issue.py`; first hosted dispatches `26707002316` and `26707185880` proved the auto-issue path and opened issue #4, then exposed a Windows hosted monitor bug now repaired locally in `agent/s9-2-nightly-monitor-fix`.
 
 - **Goal:** ежедневный полный регресс.
 - **Scope:** nightly job: synthetic-e2e + full formula benchmark monitor on hosted runners (`--no-thresholds`) + CI-safe formula required gate + repo-tracked table anchors + portable package build + EXE smoke. Failure → auto-issue с привязкой к latest merged PR и `agent_id` из PR body с fallback на `head_ref`/author.

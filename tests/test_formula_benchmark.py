@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import json
 import tempfile
 import unittest
@@ -527,6 +528,124 @@ class FormulaBenchmarkTests(unittest.TestCase):
             report = json.loads((benchmark_run_dir / "benchmark-report.json").read_text(encoding="utf-8"))
             self.assertIsNone(report["thresholds_path"])
             self.assertIsNone(report["required_gate"])
+
+    def test_main_no_thresholds_is_monitor_only_for_failed_report(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            document_path = root / "document.v1.json"
+            gold_path = root / "gold.json"
+            manifest_path = root / "manifest.jsonl"
+            output_root = root / "output"
+
+            payload = _document_payload(
+                [
+                    _formula_unit(
+                        unit_id="u_000001",
+                        order=1,
+                        text="R = A + B",
+                        source_format="docx_text_linearized",
+                        calc_expr="R = A + B",
+                        confidence="high",
+                    )
+                ]
+            )
+            document_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            gold_payload = build_formula_gold_payload(payload, document_label="sample")
+            gold_payload["unit_expectations"][0]["calc_expr"] = "R = A - B"
+            gold_path.write_text(json.dumps(gold_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            _write_manifest_entries(
+                manifest_path,
+                [
+                    {
+                        "schema_version": "formula-benchmark.manifest-entry.v1",
+                        "benchmark_id": "sample-doc",
+                        "tier": "anchor",
+                        "label": "Sample doc",
+                        "required": True,
+                        "input_kind": "document_json",
+                        "input_path": str(document_path),
+                        "gold_path": str(gold_path),
+                        "tags": ["unit-test"],
+                    }
+                ],
+            )
+
+            exit_code = main(
+                [
+                    str(manifest_path),
+                    "--output-root",
+                    str(output_root),
+                    "--no-thresholds",
+                ]
+            )
+
+            self.assertEqual(exit_code, 0)
+            benchmark_run_dir = next((output_root / "runs").iterdir())
+            report = json.loads((benchmark_run_dir / "benchmark-report.json").read_text(encoding="utf-8"))
+            self.assertEqual(report["status"], "failed")
+            self.assertIsNone(report["thresholds_path"])
+            self.assertIsNone(report["required_gate"])
+
+    def test_main_reconfigures_stdout_for_unicode_report(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            document_path = root / "document.v1.json"
+            gold_path = root / "gold.json"
+            manifest_path = root / "manifest.jsonl"
+            output_root = root / "output"
+
+            payload = _document_payload(
+                [
+                    _formula_unit(
+                        unit_id="u_000001",
+                        order=1,
+                        text="n = 1 ÷ N",
+                        source_format="mathtype_wmf_text_records",
+                        calc_expr="n = 1 / N",
+                        confidence="high",
+                    )
+                ]
+            )
+            document_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            gold_path.write_text(
+                json.dumps(build_formula_gold_payload(payload, document_label="Приказ 1/пр"), ensure_ascii=False, indent=2)
+                + "\n",
+                encoding="utf-8",
+            )
+            manifest_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "formula-benchmark.manifest-entry.v1",
+                        "benchmark_id": "unicode-doc",
+                        "tier": "anchor",
+                        "label": "Приказ 1/пр ÷",
+                        "required": True,
+                        "input_kind": "document_json",
+                        "input_path": str(document_path),
+                        "gold_path": str(gold_path),
+                        "tags": ["unit-test"],
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            stdout_buffer = io.BytesIO()
+            cp1252_stdout = io.TextIOWrapper(stdout_buffer, encoding="cp1252")
+
+            with patch("sys.stdout", cp1252_stdout):
+                exit_code = main(
+                    [
+                        str(manifest_path),
+                        "--output-root",
+                        str(output_root),
+                        "--no-thresholds",
+                    ]
+                )
+                cp1252_stdout.flush()
+
+            self.assertEqual(exit_code, 0)
+            self.assertIn("Приказ 1/пр ÷", stdout_buffer.getvalue().decode("utf-8"))
 
     def test_evaluate_threshold_policy_rejects_missing_scope_metric(self) -> None:
         required_gate = evaluate_threshold_policy(
