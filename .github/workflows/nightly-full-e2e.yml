@@ -71,7 +71,51 @@ jobs:
           if (-not $runDir) { throw 'Nightly formula gate run dir missing' }
           "run_dir=$runDir" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
+      - name: Check table anchor source availability
+        id: table_anchor_sources
+        shell: pwsh
+        run: |
+          $manifestPath = (Resolve-Path 'samples\manifest.table-anchors.ci.jsonl').Path
+          $manifestDir = Split-Path -Parent $manifestPath
+          $preflightDir = Join-Path 'runs\nightly-table-anchors' 'source-preflight'
+          New-Item -ItemType Directory -Force -Path $preflightDir | Out-Null
+
+          $missing = @()
+          Get-Content -Path $manifestPath -Encoding utf8 | Where-Object { $_.Trim() } | ForEach-Object {
+            $record = $_ | ConvertFrom-Json
+            $sourceRoot = [string]$record.source_root
+            if (-not [System.IO.Path]::IsPathRooted($sourceRoot)) {
+              $sourceRoot = [System.IO.Path]::GetFullPath((Join-Path $manifestDir $sourceRoot))
+            }
+
+            $relativePath = [string]$record.relative_path
+            if ([System.IO.Path]::IsPathRooted($relativePath)) {
+              $sourcePath = [System.IO.Path]::GetFullPath($relativePath)
+            } else {
+              $sourcePath = [System.IO.Path]::GetFullPath((Join-Path $sourceRoot $relativePath))
+            }
+
+            if (-not (Test-Path -LiteralPath $sourcePath)) {
+              $missing += $sourcePath
+            }
+          }
+
+          $available = $missing.Count -eq 0
+          $payload = [ordered]@{
+            status = if ($available) { 'ok' } else { 'skipped_missing_input' }
+            manifest = $manifestPath
+            missing_sources = $missing
+          }
+          $payload | ConvertTo-Json -Depth 4 | Out-File -FilePath (Join-Path $preflightDir 'table-anchor-source-preflight.json') -Encoding utf8
+          "available=$($available.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "preflight_dir=$((Resolve-Path $preflightDir).Path)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          if (-not $available) {
+            Write-Warning "Skipping table anchors nightly contour because $($missing.Count) source file(s) are unavailable on this runner."
+          }
+
       - name: Run table anchors nightly contour
+        if: ${{ steps.table_anchor_sources.outputs.available == 'true' }}
         id: table_anchors
         shell: pwsh
         run: |
@@ -117,6 +161,7 @@ jobs:
             ${{ steps.synthetic.outputs.run_dir }}
             ${{ steps.formula_full.outputs.run_dir }}
             ${{ steps.formula_gate.outputs.run_dir }}
+            ${{ steps.table_anchor_sources.outputs.preflight_dir }}
             ${{ steps.table_anchors.outputs.run_dir }}
             ${{ steps.package_release.outputs.release_dir }}
 

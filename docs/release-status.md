@@ -2,7 +2,7 @@
 
 Последнее обновление: 2026-05-31
 Релизный контур: Windows Document Converter v0.3.0
-Статус: production-ready within declared scope; локальный critical path теперь focused on hosted S9.2 monitor repair plus external nightly/tag evidence after full S5.1 `1/пр` closeout
+Статус: production-ready within declared scope; локальный critical path теперь focused on hosted S9.2 table-source guard plus external nightly/tag evidence after full S5.1 `1/пр` closeout
 
 ## 1. Цель релиза
 
@@ -22,7 +22,7 @@ Critical-path operator surface S6.1 закрыт: CLI по умолчанию о
 
 Следом закрыт и S9.1 PR-gates tranche: `main` теперь защищён strict required contexts `secret-scan`, `lint`, `typecheck`, `unit-tests`, `harness-validator`, `formula-benchmark-gate`, `document-package-validator` и `release-smoke`, PR template фиксирует feature/state/validation closeout, а `.github/workflows/autonomous-pr-auto-merge.yml` на base branch включает squash auto-merge для same-repo non-draft PR с label `agent:autonomous`.
 
-Следом открыт и S9.2 nightly tranche: `.github/workflows/nightly-full-e2e.yml` запускает synthetic e2e, full formula benchmark monitor без thresholds, CI-safe formula gate, repo-tracked table anchors, EXE smoke и nightly portable package, а `scripts/create_nightly_failure_issue.py` создаёт failure issue с latest merged PR context и explicit/fallback `agent_id` trace.
+Следом открыт и S9.2 nightly tranche: `.github/workflows/nightly-full-e2e.yml` запускает synthetic e2e, full formula benchmark monitor без thresholds, CI-safe formula gate, table-anchor source preflight с real table run при доступных external samples, EXE smoke и nightly portable package, а `scripts/create_nightly_failure_issue.py` создаёт failure issue с latest merged PR context и explicit/fallback `agent_id` trace.
 
 Следом локально закрыт и S9.3 release-automation tranche: `.github/workflows/release.yml` публикует portable release по `v*` tag, `scripts/package-release.ps1` больше не держит hard-coded notes, а рендерит `release-notes.md` из git-tracked `CHANGELOG.md` через тестируемый `src/doc_converter/release_notes.py` / `scripts/render_release_notes.py`.
 
@@ -61,7 +61,7 @@ Critical-path operator surface S6.1 закрыт: CLI по умолчанию о
 - required secret-scan gate: `windows-ci` ставит Gitleaks, использует `.gitleaks.toml`, сохраняет узкий allowlist для fixtures/examples и валит synthetic API-key canary.
 - protected PR gate surface на `main`: strict branch protection удерживает required contexts `secret-scan`, `lint`, `typecheck`, `unit-tests`, `harness-validator`, `formula-benchmark-gate`, `document-package-validator`, `release-smoke`, а PR template требует feature/state/validation closeout.
 - label-driven autonomous merge: `.github/workflows/autonomous-pr-auto-merge.yml` на `main` через `pull_request_target` включает squash auto-merge для same-repo non-draft PR с label `agent:autonomous`.
-- hosted nightly infrastructure: `.github/workflows/nightly-full-e2e.yml` запускает synthetic e2e, full formula monitor без thresholds, CI-safe formula gate, repo-safe table anchors, EXE smoke, nightly portable package и auto-issue helper с latest merged PR context.
+- hosted nightly infrastructure: `.github/workflows/nightly-full-e2e.yml` запускает synthetic e2e, full formula monitor без thresholds, CI-safe formula gate, table-anchor source preflight, EXE smoke, nightly portable package и auto-issue helper с latest merged PR context.
 - stable ordering guarantee: `inventory.py` теперь закрепляет supported/unsupported ordering и duplicate primary по deterministic key, а clean rerun manifest держится идентичным даже при принудительно разном iterator order.
 - incremental formula benchmark cache: `formula_benchmark.py` reuse-ит unchanged cases через versioned cache key и при этом всё равно пересчитывает full `required_gate` из свежего aggregate report; manifest/gold drift снова ведёт к case rebuild.
 - bundled inline-glyph font set: `document-converter doctor` и DOCX inline-glyph matcher теперь используют общий bundle resolver, repo несёт `DejaVuSans.ttf` + лицензию в `assets/fonts`, а PyInstaller build paths включают этот bundle в packaged output вместо неявной зависимости от системных Windows fonts.
@@ -169,7 +169,7 @@ Critical-path operator surface S6.1 закрыт: CLI по умолчанию о
 
 Leak-gate risk закрыт предметно: CI теперь проверяет git-tracked репозиторный контур через Gitleaks без broad filesystem scan по локальным `.venv`/`dist` артефактам, а custom rule доказан synthetic canary-run без ослабления default secret rules.
 
-Nightly infrastructure уже заведена и видна на `main`: PR #3 auto-merged, workflow registry показывает `nightly-full-e2e` и `release`, а первые hosted dispatches `26707002316`/`26707185880` доказали failure issue path и открыли issue #4. Текущий repair scope локален: hosted Windows runner упал в full formula monitor до required gate из-за cp1252 stdout для non-ASCII JSON и nonzero exit в `--no-thresholds` режиме; ветка `agent/s9-2-nightly-monitor-fix` переводит benchmark stdout/stderr на UTF-8 и делает full monitor non-blocking при сохранении `report.status` как artifact signal. Hosted runner по-прежнему не видит внешний `D:\ФСНБ\...` corpus, поэтому required regression gate остаётся на CI-safe subset.
+Nightly infrastructure уже заведена и видна на `main`: PR #3 auto-merged, workflow registry показывает `nightly-full-e2e` и `release`, а hosted dispatches `26707002316`/`26707185880` доказали failure issue path и открыли issue #4. PR #5 уже auto-merged после зелёного Windows CI run `26707476363`; fixed dispatch `26707569316` на `main` доказал, что full formula monitor теперь UTF-8 safe и non-blocking в `--no-thresholds` режиме. Текущий repair scope локален и смещён на следующий hosted gap: table-anchor CI manifest ссылается на локальные `runs\s23-table-anchors-input\sample_*.pdf`, которых нет в GitHub checkout, поэтому ветка `agent/s9-2-nightly-table-source-guard` добавляет source preflight и `skipped_missing_input` artifact вместо blocking crash. Hosted runner по-прежнему не видит внешний `D:\ФСНБ\...` corpus, поэтому required regression gate остаётся на CI-safe subset.
 
 Release automation path уже есть в git-tracked виде, но первый hosted proof ещё не снят: стабильный `v0.x.y` tag обязан иметь точную секцию в `CHANGELOG.md`, после чего `.github/workflows/release.yml` должен пересобрать portable zip, checksum и опубликовать GitHub Release без ручной публикации. Пока этого GitHub evidence нет, remaining risk для S9.3 чисто операционный, а не кодовый.
 
@@ -200,7 +200,7 @@ Formula/OCR/catalog provider abstractions и artifact redaction boundary бол�
 - Workflow: `.github/workflows/release.yml`.
 - Публикуемые артефакты: portable zip, `.sha256.txt`, GitHub Release notes из `CHANGELOG.md`.
 - Локальная smoke-проверка: `powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 -Name DocumentConverter -Version 0.3.0-nightly -SkipBuild`.
-- Remaining gap: `.github/workflows/release.yml` теперь виден на `main`, но первый hosted `v*` tag proof ещё не снят; после S9.2 monitor repair нужен tag run, который опубликует GitHub Release с zip/checksum/notes.
+- Remaining gap: `.github/workflows/release.yml` теперь виден на `main`, но первый hosted `v*` tag proof ещё не снят; после S9.2 table-source guard и повторного nightly proof нужен tag run, который опубликует GitHub Release с zip/checksum/notes.
 
 ## 10. Последний representative pilot
 
