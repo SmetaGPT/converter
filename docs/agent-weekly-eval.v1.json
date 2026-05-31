@@ -6,7 +6,7 @@
     "start_date": "2026-05-25",
     "end_date": "2026-05-31"
   },
-  "overall_status": "strong",
+  "overall_status": "needs-attention",
   "sources": {
     "feature_spine": "docs/agent-feature-spine.json",
     "scorecard_json": "docs/agent-quality-scorecard.v1.json",
@@ -16,15 +16,15 @@
     "eval_instructions": "docs/agent-evals.md"
   },
   "telemetry_window_summary": {
-    "total_entries": 60,
+    "total_entries": 61,
     "validation_results": {
       "passed": 43,
       "passed_after_repair": 17,
       "failed": 0,
-      "blocked": 0
+      "blocked": 1
     },
-    "state_updates": 60,
-    "feature_traceable_entries": 60,
+    "state_updates": 61,
+    "feature_traceable_entries": 61,
     "task_types": {
       "ci/docs": 3,
       "ci/release/docs": 1,
@@ -43,14 +43,14 @@
       "code/tests/docs/state": 1,
       "code/tests/runtime/docs": 19,
       "docs/process/product": 2,
-      "docs/release": 1,
+      "docs/release": 2,
       "prompt/docs": 1
     }
   },
   "scorecard_snapshot": {
     "scorecard_as_of_date": "2026-05-31",
     "validated_features": 51,
-    "referenced_features": 51,
+    "referenced_features": 52,
     "referenced_feature_ids": [
       "arch-converter-protocol",
       "arch-docx-split",
@@ -90,6 +90,7 @@
       "providers-ocr-protocol",
       "quality-and-review-reporting",
       "real-e2e-and-run-validation",
+      "release-v1",
       "resume-dedup-and-queue-state",
       "routing-matrix",
       "run-agent-metadata",
@@ -111,28 +112,28 @@
         "title": "Validation discipline",
         "score": 5,
         "scale_max": 5,
-        "basis": "98/98 telemetry entries have pass-like validation results."
+        "basis": "98/99 telemetry entries have pass-like validation results."
       },
       {
         "signal_id": "state-hygiene",
         "title": "State hygiene",
         "score": 5,
         "scale_max": 5,
-        "basis": "98/98 telemetry entries report state_update=true."
+        "basis": "99/99 telemetry entries report state_update=true."
       },
       {
         "signal_id": "feature-traceability",
         "title": "Feature traceability",
         "score": 5,
         "scale_max": 5,
-        "basis": "98/98 telemetry entries reference at least one feature_id."
+        "basis": "99/99 telemetry entries reference at least one feature_id."
       },
       {
         "signal_id": "feature-coverage",
         "title": "Feature coverage in telemetry",
         "score": 5,
         "scale_max": 5,
-        "basis": "51/51 validated features are referenced by structured telemetry."
+        "basis": "52/51 validated features are referenced by structured telemetry."
       }
     ]
   },
@@ -141,5 +142,12 @@
     "sampled_tasks_in_window": 0,
     "reviews": []
   },
-  "findings": []
+  "findings": [
+    {
+      "finding_id": "window-validation-failures",
+      "severity": "high",
+      "summary": "В weekly window есть failed или blocked validation results.",
+      "recommended_action": "Разобрать blocking entries и не считать weekly loop healthy, пока narrow validation не возвращён в pass-like state."
+    }
+  ]
 }

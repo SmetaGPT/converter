@@ -395,7 +395,7 @@ Status: completed (2026-05-30). Evidence: added `docs/security.md`, hardened `sr
 
 ### Sprint S10.1 — v1.0 gate
 
-**Status:** blocked 2026-05-31. Evidence: W0-W9 are now closed through hosted S9.2/S9.3 proof, but S10.1 requires acceptance evidence that cannot be produced in a single session: 4 weeks telemetry without unresolved regressions, 30 consecutive green portable EXE/package runs and formula benchmark GA thresholds `>=80%` calc / `>=70%` native rather than the current CI-safe gate.
+**Status:** blocked 2026-05-31. Evidence: W0-W9 are now closed through hosted S9.2/S9.3 proof, but S10.1 requires acceptance evidence that cannot be produced in a single session: 4 weeks telemetry without unresolved regressions, 30 consecutive green portable EXE/package runs and formula benchmark GA thresholds `>=80%` calc / `>=70%` native. Current checked state is below GA floor (`gate.calc_expr_coverage=0.6776`, `gate.native_coverage=0.1858`, telemetry span 10 days from `2026-05-22` to `2026-05-31`).
 
 - **Goal:** релиз v1.0.
 - **Exit criteria (все одновременно):**
@@ -407,7 +407,7 @@ Status: completed (2026-05-30). Evidence: added `docs/security.md`, hardened `sr
   - Portable EXE smoke + package gate зелёные 30 ранов подряд.
 - **Artifacts:** tag `v1.0.0`, release notes, обновлённый `release-status.md` с verdict «v1.0 GA».
 - **depends_on:** W0–W9 завершены.
-- **feature_ids:** `release.v1`.
+- **feature_ids:** `release-v1`.
 
 ---
 
