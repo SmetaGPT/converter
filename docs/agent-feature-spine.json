@@ -1310,7 +1310,7 @@
         "docs/production-roadmap.md",
         "docs/release-status.md",
         "samples/formula-benchmark.thresholds.json",
-        "runs/formula-benchmark/runs/20260526T054732Z/benchmark-report.json"
+        "docs/agent-telemetry.v1.jsonl"
       ],
       "verification": [
         {
@@ -1332,7 +1332,7 @@
         "docs/production-roadmap.md",
         "docs/release-status.md",
         "docs/agent-telemetry.v1.jsonl",
-        "runs/formula-benchmark/runs/20260526T054732Z/benchmark-report.json"
+        "samples/formula-benchmark.thresholds.json"
       ],
       "residual_risk": "S10.1 is intentionally not validated yet: current checked formula coverage is below the v1.0 floor and telemetry/package-streak evidence requires calendar time and repeated hosted runs."
     },
