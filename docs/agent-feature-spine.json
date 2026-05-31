@@ -1507,6 +1507,44 @@
       "residual_risk": "The deterministic contract is currently defined for clean runs. Resume mode still intentionally adds run-scoped reuse markers such as resumed_from_run_id/reused_previous_output, so comparisons across resumed runs must normalize those fields separately."
     },
     {
+      "feature_id": "formula-benchmark-incremental",
+      "area": "quality",
+      "title": "Incremental formula benchmark cache",
+      "status": "validated",
+      "behavior": "Formula benchmark reruns no longer recompute every unchanged case. Each case is cached under a versioned key built from the input asset hash plus a manifest fingerprint that includes linked gold-artifact content, while every rerun still rebuilds totals and required_gate from the full set of cached or freshly rebuilt case reports.",
+      "owner_docs": [
+        "src/doc_converter/formula_benchmark.py",
+        "tests/test_formula_benchmark.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "memories/repo/backend-notes.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_formula_benchmark -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m ruff check src tests scripts"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest discover -v"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/formula_benchmark.py",
+        "tests/test_formula_benchmark.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "memories/repo/backend-notes.md"
+      ],
+      "residual_risk": "Cache correctness is covered by unit-level hit/miss tests, but the full-corpus `<30s` timing target was not remeasured in this session after a local usage-limit rejection on the heavy benchmark command. Converter-semantic changes also still rely on a deliberate benchmark_version bump to invalidate previously cached cases."
+    },
+    {
       "feature_id": "machine-readable-telemetry",
       "area": "observability",
       "title": "Machine-readable telemetry companion",
