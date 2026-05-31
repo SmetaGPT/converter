@@ -86,9 +86,10 @@
 
 ## 7. Следующий operational focus
 
-1. Дождаться первого GitHub run `nightly-full-e2e` и зафиксировать artifact/issue evidence в state layer.
-2. Снять первый hosted proof для `.github/workflows/release.yml`: `v*` tag должен опубликовать GitHub Release с zip, checksum и notes из `CHANGELOG.md`.
-3. Держать `agent_id` field обязательной частью agent PR closeout, чтобы auto-issue path перестал зависеть от fallback inference.
-4. Пока hosted proof по S9.x идёт отдельно на GitHub, локально уже закрыты Wave 3 и весь Wave 4 (`S4.1`-`S4.3`), а `S5.1` теперь закрыл девять `1/пр` data-driven slices: work-time/wage/participation formulas `(9)`-`(13)`, average/resource-cost formulas `(24)` и `(25)`, technical-cost family `(15)`, `(17)`, `(19)`, `(20)` и `(22)`, cameral participation formulas `(35)` и `(36)`, additional-cost formula `(37)`, estimated-work participation formulas `(38)` и `(39)` и estimated-work cost formulas `(42)` и `(43)` с сохранённым canonical known-pattern sync.
-5. Локальный formula backlog для `gate-metod-1-pr` теперь закрыт: cold rerun `runs\formula-debug-1pr-source-fresh\runs\20260531T072130Z` даёт `49/49` `calc_expr` units и `26/49` native formulas, поэтому следующий независимый local follow-up, если он потребуется до GitHub evidence, надо выбирать уже вне этого `1/пр` residue slice.
-6. Реальный внешний blocker сейчас только GitHub-hosted nightly/tag evidence для `S9.2/S9.3`; source DOCX больше не является локальным ограничением.
+1. Довести PR #3 до merge в `main`: пока `.github/workflows/nightly-full-e2e.yml` и `.github/workflows/release.yml` существуют только на branch `agent/s9-2-nightly-dispatch`, GitHub Actions registry их не видит и external evidence не стартует.
+2. После merge запустить первый GitHub run `nightly-full-e2e` через `workflow_dispatch` или дождаться schedule, затем зафиксировать artifact/issue evidence в state layer.
+3. Снять первый hosted proof для `.github/workflows/release.yml`: после появления workflow на `main` push `v*` tag должен опубликовать GitHub Release с zip, checksum и notes из `CHANGELOG.md`.
+4. Держать `agent_id` field обязательной частью agent PR closeout, чтобы auto-issue path перестал зависеть от fallback inference.
+5. Пока hosted proof по S9.x идёт отдельно на GitHub, локально уже закрыты Wave 3 и весь Wave 4 (`S4.1`-`S4.3`), а `S5.1` теперь закрыл девять `1/пр` data-driven slices: work-time/wage/participation formulas `(9)`-`(13)`, average/resource-cost formulas `(24)` и `(25)`, technical-cost family `(15)`, `(17)`, `(19)`, `(20)` и `(22)`, cameral participation formulas `(35)` и `(36)`, additional-cost formula `(37)`, estimated-work participation formulas `(38)` и `(39)` и estimated-work cost formulas `(42)` и `(43)` с сохранённым canonical known-pattern sync.
+6. Локальный formula backlog для `gate-metod-1-pr` теперь закрыт: cold rerun `runs\formula-debug-1pr-source-fresh\runs\20260531T072130Z` даёт `49/49` `calc_expr` units и `26/49` native formulas, поэтому следующий независимый local follow-up, если он потребуется до GitHub evidence, надо выбирать уже вне этого `1/пр` residue slice.
+7. Реальный внешний blocker сейчас только GitHub-hosted nightly/tag evidence для `S9.2/S9.3`; source DOCX больше не является локальным ограничением.

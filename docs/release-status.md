@@ -200,7 +200,7 @@ Formula/OCR/catalog provider abstractions и artifact redaction boundary бол�
 - Workflow: `.github/workflows/release.yml`.
 - Публикуемые артефакты: portable zip, `.sha256.txt`, GitHub Release notes из `CHANGELOG.md`.
 - Локальная smoke-проверка: `powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 -Name DocumentConverter -Version 0.3.0-nightly -SkipBuild`.
-- Remaining gap: нужен первый hosted `v*` tag proof в GitHub Actions/Release UI.
+- Remaining gap: `.github/workflows/release.yml` пока есть только на PR branch `agent/s9-2-nightly-dispatch`, поэтому GitHub workflow registry на `main` его не видит; после merge нужен первый hosted `v*` tag proof в GitHub Actions/Release UI.
 
 ## 10. Последний representative pilot
 
