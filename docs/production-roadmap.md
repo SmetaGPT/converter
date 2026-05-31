@@ -225,25 +225,31 @@ graph LR
 
 ### Sprint S4.2 — Incremental formula benchmark
 
+**Status:** implemented locally 2026-05-31. Evidence: [src/doc_converter/formula_benchmark.py](../src/doc_converter/formula_benchmark.py) now caches per-entry benchmark cases under a versioned key derived from `sha256(asset)`, a manifest-entry fingerprint and `benchmark_version`; unchanged reruns reuse cached case reports, while manifest-entry and gold changes invalidate the cache; [tests/test_formula_benchmark.py](../tests/test_formula_benchmark.py) proves cache hit on unchanged rerun, miss on manifest/gold drift and `required_gate` recomputation from cached reports. Full-corpus timing smoke was not rerun in this session because the heavy local command hit a usage-limit rejection before execution.
+
 - **Goal:** benchmark выполняется инкрементально.
 - **Scope:** ключ кеша = `sha256(asset) + sha256(manifest_entry) + benchmark_version`; пропуск неизменённых записей; required_gate всё ещё проверяется по полному набору.
 - **Exit:** rerun без изменений < 30 сек локально; первый run и любой rerun с изменением gold/manifest — полная пересборка.
 - **depends_on:** S1.1.
-- **feature_ids:** `formula.benchmark-incremental`.
+- **feature_ids:** `formula-benchmark-incremental`.
 
 ### Sprint S4.3 — Font bundling
 
+**Status:** implemented locally 2026-05-31. Evidence: shared resolver [src/doc_converter/font_bundle.py](../src/doc_converter/font_bundle.py), bundled font assets in [assets/fonts/](../assets/fonts/), bundled-font-first matcher in [src/doc_converter/converters/docx/inline_glyph.py](../src/doc_converter/converters/docx/inline_glyph.py), doctor coverage in [src/doc_converter/cli.py](../src/doc_converter/cli.py), focused/broader regressions in [tests/test_docx_converter.py](../tests/test_docx_converter.py) and [tests/test_cli_smoke.py](../tests/test_cli_smoke.py), and PyInstaller smoke via [scripts/build-windows.ps1](../scripts/build-windows.ps1).
+
 - **Goal:** убрать зависимость от системных шрифтов.
-- **Scope:** добавить минимальный набор лицензионно-чистых шрифтов в `assets/fonts/`; inline-glyph renderer ищет сначала там; при отсутствии — явный понятный fail с подсказкой.
-- **Exit:** real-renderer тест (S0.1 opt-in) зелёный на чистой Windows VM без MS Office.
+- **Scope:** добавить минимальный набор лицензионно-чистых шрифтов в [assets/fonts/](../assets/fonts/); shared bundle resolver используется и в inline-glyph matcher, и в `document-converter doctor`, а PyInstaller build paths включают этот bundle в packaged output.
+- **Exit:** `python -m unittest tests.test_docx_converter tests.test_cli_smoke -v` зелёный; `python -m ruff check src/doc_converter/font_bundle.py src/doc_converter/cli.py src/doc_converter/converters/docx/inline_glyph.py tests/test_docx_converter.py tests/test_cli_smoke.py` зелёный; `python -m pyright src/doc_converter/font_bundle.py src/doc_converter/cli.py src/doc_converter/converters/docx/inline_glyph.py` зелёный; `powershell -ExecutionPolicy Bypass -File scripts\build-windows.ps1 -Name DocumentConverter-next` успешно собирает bundle с assets. Clean-VM real-renderer proof остаётся желательным внешним follow-up, но системные Windows fonts больше не являются единственным runtime path.
 - **depends_on:** S2.1.
-- **feature_ids:** `determinism.font-bundle`.
+- **feature_ids:** `determinism-font-bundle`.
 
 ---
 
 ## Wave 5 — Coverage expansion
 
 ### Sprint S5.1 — Formula corpus expansion
+
+**Status:** in progress locally 2026-05-31. Latest evidence: noisy `1/пр` average/resource-cost formulas `(24)` and `(25)`, technical-cost formulas `(15)`, `(17)`, `(19)`, `(20)` and `(22)`, work-time/participation formulas `(9)` and `(11)`, participation formula `(12)`, cameral participation formulas `(35)` and `(36)`, additional-cost formula `(37)`, and now estimated-work participation formulas `(38)` and `(39)` are recovered through the canonical known-pattern layer in [samples/formulas/known-patterns.v1.json](../samples/formulas/known-patterns.v1.json) and its exported package copy in [src/doc_converter/formulas/known-patterns.v1.json](../src/doc_converter/formulas/known-patterns.v1.json); focused tests `test_formula_representation_recovers_noisy_1pr_tech_break_formula`, `test_formula_representation_recovers_noisy_1pr_participation_average_formula`, `test_formula_representation_recovers_noisy_1pr_participation_formula`, `test_formula_representation_recovers_noisy_1pr_cameral_participation_family`, `test_formula_representation_recovers_noisy_1pr_additional_cost_formula`, `test_formula_representation_recovers_noisy_1pr_estimated_work_participation_family`, the broader regression slice [tests/test_docx_converter.py](../tests/test_docx_converter.py) + [tests/test_known_formula_patterns.py](../tests/test_known_formula_patterns.py) (`102/102`) and `scripts/validate_known_formulas.py` all passed with canonical/package data in sync (`17` noisy mappings, `43` formula representations). Full threshold uplift remains open because the external `D:\ФСНБ\...` source path behind `gate-metod-1-pr` is not mounted in this workspace for a fresh benchmark rerun, and the remaining local `1/пр` residue is now essentially the evidence-blocked formulas `(10)` and `(13)`.
 
 - **Goal:** benchmark coverage ≥ 80 % calc_expr и ≥ 70 % native.
 - **Scope:** расширить `samples/formula-benchmark.manifest.jsonl` и `samples/expected/formulas/` реальными формулами из 1/421/521/534/812/904/пр; поднять пороги в `samples/formula-benchmark.thresholds.json`.

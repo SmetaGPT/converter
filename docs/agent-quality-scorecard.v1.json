@@ -7,15 +7,15 @@
     "scorecard_markdown": "docs/agent-quality-scorecard.md"
   },
   "telemetry_summary": {
-    "total_entries": 81,
+    "total_entries": 91,
     "validation_results": {
-      "passed": 67,
-      "passed_after_repair": 14,
+      "passed": 75,
+      "passed_after_repair": 16,
       "failed": 0,
       "blocked": 0
     },
-    "state_updates": 81,
-    "feature_traceable_entries": 81,
+    "state_updates": 91,
+    "feature_traceable_entries": 91,
     "task_types": {
       "code/ci/docs": 2,
       "code/ci/docs/runtime": 1,
@@ -27,10 +27,11 @@
       "code/docs/tests/schema": 1,
       "code/release/runtime": 1,
       "code/runtime/docs": 3,
-      "code/runtime/tests/docs": 3,
+      "code/runtime/release/tests/docs": 1,
+      "code/runtime/tests/docs": 4,
       "code/security/tests/docs": 1,
       "code/tests/data/docs": 1,
-      "code/tests/docs": 9,
+      "code/tests/docs": 16,
       "code/tests/docs/state": 1,
       "code/tests/release/docs": 1,
       "code/tests/runtime": 3,
@@ -40,15 +41,16 @@
       "docs/process/ci": 1,
       "docs/process/observability": 6,
       "docs/process/product": 3,
+      "docs/release": 1,
       "prompt/docs": 1,
       "release/runtime": 1,
       "scripts/docs/runtime": 1
     }
   },
   "feature_summary": {
-    "total_features": 49,
-    "validated_features": 48,
-    "referenced_features": 49,
+    "total_features": 51,
+    "validated_features": 50,
+    "referenced_features": 51,
     "referenced_feature_ids": [
       "arch-converter-protocol",
       "arch-docx-split",
@@ -63,10 +65,12 @@
       "ci-release-automation",
       "clean-exit-checklist",
       "contracts-stable-v1",
+      "determinism-font-bundle",
       "determinism-ordering",
       "docx-native-route",
       "evaluator-rubric",
       "feature-spine",
+      "formula-benchmark-incremental",
       "formula-known-patterns-data",
       "formula-recognition-env-config",
       "formula-recognition-postprocess",
@@ -108,8 +112,9 @@
       "planning": 1,
       "process": 5,
       "product": 20,
+      "quality": 1,
       "routing": 1,
-      "runtime": 1,
+      "runtime": 2,
       "security": 1,
       "state": 1,
       "validation": 2
@@ -121,28 +126,28 @@
       "title": "Validation discipline",
       "score": 5,
       "scale_max": 5,
-      "basis": "81/81 telemetry entries have pass-like validation results."
+      "basis": "91/91 telemetry entries have pass-like validation results."
     },
     {
       "signal_id": "state-hygiene",
       "title": "State hygiene",
       "score": 5,
       "scale_max": 5,
-      "basis": "81/81 telemetry entries report state_update=true."
+      "basis": "91/91 telemetry entries report state_update=true."
     },
     {
       "signal_id": "feature-traceability",
       "title": "Feature traceability",
       "score": 5,
       "scale_max": 5,
-      "basis": "81/81 telemetry entries reference at least one feature_id."
+      "basis": "91/91 telemetry entries reference at least one feature_id."
     },
     {
       "signal_id": "feature-coverage",
       "title": "Feature coverage in telemetry",
       "score": 5,
       "scale_max": 5,
-      "basis": "49/48 validated features are referenced by structured telemetry."
+      "basis": "51/50 validated features are referenced by structured telemetry."
     }
   ]
 }

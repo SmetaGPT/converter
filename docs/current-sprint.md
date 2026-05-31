@@ -2,7 +2,7 @@
 
 Последнее обновление: 2026-05-31
 Активный спринт: S9.2 — Nightly full e2e
-Статус: in_progress
+Статус: blocked
 
 Предыдущий приоритетный tranche: S9.1 — PR-gates и branch protection
 Статус: completed
@@ -78,6 +78,7 @@
 - `agent_id` для failure issue будет точным только для PR, где заполнен новый template field; для старых merges helper честно падает назад на `head_ref`, затем author login.
 - Exit спринта зависит не от локального validation, а от 7-night burn-in/auto-issue evidence на GitHub.
 - Для `S9.3` локальный workflow/script proof уже есть, но первый hosted `v*` tag run ещё не зафиксирован в state layer, поэтому wave W9 остаётся открытой до GitHub evidence.
+- Параллельный локальный `S5.1` follow-up исчерпал все честные data-only slices, кроме evidence-blocked formulas `(10)` и `(13)`; без внешнего `D:\ФСНБ\...` source DOCX нет способа ни подтвердить эти recoveries, ни закрыть fresh benchmark threshold uplift.
 
 ## 6. Критерий выхода
 
@@ -88,4 +89,6 @@
 1. Дождаться первого GitHub run `nightly-full-e2e` и зафиксировать artifact/issue evidence в state layer.
 2. Снять первый hosted proof для `.github/workflows/release.yml`: `v*` tag должен опубликовать GitHub Release с zip, checksum и notes из `CHANGELOG.md`.
 3. Держать `agent_id` field обязательной частью agent PR closeout, чтобы auto-issue path перестал зависеть от fallback inference.
-4. Пока hosted proof по S9.x идёт отдельно на GitHub, локально уже закрыты Wave 3 и первый determinism tranche `S4.1`; следующий parallel follow-up теперь `S4.2` и measured DOCX/table backlog.
+4. Пока hosted proof по S9.x идёт отдельно на GitHub, локально уже закрыты Wave 3 и весь Wave 4 (`S4.1`-`S4.3`), а `S5.1` уже получил семь `1/пр` data-driven slices: average/resource-cost formulas `(24)` и `(25)`, technical-cost family `(15)`, `(17)`, `(19)`, `(20)` и `(22)`, work-time/participation formulas `(9)` и `(11)`, participation formula `(12)`, cameral participation formulas `(35)` и `(36)`, additional-cost formula `(37)`, а теперь и estimated-work participation formulas `(38)` и `(39)` с сохранённым canonical known-pattern sync.
+5. Следующий parallel follow-up теперь почти целиком упирается в оставшийся `1/пр` residue beyond `(9)`/`(11)`/`(12)`/`(15)`/`(17)`/`(19)`/`(20)`/`(22)`/`(23)`-`(25)`/`(31)`/`(35)`-`(39)`, то есть прежде всего evidence-blocked `(10)` и `(13)`, плюс corpus-threshold uplift и fresh benchmark rerun, которые всё ещё требуют локально недоступного source DOCX для `gate-metod-1-pr`.
+6. До появления одного из внешних входов ниже честный следующий sprint недоступен: GitHub-hosted nightly/tag evidence для `S9.2/S9.3` либо локально доступный source DOCX/более сильный артефакт для `gate-metod-1-pr`, который позволит доказать `(10)`/`(13)` и повторить benchmark uplift без домыслов.

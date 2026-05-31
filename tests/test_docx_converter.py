@@ -19,8 +19,10 @@ from doc_converter.converters.docx import (
     _build_wmf_formula_ir,
     _formula_representation_from_text,
 )
+from doc_converter.converters.docx.inline_glyph import _available_inline_glyph_fonts
 from doc_converter.converters.docx.formulas.wmf import WmfParseLimitError, _extract_wmf_text_chunks
 from doc_converter.config import ConverterConfig, ConverterOptions, FormulaRecognitionConfig
+from doc_converter.font_bundle import bundled_font_paths
 from doc_converter.runner import run_convert_folder
 from doc_converter.schema_validation import validate_payload
 
@@ -387,6 +389,19 @@ class DocxConverterTests(unittest.TestCase):
             for expected_search in expected_texts:
                 with self.subTest(expected_search=expected_search):
                     self.assertIn(expected_search, search_text)
+
+    def test_inline_glyph_fonts_prefer_bundled_assets(self) -> None:
+        bundled_fonts = bundled_font_paths()
+
+        self.assertTrue(bundled_fonts)
+
+        fonts = _available_inline_glyph_fonts()
+
+        self.assertTrue(fonts)
+        self.assertEqual(Path(fonts[0]), bundled_fonts[0])
+        self.assertEqual(Path(fonts[0]).parent.name, "fonts")
+        self.assertEqual(Path(fonts[0]).parent.parent.name, "assets")
+        self.assertNotIn("DejaVuSans.ttf", fonts)
 
     def test_mathtype_wmf_formula_assembly_interleaves_symbol_chunks(self) -> None:
         chunks = [
@@ -911,6 +926,184 @@ class DocxConverterTests(unittest.TestCase):
             "N_VrEl = ZT_eSRl * 100 / (Ch_obsh * (100 - (N_pzr + N_o)) * 60)",
         )
 
+    def test_formula_representation_recovers_noisy_1pr_average_family(self) -> None:
+        process_average_representation = _formula_representation_from_text("ЗТЗТn=_(Исрф) (24),")
+        unit_process_representation = _formula_representation_from_text("ЗЗТV=_(фактф)^(1) (25),")
+
+        self.assertIsNotNone(process_average_representation)
+        assert process_average_representation is not None
+        self.assertEqual(
+            process_average_representation["linear_text"],
+            "ЗТ_(Иср) = sum_(ф=1)^n_(ф) ЗТ_(1факт) / n_(ф)",
+        )
+        self.assertEqual(process_average_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(
+            process_average_representation["calc_expr"],
+            "ZT_Isr = sum(ZT_1fakt[f] for f in range(1, n_f + 1)) / n_f",
+        )
+        self.assertIn(r"\sum_{\text{ф}=1}^{n_{\text{ф}}}", process_average_representation["display_latex"])
+
+        self.assertIsNotNone(unit_process_representation)
+        assert unit_process_representation is not None
+        self.assertEqual(
+            unit_process_representation["linear_text"],
+            "ЗТ_(1факт) = ЗТ_(Vфакт) / V_(ф)",
+        )
+        self.assertEqual(unit_process_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(unit_process_representation["calc_expr"], "ZT_1fakt = ZT_Vfakt / V_f")
+        self.assertIn(r"\frac{\mathrm{ЗТ}_{\text{Vфакт}}}{V_{\text{ф}}}", unit_process_representation["display_latex"])
+
+    def test_formula_representation_recovers_noisy_1pr_tech_break_formula(self) -> None:
+        tech_break_representation = _formula_representation_from_text("ТН100Т=_(вр) (9),")
+
+        self.assertIsNotNone(tech_break_representation)
+        assert tech_break_representation is not None
+        self.assertEqual(tech_break_representation["linear_text"], "Н_(тп) = Т_(тп) × 100 / Т_(вр)")
+        self.assertEqual(tech_break_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(tech_break_representation["calc_expr"], "N_tp = T_tp * 100 / T_vr")
+        self.assertIn(r"\frac{\mathrm{Т}_{\text{тп}} \times 100}{\mathrm{Т}_{\text{вр}}}", tech_break_representation["display_latex"])
+
+    def test_formula_representation_recovers_noisy_1pr_participation_average_formula(self) -> None:
+        participation_average_representation = _formula_representation_from_text("ККЧ=_(факт) (11),")
+
+        self.assertIsNotNone(participation_average_representation)
+        assert participation_average_representation is not None
+        self.assertEqual(participation_average_representation["linear_text"], "К_(ср) = К_(уч) / Ч_(факт)")
+        self.assertEqual(participation_average_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(participation_average_representation["calc_expr"], "K_sr = K_uch / Ch_fact")
+        self.assertIn(
+            r"\frac{\mathrm{К}_{\text{уч}}}{\mathrm{Ч}_{\text{факт}}}",
+            participation_average_representation["display_latex"],
+        )
+
+    def test_formula_representation_recovers_noisy_1pr_participation_formula(self) -> None:
+        participation_representation = _formula_representation_from_text("ТКЧТКН=_(учiВрП) (12),")
+
+        self.assertIsNotNone(participation_representation)
+        assert participation_representation is not None
+        self.assertEqual(participation_representation["linear_text"], "К_(уч) = ТК × Ч_(i) × Т_(1раб) / Н_(ВрП)")
+        self.assertEqual(participation_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(participation_representation["calc_expr"], "K_uch = TK * Ch_i * T_1rab / N_VrP")
+        self.assertIn(
+            r"\frac{\mathrm{ТК} \times \mathrm{Ч}_{i} \times \mathrm{Т}_{1\text{раб}}}{\mathrm{Н}_{\text{ВрП}}}",
+            participation_representation["display_latex"],
+        )
+
+    def test_formula_representation_recovers_noisy_1pr_cameral_participation_family(self) -> None:
+        participation_average_representation = _formula_representation_from_text("ККЧ=_(учКсрКобщ) (35),")
+        participation_representation = _formula_representation_from_text("ТКЧТКТ=_(КАМобщ) (36),")
+
+        self.assertIsNotNone(participation_average_representation)
+        assert participation_average_representation is not None
+        self.assertEqual(participation_average_representation["linear_text"], "К_(срК) = К_(учК) / Ч_(общ)")
+        self.assertEqual(participation_average_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(participation_average_representation["calc_expr"], "K_srK = K_uchK / Ch_obsh")
+        self.assertIn(
+            r"\frac{\mathrm{К}_{\text{учК}}}{\mathrm{Ч}_{\text{общ}}}",
+            participation_average_representation["display_latex"],
+        )
+
+        self.assertIsNotNone(participation_representation)
+        assert participation_representation is not None
+        self.assertEqual(participation_representation["linear_text"], "К_(учК) = ТК × Ч_(i) × Т_(КАМ1) / Т_(КАМобщ)")
+        self.assertEqual(participation_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(participation_representation["calc_expr"], "K_uchK = TK * Ch_i * T_KAM1 / T_KAMobsh")
+        self.assertIn(
+            r"\frac{\mathrm{ТК} \times \mathrm{Ч}_{i} \times \mathrm{Т}_{\text{КАМ1}}}{\mathrm{Т}_{\text{КАМобщ}}}",
+            participation_representation["display_latex"],
+        )
+
+    def test_formula_representation_recovers_noisy_1pr_additional_cost_formula(self) -> None:
+        additional_cost_representation = _formula_representation_from_text("ДЗН100С= (37),")
+
+        self.assertIsNotNone(additional_cost_representation)
+        assert additional_cost_representation is not None
+        self.assertEqual(additional_cost_representation["linear_text"], "Н_(ДЗ) = ДЗ × 100 / С_(р)")
+        self.assertEqual(additional_cost_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(additional_cost_representation["calc_expr"], "N_DZ = DZ * 100 / S_r")
+        self.assertIn(
+            r"\frac{\mathrm{ДЗ} \times 100}{\mathrm{С}_{\text{р}}}",
+            additional_cost_representation["display_latex"],
+        )
+
+    def test_formula_representation_recovers_noisy_1pr_estimated_work_participation_family(self) -> None:
+        participation_representation = _formula_representation_from_text("ТКЧТКТ=_(Ообщ) (38),")
+        participation_average_representation = _formula_representation_from_text("ККЧ=_(Побщ) (39),")
+
+        self.assertIsNotNone(participation_representation)
+        assert participation_representation is not None
+        self.assertEqual(participation_representation["linear_text"], "К_(учО) = ТК_(о) × Ч_(Оi) × Т_(Оi) / Т_(Ообщ)")
+        self.assertEqual(participation_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(participation_representation["calc_expr"], "K_uchO = TK_o * Ch_Oi * T_Oi / T_Oobsh")
+        self.assertIn(
+            r"\frac{\mathrm{ТК}_{\text{о}} \times \mathrm{Ч}_{\text{Оi}} \times \mathrm{Т}_{\text{Оi}}}{\mathrm{Т}_{\text{Ообщ}}}",
+            participation_representation["display_latex"],
+        )
+
+        self.assertIsNotNone(participation_average_representation)
+        assert participation_average_representation is not None
+        self.assertEqual(participation_average_representation["linear_text"], "К_(срО) = К_(учО) / Ч_(Ообщ)")
+        self.assertEqual(participation_average_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(participation_average_representation["calc_expr"], "K_srO = K_uchO / Ch_Oobsh")
+        self.assertIn(
+            r"\frac{\mathrm{К}_{\text{учО}}}{\mathrm{Ч}_{\text{Ообщ}}}",
+            participation_average_representation["display_latex"],
+        )
+
+    def test_formula_representation_recovers_noisy_1pr_technical_cost_family(self) -> None:
+        technical_support_representation = _formula_representation_from_text("С(ИЦ)=_(ТСТСiТСi) (15),")
+        amortization_representation = _formula_representation_from_text("ВАН=_(с) (17),")
+        repair_representation = _formula_representation_from_text("НРАС100= (19),")
+        machine_cost_representation = _formula_representation_from_text("С(ЭЦ)=_(ММiМi) (20),")
+        material_cost_representation = _formula_representation_from_text("С(МЦ)=_(матiматi) (22),")
+
+        self.assertIsNotNone(technical_support_representation)
+        assert technical_support_representation is not None
+        self.assertEqual(
+            technical_support_representation["linear_text"],
+            "С_(ТС) = sum_(i) И_(ТСi) × Ц_(ТСi)",
+        )
+        self.assertEqual(technical_support_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(
+            technical_support_representation["calc_expr"],
+            "S_TS = sum(I_TS[i] * C_TS[i] for i in I)",
+        )
+        self.assertIn(r"\sum_{i}", technical_support_representation["display_latex"])
+
+        self.assertIsNotNone(amortization_representation)
+        assert amortization_representation is not None
+        self.assertEqual(amortization_representation["linear_text"], "А_(ТС) = В_(с) / Н_(с)")
+        self.assertEqual(amortization_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(amortization_representation["calc_expr"], "A_TS = V_s / N_s")
+        self.assertIn(r"\frac{\mathrm{В}_{\text{с}}}{\mathrm{Н}_{\text{с}}}", amortization_representation["display_latex"])
+
+        self.assertIsNotNone(repair_representation)
+        assert repair_representation is not None
+        self.assertEqual(repair_representation["linear_text"], "Р_(ТС) = Н_(р) × А_(ТС) × С_(с) / 100")
+        self.assertEqual(repair_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(repair_representation["calc_expr"], "R_TS = N_r * A_TS * S_s / 100")
+        self.assertIn(r"\frac{\mathrm{Н}_{\text{р}} \times \mathrm{А}_{\text{ТС}} \times \mathrm{С}_{\text{с}}}{100}", repair_representation["display_latex"])
+
+        self.assertIsNotNone(machine_cost_representation)
+        assert machine_cost_representation is not None
+        self.assertEqual(machine_cost_representation["linear_text"], "С_(М) = sum_(i) Э_(Мi) × Ц_(Мi)")
+        self.assertEqual(machine_cost_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(
+            machine_cost_representation["calc_expr"],
+            "S_M = sum(E_M[i] * C_M[i] for i in I)",
+        )
+        self.assertIn(r"\sum_{i}", machine_cost_representation["display_latex"])
+
+        self.assertIsNotNone(material_cost_representation)
+        assert material_cost_representation is not None
+        self.assertEqual(material_cost_representation["linear_text"], "С_(мат) = sum_(i) М_(i) × Ц_(матi)")
+        self.assertEqual(material_cost_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(
+            material_cost_representation["calc_expr"],
+            "S_mat = sum(M[i] * C_mat[i] for i in I)",
+        )
+        self.assertIn(r"\sum_{i}", material_cost_representation["display_latex"])
+
     def test_formula_representation_normalizes_known_904pr_native_formulas(self) -> None:
         weighted_representation = _formula_representation_from_text(
             "ОЦ_(а) = (Х_(св) × n + Х_(сп) × m) / (n + m) (1)"
@@ -1200,6 +1393,11 @@ def _write_symbol_png(path: Path, symbol: str) -> None:
 
 
 def _load_test_symbol_font(size: int) -> ImageFont.ImageFont | ImageFont.FreeTypeFont:
+    for bundled_font in bundled_font_paths():
+        try:
+            return ImageFont.truetype(str(bundled_font), size=size)
+        except OSError:
+            continue
     for candidate in (
         "C:/Windows/Fonts/cambria.ttc",
         "C:/Windows/Fonts/cambriai.ttf",
