@@ -1216,7 +1216,7 @@
       "feature_id": "ci-nightly-e2e",
       "area": "process",
       "title": "Hosted nightly full e2e contour",
-      "status": "active",
+      "status": "validated",
       "behavior": "A dedicated nightly workflow runs synthetic e2e, a full formula benchmark monitor, a CI-safe formula gate, table-anchor source preflight with a real table run when external samples are available, portable package build, EXE smoke and opens a diagnostic GitHub issue on failure with context from the latest merged PR.",
       "owner_docs": [
         ".github/PULL_REQUEST_TEMPLATE.md",
@@ -1250,7 +1250,7 @@
         "docs/production-roadmap.md",
         "docs/release-status.md"
       ],
-      "residual_risk": "GitHub-hosted runners still cannot access the external D:\\ corpus or local ignored sample caches, so the full formula manifest currently runs as monitor-only without thresholds and table-anchor samples require source preflight/skip artifacts unless real sample fixtures become git-tracked. The failure issue can fall back to head_ref/author for historical merges that predate the explicit PR template field."
+      "residual_risk": "GitHub-hosted proof is complete through nightly run 26707811922 and failure issue proof #4, but hosted runners still cannot access the external D:\\ corpus or local ignored sample caches. The full formula manifest therefore remains monitor-only without thresholds and table-anchor samples require source preflight/skip artifacts unless real sample fixtures become git-tracked."
     },
     {
       "feature_id": "ci-release-automation",
@@ -1296,7 +1296,7 @@
         "docs/production-roadmap.md",
         "docs/release-status.md"
       ],
-      "residual_risk": "The code path is validated locally, but the first hosted proof still depends on a real `v*` tag push; stable tags intentionally fail if `CHANGELOG.md` does not contain an exact version section."
+      "residual_risk": "Hosted proof is complete through release workflow run 26707894247 on tag `v0.3.0`; stable tags intentionally fail if `CHANGELOG.md` does not contain an exact version section."
     },
     {
       "feature_id": "providers-formula-protocol",

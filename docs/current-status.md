@@ -1,7 +1,7 @@
 # Current Status
 
 Последнее обновление: 2026-05-31
-Статус контура: wave 2 complete, S9.2 nightly burn-in active with hosted monitor fixed and table-source guard pending, S9.3/S3.1/S3.2/S3.3/S4.1/S4.2/S4.3 implemented locally
+Статус контура: W9 completed with hosted nightly/release proof; S10.1 v1.0 gate active but blocked on external time-based GA evidence and formula threshold uplift
 
 ## 1. Краткий снимок состояния
 
@@ -15,8 +15,9 @@
 - Sprint 6 завершён;
 - Sprint 7 завершён;
 - critical-path sprint S9.1 завершён;
-- critical-path sprint S9.2 активирован;
-- critical-path sprint S9.3 реализован локально; первый tag proof pending;
+- critical-path sprint S9.2 завершён hosted proof;
+- critical-path sprint S9.3 завершён hosted tag proof;
+- critical-path sprint S10.1 активирован как GA gate assessment, blocked by time-based acceptance criteria;
 - независимый sprint S3.1 реализован локально поверх активного S9.2 wait-state;
 - независимый sprint S3.2 реализован локально поверх активного S9.2 wait-state;
 - независимый sprint S3.3 реализован локально поверх активного S9.2 wait-state;
@@ -25,6 +26,7 @@
 - независимый sprint S4.3 реализован локально поверх активного S9.2 wait-state;
 - roadmap wave 1 завершена;
 - roadmap wave 2 завершена;
+- roadmap wave 9 завершена hosted evidence proof;
 - state layer уже создан;
 - repo-memory, lifecycle hooks, routing, eval loop и release loop завершены;
 - machine-readable harness and product feature spine, bootstrap contract, clean-exit contract, telemetry companion, generated scorecard companion и generated weekly eval companion добавлены.
@@ -180,7 +182,9 @@
 145. Диагностирован latest GitHub `windows-ci` failure на PR #3: `.github/workflows/windows-ci.yml` синтаксически валиден, а реальные падения были в проверяемом содержимом ветки. `harness-validator` падал из-за telemetry feature id `determinism-font-bundle`, отсутствующего в pushed feature spine; `typecheck` и `unit-tests` падали из-за missing tracked module `src/doc_converter/font_bundle.py`; дополнительный `unit-tests` failure был Windows-hosted alias mismatch `C:\Users\RUNNER~1` vs `C:\Users\runneradmin` в тестовых сравнениях путей. Локальная правка сделала `tests/test_sample_pilot.py` и `tests/test_run_determinism.py` устойчивыми к `Path.resolve()` на hosted runner, а focused/full validation прошла: `tests.test_sample_pilot tests.test_run_determinism tests.test_docx_converter` (`54` tests), full `unittest discover` (`192` tests, `4` skipped), `pyright`, `ruff` по touched files и `scripts/validate_harness_assets.py` зелёные. Для GitHub proof следующий commit/push должен включать не только workflow-adjacent tests, но и уже подготовленные `src/doc_converter/font_bundle.py`, `assets/fonts/` и `docs/agent-feature-spine.json`.
 146. Разобран текущий blocker внешнего evidence для `S9.2/S9.3`: GitHub Actions registry на default branch видит только `autonomous-pr-auto-merge`, `windows-ci` и `Copilot`, а `.github/workflows/nightly-full-e2e.yml` и `.github/workflows/release.yml` существуют только на PR branch `agent/s9-2-nightly-dispatch`, поэтому schedule/manual nightly и tag-driven release proof не могут стартовать до merge в `main`. Дополнительный merge blocker после commit `1bdba2c` был `harness-validator`: `determinism-font-bundle` в `docs/agent-feature-spine.json` ссылался на локальные ignored PyInstaller files `DocumentConverter.spec` и `DocumentConverter-next.spec`, которых нет на GitHub fresh checkout. Feature spine исправлен на git-tracked evidence; локальный `scripts/validate_harness_assets.py` снова возвращает `status: ok`.
 147. После auto-merge PR #3 workflow registry на `main` увидел `nightly-full-e2e` и `release`; первые hosted dispatch runs `26707002316` и `26707185880` доказали `create-nightly-failure-issue` path и открыли issue #4, но оба упали раньше required gate из-за real Windows runner bug: full formula monitor печатал non-ASCII JSON через cp1252 stdout, а `--no-thresholds` всё равно возвращал nonzero при monitor report drift. Локальная ветка `agent/s9-2-nightly-monitor-fix` исправляет S9.2 monitor semantics: `formula_benchmark` reconfigure-ит stdout/stderr в UTF-8, `--no-thresholds` сохраняет `report.status=failed` как artifact signal, но возвращает exit 0, а nightly workflow задаёт `PYTHONUTF8=1`/`PYTHONIOENCODING=utf-8`. Focused validation прошла: `tests.test_formula_benchmark` (`11` tests), cp1252 reproducer full manifest command, focused `ruff` и `pyright` зелёные.
-148. PR #5 (`agent/s9-2-nightly-monitor-fix`) auto-merged после зелёного hosted Windows CI run `26707476363`, а fixed nightly dispatch `26707569316` на `main` доказал repair: `Run full formula benchmark monitor` и CI-safe formula gate прошли success. Следующий failure в том же run уже сместился на table anchors: `samples/manifest.table-anchors.ci.jsonl` ссылается на локальные `runs\s23-table-anchors-input\sample_*.pdf`, которые не git-tracked и отсутствуют на hosted checkout, поэтому `run_sample_pilot.py` падает с `FileNotFoundError` до conversion path. Ветка `agent/s9-2-nightly-table-source-guard` добавляет source preflight в nightly workflow: при доступных локальных источниках table contour запускается как раньше, а на hosted runner без external samples пишется `table-anchor-source-preflight.json` со статусом `skipped_missing_input` и workflow продолжает portable package/artifact steps.
+148. PR #5 (`agent/s9-2-nightly-monitor-fix`) auto-merged после зелёного hosted Windows CI run `26707476363`, а fixed nightly dispatch `26707569316` на `main` доказал repair: `Run full formula benchmark monitor` и CI-safe formula gate прошли success. Следующий failure в том же run уже сместился на table anchors: `samples/manifest.table-anchors.ci.jsonl` ссылается на локальные `runs\s23-table-anchors-input\sample_*.pdf`, которые не git-tracked и отсутствуют на hosted checkout, поэтому `run_sample_pilot.py` падает с `FileNotFoundError` до conversion path. Ветка `agent/s9-2-nightly-table-source-guard` добавила source preflight в nightly workflow: при доступных локальных источниках table contour запускается как раньше, а на hosted runner без external samples пишется `table-anchor-source-preflight.json` со статусом `skipped_missing_input` и workflow продолжает portable package/artifact steps.
+149. PR #6 (`agent/s9-2-nightly-table-source-guard`) auto-merged после зелёного hosted Windows CI run `26707710691`, а guarded nightly dispatch `26707811922` на `main` завершился `success`: full formula monitor, CI-safe formula gate, table-anchor source preflight, OCR preflight, Windows package build, EXE smoke, nightly portable package и artifact upload прошли штатно; table-anchor real contour корректно skipped из-за missing hosted sample sources, а artifact `nightly-full-e2e-artifacts` (`7315270976`) содержит `table-anchor-source-preflight.json` со статусом `skipped_missing_input` и явным списком отсутствующих `sample_009/018/020` PDFs.
+150. S9.3 получил первый hosted tag proof: tag `v0.3.0` указывает на `main` commit `17712cbd5fbc3bf543e6d40c5ea422d62a6a865a`, release workflow run `26707894247` completed `success`, а опубликованный GitHub Release `https://github.com/SmetaGPT/converter/releases/tag/v0.3.0` содержит `DocumentConverter-0.3.0-windows-portable.zip` (`34,148,822` bytes) и `DocumentConverter-0.3.0-windows-portable.sha256.txt`. Следующий честный production-roadmap blocker теперь S10.1: 4-week telemetry window, 30-run package/smoke streak и formula benchmark GA thresholds нельзя закрыть одним автономным запуском.
 
 ### Готовые артефакты
 

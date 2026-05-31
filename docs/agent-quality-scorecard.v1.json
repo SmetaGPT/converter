@@ -7,17 +7,18 @@
     "scorecard_markdown": "docs/agent-quality-scorecard.md"
   },
   "telemetry_summary": {
-    "total_entries": 96,
+    "total_entries": 98,
     "validation_results": {
-      "passed": 78,
+      "passed": 80,
       "passed_after_repair": 18,
       "failed": 0,
       "blocked": 0
     },
-    "state_updates": 96,
-    "feature_traceable_entries": 96,
+    "state_updates": 98,
+    "feature_traceable_entries": 98,
     "task_types": {
-      "ci/docs": 2,
+      "ci/docs": 3,
+      "ci/release/docs": 1,
       "code/ci/docs": 2,
       "code/ci/docs/runtime": 1,
       "code/ci/docs/tests": 1,
@@ -52,7 +53,7 @@
   },
   "feature_summary": {
     "total_features": 51,
-    "validated_features": 50,
+    "validated_features": 51,
     "referenced_features": 51,
     "referenced_feature_ids": [
       "arch-converter-protocol",
@@ -129,28 +130,28 @@
       "title": "Validation discipline",
       "score": 5,
       "scale_max": 5,
-      "basis": "96/96 telemetry entries have pass-like validation results."
+      "basis": "98/98 telemetry entries have pass-like validation results."
     },
     {
       "signal_id": "state-hygiene",
       "title": "State hygiene",
       "score": 5,
       "scale_max": 5,
-      "basis": "96/96 telemetry entries report state_update=true."
+      "basis": "98/98 telemetry entries report state_update=true."
     },
     {
       "signal_id": "feature-traceability",
       "title": "Feature traceability",
       "score": 5,
       "scale_max": 5,
-      "basis": "96/96 telemetry entries reference at least one feature_id."
+      "basis": "98/98 telemetry entries reference at least one feature_id."
     },
     {
       "signal_id": "feature-coverage",
       "title": "Feature coverage in telemetry",
       "score": 5,
       "scale_max": 5,
-      "basis": "51/50 validated features are referenced by structured telemetry."
+      "basis": "51/51 validated features are referenced by structured telemetry."
     }
   ]
 }
