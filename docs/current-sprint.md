@@ -3,6 +3,7 @@
 Последнее обновление: 2026-05-31
 Активный спринт: S10.1 — v1.0 gate
 Статус: blocked_external_time_gate
+feature_ids: `release-v1`
 
 Предыдущий приоритетный tranche: S9.2/S9.3 — nightly full e2e и release automation
 Статус: completed with hosted proof
@@ -24,11 +25,11 @@
 
 | Критерий | Статус | Evidence / blocker |
 | --- | --- | --- |
-| Все 4 route стабильны; formula benchmark coverage >= 80% calc / >= 70% native | blocked | Требуется отдельный formula threshold uplift/corpus expansion; текущий W9 gate доказывает CI-safe subset, а не v1.0 coverage floor. |
+| Все 4 route стабильны; formula benchmark coverage >= 80% calc / >= 70% native | blocked | Текущий full benchmark report `runs/formula-benchmark/runs/20260526T054732Z/benchmark-report.json` даёт `gate.calc_expr_coverage = 0.6776`, `gate.native_coverage = 0.1858`, `overall.calc_expr_coverage = 0.6904`, `overall.native_coverage = 0.1886`; нужен отдельный formula threshold uplift/corpus expansion. |
 | `docs/security.md` ревьюнут, S7.x закрыты | passed | S7.1/S7.2 закрыты, security docs и Gitleaks gate зелёные. |
 | Protocol-абстракции (`Converter`, `Formula`, `OCR`, `Catalog`) имеют >= 2 реализации | passed | W2/W3 закрыли converter registry, `FormulaProvider`, `OcrBackend`, `CatalogWriter`. |
 | Контракты `v1` финализированы; `v2` только через deprecation | partial | Stable contracts и schema snapshots есть; перед GA нужен explicit final review. |
-| 4 недели telemetry подряд без unresolved regressions | blocked_external_time | Невозможно закрыть в текущей сессии: требуется календарное окно. |
+| 4 недели telemetry подряд без unresolved regressions | blocked_external_time | Текущий telemetry window: `2026-05-22` .. `2026-05-31`, 10 календарных дней; требуется минимум 4 недели. |
 | Portable EXE smoke + package gate зелёные 30 ранов подряд | blocked_external_time | Невозможно закрыть одним запуском; W9 дал hosted release-smoke/nightly/release proofs, но не 30-run streak. |
 | Tag `v1.0.0`, release notes, `release-status.md` verdict «v1.0 GA» | not_started | Блокируется предыдущими criteria. |
 
@@ -47,6 +48,6 @@
 
 ## 6. Следующий operational focus
 
-1. Зафиксировать S9.2/S9.3 hosted closeout в state PR и смерджить его через стандартный PR gate.
-2. Если продолжать roadmap execution, следующий честный work item — S10.1 gate assessment / formula threshold uplift plan, а не ещё один CI repair.
+1. S9.2/S9.3 hosted closeout уже зафиксирован и смержен через PR #7 (`f778d0e`).
+2. Следующий исполнимый engineering work item — formula threshold uplift/corpus expansion до GA floor, но сам v1.0 tag остаётся blocked до календарного telemetry window и 30-run package/smoke streak.
 3. Для v1.0 GA заранее накопить 4-week telemetry window и 30-run package/smoke streak; без этого `v1.0.0` tag не должен публиковаться.

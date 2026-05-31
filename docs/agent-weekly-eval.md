@@ -2,30 +2,30 @@
 
 Дата среза: 2026-05-31
 Окно: 2026-05-25 .. 2026-05-31 (7 дней)
-Статус: strong
+Статус: needs-attention
 
 Этот отчёт generated из `docs/agent-quality-scorecard.v1.json`, `docs/agent-telemetry.v1.jsonl` и `docs/agent-weekly-reviews.v1.json`.
 
 ## 1. Snapshot
 
-- telemetry entries in window: `60`;
-- state updates in window: `60`;
-- feature-traceable entries in window: `60`;
+- telemetry entries in window: `61`;
+- state updates in window: `61`;
+- feature-traceable entries in window: `61`;
 - validated features in spine: `51`;
-- referenced features in telemetry: `51`.
+- referenced features in telemetry: `52`.
 
 ## 2. Observed signals
 
 | Signal | Score | Basis |
 | --- | ---: | --- |
-| Validation discipline | 5/5 | 98/98 telemetry entries have pass-like validation results. |
-| State hygiene | 5/5 | 98/98 telemetry entries report state_update=true. |
-| Feature traceability | 5/5 | 98/98 telemetry entries reference at least one feature_id. |
-| Feature coverage in telemetry | 5/5 | 51/51 validated features are referenced by structured telemetry. |
+| Validation discipline | 5/5 | 98/99 telemetry entries have pass-like validation results. |
+| State hygiene | 5/5 | 99/99 telemetry entries report state_update=true. |
+| Feature traceability | 5/5 | 99/99 telemetry entries reference at least one feature_id. |
+| Feature coverage in telemetry | 5/5 | 52/51 validated features are referenced by structured telemetry. |
 
 ## 3. Findings
 
-- Открытых findings по текущему weekly snapshot нет.
+- HIGH: В weekly window есть failed или blocked validation results. Рекомендация: Разобрать blocking entries и не считать weekly loop healthy, пока narrow validation не возвращён в pass-like state.
 
 ## 4. Coverage gaps
 

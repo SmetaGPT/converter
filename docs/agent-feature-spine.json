@@ -1299,6 +1299,44 @@
       "residual_risk": "Hosted proof is complete through release workflow run 26707894247 on tag `v0.3.0`; stable tags intentionally fail if `CHANGELOG.md` does not contain an exact version section."
     },
     {
+      "feature_id": "release-v1",
+      "area": "release",
+      "title": "v1.0 GA acceptance gate",
+      "status": "active",
+      "behavior": "The v1.0 release is gated on all roadmap acceptance evidence being simultaneously true: W0-W9 closed, GA formula benchmark thresholds met, security and v1 contracts reviewed, protocol surfaces have at least two implementations, four weeks of clean telemetry are accumulated, and 30 consecutive portable package/smoke runs are green before `v1.0.0` can be tagged.",
+      "owner_docs": [
+        "docs/current-status.md",
+        "docs/current-sprint.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "samples/formula-benchmark.thresholds.json",
+        "docs/agent-telemetry.v1.jsonl"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest discover -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_harness_assets.py"
+        },
+        {
+          "type": "procedure",
+          "target": "Before tagging `v1.0.0`, prove formula benchmark coverage >= 80% calc / >= 70% native, four weeks telemetry without unresolved regressions, and 30 consecutive green portable EXE smoke/package runs."
+        }
+      ],
+      "evidence": [
+        "docs/current-status.md",
+        "docs/current-sprint.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "docs/agent-telemetry.v1.jsonl",
+        "samples/formula-benchmark.thresholds.json"
+      ],
+      "residual_risk": "S10.1 is intentionally not validated yet: current checked formula coverage is below the v1.0 floor and telemetry/package-streak evidence requires calendar time and repeated hosted runs."
+    },
+    {
       "feature_id": "providers-formula-protocol",
       "area": "architecture",
       "title": "Pluggable formula provider chain",
