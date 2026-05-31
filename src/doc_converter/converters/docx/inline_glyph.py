@@ -11,6 +11,7 @@ from typing import Any
 
 from PIL import Image, ImageChops, ImageDraw, ImageFont, UnidentifiedImageError
 from docx.text.paragraph import Paragraph
+from doc_converter.font_bundle import bundled_font_paths
 
 from .formulas.wmf import _extract_formula_text_from_asset
 
@@ -63,13 +64,12 @@ INLINE_GLYPH_SYMBOLS = (
     "∴",
     "∵",
 )
-INLINE_GLYPH_FONT_CANDIDATES = (
+INLINE_GLYPH_SYSTEM_FONT_CANDIDATES = (
     "C:/Windows/Fonts/cambria.ttc",
     "C:/Windows/Fonts/cambriai.ttf",
     "C:/Windows/Fonts/seguisym.ttf",
     "C:/Windows/Fonts/times.ttf",
     "C:/Windows/Fonts/arial.ttf",
-    "DejaVuSans.ttf",
 )
 INLINE_GLYPH_TEMPLATE_SIZE = 64
 INLINE_GLYPH_TEMPLATE_MARGIN = 8
@@ -257,12 +257,18 @@ def _match_inline_glyph(image: Image.Image) -> str | None:
     if normalized is None:
         return None
 
+    font_candidates = _available_inline_glyph_fonts()
+    if not font_candidates:
+        return None
+
     scores: list[tuple[float, str]] = []
     for symbol in INLINE_GLYPH_SYMBOLS:
         best_symbol_score = 1.0
-        for font_name in _available_inline_glyph_fonts():
+        for font_name in font_candidates:
             for font_size in range(24, 61, 4):
                 template = _render_inline_glyph_template(symbol, font_name, font_size)
+                if template is None:
+                    continue
                 score = _inline_glyph_difference_score(normalized, template)
                 best_symbol_score = min(best_symbol_score, score)
         scores.append((best_symbol_score, symbol))
@@ -307,14 +313,27 @@ def _inline_glyph_binary_value(value: int) -> int:
 
 
 def _available_inline_glyph_fonts() -> tuple[str, ...]:
-    fonts = [font for font in INLINE_GLYPH_FONT_CANDIDATES if Path(font).exists() or "/" not in font]
+    fonts: list[str] = [str(path) for path in bundled_font_paths()]
+    seen = set(fonts)
+    for font in INLINE_GLYPH_SYSTEM_FONT_CANDIDATES:
+        candidate = Path(font)
+        if not candidate.exists():
+            continue
+        resolved = str(candidate.resolve())
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        fonts.append(resolved)
     return tuple(fonts)
 
 
-def _render_inline_glyph_template(symbol: str, font_name: str, font_size: int) -> Image.Image:
+def _render_inline_glyph_template(symbol: str, font_name: str, font_size: int) -> Image.Image | None:
     image = Image.new("L", (INLINE_GLYPH_TEMPLATE_SIZE, INLINE_GLYPH_TEMPLATE_SIZE), color=255)
     draw = ImageDraw.Draw(image)
-    font = ImageFont.truetype(font_name, font_size)
+    try:
+        font = ImageFont.truetype(font_name, font_size)
+    except OSError:
+        return None
     bbox = draw.textbbox((0, 0), symbol, font=font)
     x = (INLINE_GLYPH_TEMPLATE_SIZE - (bbox[2] - bbox[0])) // 2 - bbox[0]
     y = (INLINE_GLYPH_TEMPLATE_SIZE - (bbox[3] - bbox[1])) // 2 - bbox[1]

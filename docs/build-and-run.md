@@ -184,6 +184,8 @@ powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 -Name Docum
 
 Portable release формируется в `dist\release\DocumentConverter-0.3.0\` и содержит zip, SHA-256 checksum и release notes.
 
+Источник для `release-notes.md` теперь один: git-tracked [CHANGELOG.md](../CHANGELOG.md). Nightly/pre-release package path использует секцию `[Unreleased]`, а стабильный `v0.x.y` tag требует точную секцию `[0.x.y]`; это же поведение использует `.github/workflows/release.yml`, который публикует GitHub Release по `push` тега `v*`.
+
 ## 8. Representative pilot
 
 ```powershell

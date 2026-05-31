@@ -1,10 +1,10 @@
 {
   "schema_version": "agent-weekly-eval.v1",
-  "as_of_date": "2026-05-30",
+  "as_of_date": "2026-05-31",
   "window": {
     "days": 7,
-    "start_date": "2026-05-24",
-    "end_date": "2026-05-30"
+    "start_date": "2026-05-25",
+    "end_date": "2026-05-31"
   },
   "overall_status": "strong",
   "sources": {
@@ -16,34 +16,39 @@
     "eval_instructions": "docs/agent-evals.md"
   },
   "telemetry_window_summary": {
-    "total_entries": 52,
+    "total_entries": 56,
     "validation_results": {
-      "passed": 40,
-      "passed_after_repair": 12,
+      "passed": 41,
+      "passed_after_repair": 15,
       "failed": 0,
       "blocked": 0
     },
-    "state_updates": 52,
-    "feature_traceable_entries": 52,
+    "state_updates": 56,
+    "feature_traceable_entries": 56,
     "task_types": {
+      "ci/docs": 1,
       "code/ci/docs": 2,
+      "code/ci/docs/tests": 1,
+      "code/ci/release/docs": 1,
       "code/docs/tests/schema": 1,
       "code/runtime/docs": 2,
+      "code/runtime/release/tests/docs": 1,
+      "code/runtime/tests/docs": 4,
+      "code/security/tests/docs": 1,
+      "code/tests/ci/docs": 1,
       "code/tests/data/docs": 1,
-      "code/tests/docs": 9,
+      "code/tests/docs": 16,
       "code/tests/docs/state": 1,
-      "code/tests/release/docs": 1,
-      "code/tests/runtime/docs": 30,
-      "code/tests/runtime/research": 1,
+      "code/tests/runtime/docs": 19,
       "docs/process/product": 2,
-      "prompt/docs": 1,
-      "release/runtime": 1
+      "docs/release": 1,
+      "prompt/docs": 1
     }
   },
   "scorecard_snapshot": {
-    "scorecard_as_of_date": "2026-05-30",
-    "validated_features": 42,
-    "referenced_features": 42,
+    "scorecard_as_of_date": "2026-05-31",
+    "validated_features": 50,
+    "referenced_features": 51,
     "referenced_feature_ids": [
       "arch-converter-protocol",
       "arch-docx-split",
@@ -53,12 +58,17 @@
       "canonical-document-package",
       "chunking-and-downstream-handoff",
       "ci-auto-merge",
+      "ci-nightly-e2e",
       "ci-pr-gates",
+      "ci-release-automation",
       "clean-exit-checklist",
       "contracts-stable-v1",
+      "determinism-font-bundle",
+      "determinism-ordering",
       "docx-native-route",
       "evaluator-rubric",
       "feature-spine",
+      "formula-benchmark-incremental",
       "formula-known-patterns-data",
       "formula-recognition-env-config",
       "formula-recognition-postprocess",
@@ -73,12 +83,16 @@
       "operator-structured-logs",
       "pdf-scan-route",
       "pdf-text-route",
+      "providers-catalog-protocol",
+      "providers-formula-protocol",
+      "providers-ocr-protocol",
       "quality-and-review-reporting",
       "real-e2e-and-run-validation",
       "resume-dedup-and-queue-state",
       "routing-matrix",
       "run-agent-metadata",
       "security-input-hardening",
+      "security-secret-redaction",
       "security-secret-scan",
       "security-threat-model",
       "semantic-document-metadata",
@@ -95,28 +109,28 @@
         "title": "Validation discipline",
         "score": 5,
         "scale_max": 5,
-        "basis": "75/75 telemetry entries have pass-like validation results."
+        "basis": "94/94 telemetry entries have pass-like validation results."
       },
       {
         "signal_id": "state-hygiene",
         "title": "State hygiene",
         "score": 5,
         "scale_max": 5,
-        "basis": "75/75 telemetry entries report state_update=true."
+        "basis": "94/94 telemetry entries report state_update=true."
       },
       {
         "signal_id": "feature-traceability",
         "title": "Feature traceability",
         "score": 5,
         "scale_max": 5,
-        "basis": "75/75 telemetry entries reference at least one feature_id."
+        "basis": "94/94 telemetry entries reference at least one feature_id."
       },
       {
         "signal_id": "feature-coverage",
         "title": "Feature coverage in telemetry",
         "score": 5,
         "scale_max": 5,
-        "basis": "42/42 validated features are referenced by structured telemetry."
+        "basis": "51/50 validated features are referenced by structured telemetry."
       }
     ]
   },

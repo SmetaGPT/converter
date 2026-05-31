@@ -47,24 +47,21 @@ $checksumPath = Join-Path $releaseDir "$Name-$Version-windows-portable.sha256.tx
 "$($hash.Hash.ToLower()) *$(Split-Path $zipPath -Leaf)" | Set-Content -Path $checksumPath -Encoding utf8
 
 $releaseNotesPath = Join-Path $releaseDir "release-notes.md"
-@"
-# $Name $Version
+$pythonExe = Join-Path ".venv\Scripts" "python.exe"
+if (-not (Test-Path $pythonExe)) {
+    $pythonExe = "python"
+}
 
-- Artifact: $(Split-Path $zipPath -Leaf)
-- SHA256: $($hash.Hash.ToLower())
-- Packaging: portable Windows zip
-- Semantic extraction: DOCX headers, footers, footnotes, formulas; PDF table/formula/figure units for text and OCR routes
-- OCR core dependencies: ocrmypdf, tesseract, ghostscript
-- Optional OCR helpers: jbig2, pngquant, verapdf
-- Validation baseline:
-    * python -m pip check
-    * python -m ruff check src tests scripts
-    * python -m pyright
-    * python -m unittest discover -v
-    * python scripts\run_synthetic_e2e.py --clean
-    * powershell -ExecutionPolicy Bypass -File scripts\build-windows.ps1 -Name $Name
-    * powershell -ExecutionPolicy Bypass -File scripts\smoke-test-windows-exe.ps1 -ExePath dist\$Name\$Name.exe
-    * powershell -ExecutionPolicy Bypass -File scripts\register-agent-eval-schedule.ps1 -CheckOnly
-"@ | Set-Content -Path $releaseNotesPath -Encoding utf8
+& $pythonExe "scripts\render_release_notes.py" `
+    --name $Name `
+    --version $Version `
+    --artifact-name (Split-Path $zipPath -Leaf) `
+    --checksum $($hash.Hash.ToLower()) `
+    --changelog "CHANGELOG.md" `
+    --output $releaseNotesPath
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Release notes generation failed"
+}
 
 Write-Host "Release package created: $releaseDir"

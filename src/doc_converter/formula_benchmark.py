@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import shutil
 from collections import Counter
@@ -8,6 +9,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Mapping, cast
 
+from doc_converter.canonical import sha256_file
 from doc_converter.config import ConverterConfig, ConverterOptions, FormulaRecognitionConfig, load_formula_recognition_config
 from doc_converter.runner import run_convert_folder
 from doc_converter.schema_validation import validate_json_file
@@ -23,6 +25,7 @@ _FORMULA_SOURCE_FORMATS = {
 }
 _FORMULA_CONFIDENCE = {"high", "medium", "low"}
 _INPUT_KINDS = {"source_file", "document_json"}
+_BENCHMARK_CACHE_VERSION = "formula-benchmark-incremental-v1"
 _AGGREGATE_COUNT_FIELDS = (
     "formula_units",
     "calc_expr_units",
@@ -60,13 +63,18 @@ def main(argv: list[str] | None = None) -> int:
         default=ROOT / "samples" / "formula-benchmark.thresholds.json",
         help="Optional threshold policy JSON used to evaluate the required benchmark gate.",
     )
+    parser.add_argument(
+        "--no-thresholds",
+        action="store_true",
+        help="Disable threshold evaluation and run the manifest in monitor-only mode.",
+    )
     args = parser.parse_args(argv)
 
     report = run_benchmark_manifest(
         args.manifest,
         output_root=args.output_root,
         keep_case_inputs=args.keep_case_inputs,
-        thresholds_path=args.thresholds,
+        thresholds_path=None if args.no_thresholds else args.thresholds,
     )
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0 if report["status"] == "ok" else 1
@@ -86,7 +94,9 @@ def run_benchmark_manifest(
 
     benchmark_root = (output_root or ROOT / "runs" / "formula-benchmark").expanduser().resolve()
     benchmark_run_dir = benchmark_root / "runs" / _timestamp_slug()
+    cache_root = benchmark_root / "cache"
     benchmark_run_dir.mkdir(parents=True, exist_ok=True)
+    cache_root.mkdir(parents=True, exist_ok=True)
 
     case_reports: list[dict[str, Any]] = []
     totals: dict[str, Any] = {
@@ -112,6 +122,7 @@ def run_benchmark_manifest(
             manifest_dir=manifest_dir,
             benchmark_run_dir=benchmark_run_dir,
             keep_case_inputs=keep_case_inputs,
+            cache_root=cache_root,
         )
         case_reports.append(case_report)
         totals["entries"] += 1
@@ -193,6 +204,7 @@ def benchmark_manifest_entry(
     manifest_dir: Path,
     benchmark_run_dir: Path,
     keep_case_inputs: bool,
+    cache_root: Path | None = None,
 ) -> dict[str, Any]:
     benchmark_id = str(entry["benchmark_id"])
     case_dir = benchmark_run_dir / "cases" / _safe_slug(benchmark_id)
@@ -221,6 +233,12 @@ def benchmark_manifest_entry(
         base_report["error"] = f"Input path does not exist: {input_path}"
         return base_report
 
+    cache_key = _build_case_cache_key(entry, input_path=input_path, gold_path=gold_path)
+    if cache_root is not None:
+        cached_report = _load_cached_case_report(cache_root / cache_key, case_dir=case_dir, cache_key=cache_key)
+        if cached_report is not None:
+            return cached_report
+
     try:
         payload, run_context = _load_benchmark_payload(
             input_kind,
@@ -238,12 +256,17 @@ def benchmark_manifest_entry(
     summary = summarize_formula_units(payload, formula_units)
     base_report["summary"] = summary
     base_report.update(run_context)
+    base_report["cache_key"] = cache_key
+    base_report["cache_status"] = "miss"
 
     gold_payload = _load_gold_payload(gold_path) if gold_path is not None and gold_path.exists() else None
     gold_comparison = compare_formula_units_to_gold(formula_units, gold_payload)
     base_report["gold_comparison"] = gold_comparison
     if gold_comparison["status"] == "failed":
         base_report["status"] = "gold_failed"
+
+    if cache_root is not None:
+        _store_cached_case_report(cache_root / cache_key, report=base_report, payload=payload)
 
     return base_report
 
@@ -866,6 +889,84 @@ def _load_benchmark_payload(
     return payload, {"document_path": str(document_paths[0]), "run_dir": str(result.run_dir)}
 
 
+def _build_case_cache_key(entry: Mapping[str, Any], *, input_path: Path, gold_path: Path | None) -> str:
+    asset_sha256 = sha256_file(input_path)
+    manifest_entry_sha256 = hashlib.sha256(
+        _canonical_json(_cache_manifest_entry(entry, gold_path=gold_path)).encode("utf-8")
+    ).hexdigest()
+    return hashlib.sha256(
+        f"{asset_sha256}:{manifest_entry_sha256}:{_BENCHMARK_CACHE_VERSION}".encode("utf-8")
+    ).hexdigest()
+
+
+def _store_cached_case_report(cache_dir: Path, *, report: Mapping[str, Any], payload: Mapping[str, Any]) -> None:
+    if cache_dir.exists():
+        shutil.rmtree(cache_dir)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    stored_report = dict(report)
+    run_dir = _optional_string(report.get("run_dir"))
+    document_path = Path(str(report["document_path"])).resolve()
+
+    if run_dir is None:
+        cached_document_path = cache_dir / "document.v1.json"
+        cached_document_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        stored_report["document_path"] = cached_document_path.name
+        stored_report["run_dir"] = None
+    else:
+        run_dir_path = Path(run_dir).resolve()
+        cached_run_dir = cache_dir / "run"
+        shutil.copytree(run_dir_path, cached_run_dir)
+        relative_document_path = document_path.relative_to(run_dir_path)
+        stored_report["document_path"] = (Path("run") / relative_document_path).as_posix()
+        stored_report["run_dir"] = cached_run_dir.name
+
+    (cache_dir / "case-report.json").write_text(
+        json.dumps(stored_report, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _load_cached_case_report(cache_dir: Path, *, case_dir: Path, cache_key: str) -> dict[str, Any] | None:
+    report_path = cache_dir / "case-report.json"
+    if not report_path.exists():
+        return None
+
+    try:
+        stored_report = json.loads(report_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(stored_report, dict):
+        return None
+
+    stored_document_path = _optional_string(stored_report.get("document_path"))
+    if stored_document_path is None:
+        return None
+    stored_document_source = cache_dir / stored_document_path
+    if not stored_document_source.exists():
+        return None
+
+    stored_run_dir = _optional_string(stored_report.get("run_dir"))
+    if stored_run_dir is not None:
+        stored_run_source = cache_dir / stored_run_dir
+        if not stored_run_source.exists():
+            return None
+        shutil.copytree(stored_run_source, case_dir / stored_run_dir)
+        stored_report["run_dir"] = str((case_dir / stored_run_dir).resolve())
+    else:
+        target_document_path = case_dir / "document.v1.json"
+        shutil.copy2(stored_document_source, target_document_path)
+        stored_report["document_path"] = str(target_document_path.resolve())
+        stored_report["cache_key"] = cache_key
+        stored_report["cache_status"] = "hit"
+        return stored_report
+
+    stored_report["document_path"] = str((case_dir / stored_document_path).resolve())
+    stored_report["cache_key"] = cache_key
+    stored_report["cache_status"] = "hit"
+    return stored_report
+
+
 def _resolve_path(raw_path: str, *, base_dir: Path) -> Path:
     candidate = Path(raw_path).expanduser()
     if not candidate.is_absolute():
@@ -879,6 +980,16 @@ def _resolve_optional_path(raw_path: Any, *, base_dir: Path) -> Path | None:
     if not isinstance(raw_path, str) or not raw_path.strip():
         return None
     return _resolve_path(raw_path, base_dir=base_dir)
+
+
+def _canonical_json(value: Mapping[str, Any]) -> str:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def _cache_manifest_entry(entry: Mapping[str, Any], *, gold_path: Path | None) -> dict[str, Any]:
+    cached_entry = dict(entry)
+    cached_entry["gold_path_sha256"] = sha256_file(gold_path) if gold_path is not None and gold_path.exists() else None
+    return cached_entry
 
 
 def _optional_string(value: Any) -> str | None:

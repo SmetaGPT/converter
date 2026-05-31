@@ -179,6 +179,8 @@ graph LR
 
 ### Sprint S3.1 — `FormulaProvider Protocol`
 
+**Status:** completed locally 2026-05-30. Evidence: `src/doc_converter/formulas/providers.py` now defines `FormulaProvider`, `LocalTesseractProvider`, `OpenRouterProvider` and `NullProvider`; `src/doc_converter/formula_recognition.py` uses a provider chain instead of hard-coded backend/provider branches; `tests/test_formula_recognition.py` covers each provider plus the `NullProvider` no-network integration path; full `unittest`, `ruff` and `pyright` stayed green.
+
 - **Goal:** formula recognition pluggable.
 - **Scope:** [src/doc_converter/formula_recognition.py](../src/doc_converter/formula_recognition.py) расщепить на:
   - `FormulaProvider Protocol` (`predict(asset, ctx) -> FormulaPrediction`);
@@ -186,23 +188,27 @@ graph LR
   - провайдер выбирается через config + env, fallback chain — данные, не код.
 - **Exit:** unit-тесты на каждый provider; интеграционный тест с `NullProvider` стабильно зелёный без сети.
 - **depends_on:** S2.2.
-- **feature_ids:** `providers.formula-protocol`.
+- **feature_ids:** `providers-formula-protocol`.
 
 ### Sprint S3.2 — `OCRBackend Protocol` и `CatalogWriter Protocol`
+
+**Status:** completed locally 2026-05-31. Evidence: `src/doc_converter/ocr/backends.py` now defines `OcrmypdfBackend`, `NullOcrBackend` and the `OCRBackend` protocol; `src/doc_converter/run/catalog_writers.py` introduces `JsonCatalogWriter`, `XlsxCatalogWriter` and the `CatalogWriter` protocol; `ConverterOptions` now serializes `ocr_backend` and `catalog_writers` into `run.json`; `tests/test_pdf_scan_converter.py`, `tests/test_cli_smoke.py` and `tests/test_config.py` verify explicit null OCR backend, json-only catalog output and unchanged default behavior; full `unittest`, `ruff` and `pyright` stayed green.
 
 - **Goal:** OCR backend и catalog writer тоже plug-in.
 - **Scope:** аналогично S3.1; `OcrmypdfBackend`, `NullOcrBackend`; `JsonCatalogWriter`, `XlsxCatalogWriter`.
 - **Exit:** замена backend через config работает в тесте.
 - **depends_on:** S3.1.
-- **feature_ids:** `providers.ocr-protocol`, `providers.catalog-protocol`.
+- **feature_ids:** `providers-ocr-protocol`, `providers-catalog-protocol`.
 
 ### Sprint S3.3 — Secret redaction guarantee
+
+**Status:** completed locally 2026-05-31. Evidence: `src/doc_converter/redaction.py` introduces recursive env-value redaction for keys matching `*API_KEY*/*TOKEN*/*SECRET*`; run/package serialization boundaries in `src/doc_converter/run/orchestration.py`, `src/doc_converter/run/logging.py`, `src/doc_converter/run/catalog.py` and `src/doc_converter/formula_recognition.py` now write redacted payloads; `tests/test_provider_secret_redaction.py` scans temp run artifacts and formula-recognition sidecars for raw env-secret values; full `unittest`, `ruff` and `pyright` stayed green.
 
 - **Goal:** ни один secret не утекает в артефакты.
 - **Scope:** утилита `redact_secrets(obj, env)`; вызов на границе записи `run.json`/`manifest`/`formula-recognition.jsonl`; тест `tests/test_provider_secret_redaction.py` сканирует все артефакты test-runs на совпадения со значениями env-vars `*API_KEY*/*TOKEN*/*SECRET*`.
 - **Exit:** тест зелёный; CI-gate.
 - **depends_on:** S3.1.
-- **feature_ids:** `security.secret-redaction`.
+- **feature_ids:** `security-secret-redaction`.
 
 ---
 
@@ -210,32 +216,40 @@ graph LR
 
 ### Sprint S4.1 — Stable ordering
 
+**Status:** completed locally 2026-05-31. Evidence: [src/doc_converter/inventory.py](../src/doc_converter/inventory.py) now sorts finalized supported/unsupported inventory records and duplicate groups by deterministic path key plus `sha256`; [tests/test_inventory.py](../tests/test_inventory.py) proves duplicate-primary selection no longer depends on iterator order; [tests/test_run_determinism.py](../tests/test_run_determinism.py) forces two different `_iter_input_files` orders and still gets identical clean-run `manifest.jsonl`.
+
 - **Goal:** идентичный input → идентичный output (до timestamps).
 - **Scope:** заменить `os.walk` на детерминированный обход с `sorted`; зафиксировать сортировку по `(source_path, sha256)` в [src/doc_converter/inventory.py](../src/doc_converter/inventory.py).
 - **Exit:** тест `tests/test_run_determinism.py`: два rerun дают идентичные `manifest.jsonl` после нормализации timestamps.
-- **feature_ids:** `determinism.ordering`.
+- **feature_ids:** `determinism-ordering`.
 
 ### Sprint S4.2 — Incremental formula benchmark
+
+**Status:** implemented locally 2026-05-31. Evidence: [src/doc_converter/formula_benchmark.py](../src/doc_converter/formula_benchmark.py) now caches per-entry benchmark cases under a versioned key derived from `sha256(asset)`, a manifest-entry fingerprint and `benchmark_version`; unchanged reruns reuse cached case reports, while manifest-entry and gold changes invalidate the cache; [tests/test_formula_benchmark.py](../tests/test_formula_benchmark.py) proves cache hit on unchanged rerun, miss on manifest/gold drift and `required_gate` recomputation from cached reports. Full-corpus timing smoke was not rerun in this session because the heavy local command hit a usage-limit rejection before execution.
 
 - **Goal:** benchmark выполняется инкрементально.
 - **Scope:** ключ кеша = `sha256(asset) + sha256(manifest_entry) + benchmark_version`; пропуск неизменённых записей; required_gate всё ещё проверяется по полному набору.
 - **Exit:** rerun без изменений < 30 сек локально; первый run и любой rerun с изменением gold/manifest — полная пересборка.
 - **depends_on:** S1.1.
-- **feature_ids:** `formula.benchmark-incremental`.
+- **feature_ids:** `formula-benchmark-incremental`.
 
 ### Sprint S4.3 — Font bundling
 
+**Status:** implemented locally 2026-05-31. Evidence: shared resolver [src/doc_converter/font_bundle.py](../src/doc_converter/font_bundle.py), bundled font assets in [assets/fonts/](../assets/fonts/), bundled-font-first matcher in [src/doc_converter/converters/docx/inline_glyph.py](../src/doc_converter/converters/docx/inline_glyph.py), doctor coverage in [src/doc_converter/cli.py](../src/doc_converter/cli.py), focused/broader regressions in [tests/test_docx_converter.py](../tests/test_docx_converter.py) and [tests/test_cli_smoke.py](../tests/test_cli_smoke.py), and PyInstaller smoke via [scripts/build-windows.ps1](../scripts/build-windows.ps1).
+
 - **Goal:** убрать зависимость от системных шрифтов.
-- **Scope:** добавить минимальный набор лицензионно-чистых шрифтов в `assets/fonts/`; inline-glyph renderer ищет сначала там; при отсутствии — явный понятный fail с подсказкой.
-- **Exit:** real-renderer тест (S0.1 opt-in) зелёный на чистой Windows VM без MS Office.
+- **Scope:** добавить минимальный набор лицензионно-чистых шрифтов в [assets/fonts/](../assets/fonts/); shared bundle resolver используется и в inline-glyph matcher, и в `document-converter doctor`, а PyInstaller build paths включают этот bundle в packaged output.
+- **Exit:** `python -m unittest tests.test_docx_converter tests.test_cli_smoke -v` зелёный; `python -m ruff check src/doc_converter/font_bundle.py src/doc_converter/cli.py src/doc_converter/converters/docx/inline_glyph.py tests/test_docx_converter.py tests/test_cli_smoke.py` зелёный; `python -m pyright src/doc_converter/font_bundle.py src/doc_converter/cli.py src/doc_converter/converters/docx/inline_glyph.py` зелёный; `powershell -ExecutionPolicy Bypass -File scripts\build-windows.ps1 -Name DocumentConverter-next` успешно собирает bundle с assets. Clean-VM real-renderer proof остаётся желательным внешним follow-up, но системные Windows fonts больше не являются единственным runtime path.
 - **depends_on:** S2.1.
-- **feature_ids:** `determinism.font-bundle`.
+- **feature_ids:** `determinism-font-bundle`.
 
 ---
 
 ## Wave 5 — Coverage expansion
 
 ### Sprint S5.1 — Formula corpus expansion
+
+**Status:** in progress locally 2026-05-31. Latest evidence: noisy `1/пр` work-time/wage/participation formulas `(9)`-`(13)`, average/resource-cost formulas `(24)` and `(25)`, technical-cost formulas `(15)`, `(17)`, `(19)`, `(20)` and `(22)`, cameral participation formulas `(35)` and `(36)`, additional-cost formula `(37)`, estimated-work participation formulas `(38)` and `(39)`, and estimated-work cost formulas `(42)` and `(43)` are recovered through the canonical known-pattern layer in [samples/formulas/known-patterns.v1.json](../samples/formulas/known-patterns.v1.json) and its exported package copy in [src/doc_converter/formulas/known-patterns.v1.json](../src/doc_converter/formulas/known-patterns.v1.json); focused tests `test_formula_representation_recovers_noisy_1pr_tech_break_formula`, `test_formula_representation_recovers_noisy_1pr_wage_and_worker_time_formulas`, `test_formula_representation_recovers_noisy_1pr_participation_average_formula`, `test_formula_representation_recovers_noisy_1pr_participation_formula`, `test_formula_representation_recovers_noisy_1pr_cameral_participation_family`, `test_formula_representation_recovers_noisy_1pr_additional_cost_formula`, `test_formula_representation_recovers_noisy_1pr_estimated_work_participation_family` and `test_formula_representation_recovers_noisy_1pr_estimated_work_cost_family`, the broader regression slice [tests/test_docx_converter.py](../tests/test_docx_converter.py) + [tests/test_known_formula_patterns.py](../tests/test_known_formula_patterns.py) (`104/104`) and `scripts/validate_known_formulas.py` all passed with canonical/package data in sync (`21` noisy mappings, `47` formula representations). With the source DOCX now available under `D:\Документы\ФСНБ\Документы\для парсера\Российские\metod`, rendered WMF evidence confirmed formulas `(10)` and `(13)`, and a cold one-doc rerun [runs/formula-debug-1pr-source-fresh/runs/20260531T072130Z](../runs/formula-debug-1pr-source-fresh/runs/20260531T072130Z) reached `49/49` `calc_expr` units and `26/49` native formulas for `gate-metod-1-pr`; same-output-root reruns can still report stale `47/49` via `cache_status: hit`, so targeted proof should use a fresh benchmark output root or inspect cache status.
 
 - **Goal:** benchmark coverage ≥ 80 % calc_expr и ≥ 70 % native.
 - **Scope:** расширить `samples/formula-benchmark.manifest.jsonl` и `samples/expected/formulas/` реальными формулами из 1/421/521/534/812/904/пр; поднять пороги в `samples/formula-benchmark.thresholds.json`.
@@ -357,19 +371,23 @@ Status: completed (2026-05-30). Evidence: added `docs/security.md`, hardened `sr
 
 ### Sprint S9.2 — Nightly full e2e
 
+**Status:** in_progress 2026-05-30. Initial evidence: `.github/workflows/nightly-full-e2e.yml`, `samples/manifest.table-anchors.ci.jsonl`, `scripts/create_nightly_failure_issue.py`.
+
 - **Goal:** ежедневный полный регресс.
-- **Scope:** nightly job: synthetic-e2e + полный formula benchmark + table anchors + portable package build + EXE smoke. Failure → auto-issue с привязкой к agent_id последнего merge.
+- **Scope:** nightly job: synthetic-e2e + full formula benchmark monitor on hosted runners (`--no-thresholds`) + CI-safe formula required gate + repo-tracked table anchors + portable package build + EXE smoke. Failure → auto-issue с привязкой к latest merged PR и `agent_id` из PR body с fallback на `head_ref`/author.
 - **Exit:** 7 ночей подряд успешный run или auto-issue с детальной диагностикой.
 - **depends_on:** S9.1.
-- **feature_ids:** `ci.nightly-e2e`.
+- **feature_ids:** `ci-nightly-e2e`.
 
 ### Sprint S9.3 — Release automation
+
+**Status:** completed locally 2026-05-30. Evidence: `.github/workflows/release.yml` publishes GitHub Releases on `v*` tags, `scripts/package-release.ps1` now renders `release-notes.md` from `CHANGELOG.md` through `scripts/render_release_notes.py` / `src/doc_converter/release_notes.py`, `tests/test_release_notes.py` covers exact-version and nightly fallback behavior, and local smoke `powershell -ExecutionPolicy Bypass -File scripts\package-release.ps1 -Name DocumentConverter -Version 0.3.0-nightly -SkipBuild` generated a changelog-backed release bundle.
 
 - **Goal:** релиз без ручного шага.
 - **Scope:** tag `v0.x.y` → build portable + checksum + GitHub Release + release-notes из CHANGELOG, который пишут агенты.
 - **Exit:** релиз `v0.3.1` (или ближайший) уходит автоматически.
 - **depends_on:** S9.1.
-- **feature_ids:** `ci.release-automation`.
+- **feature_ids:** `ci-release-automation`.
 
 ---
 

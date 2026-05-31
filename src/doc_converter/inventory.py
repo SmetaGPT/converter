@@ -62,7 +62,11 @@ def build_inventory(input_dir: Path) -> InventoryScanResult:
             continue
         unsupported_records.append(_build_unsupported_record(input_dir, item))
 
-    raw_records = [_build_record(input_dir, item, detection) for item, detection in supported_candidates]
+    raw_records = sorted(
+        (_build_record(input_dir, item, detection) for item, detection in supported_candidates),
+        key=_inventory_record_sort_key,
+    )
+    unsupported_records = sorted(unsupported_records, key=_unsupported_record_sort_key)
     supported_records = _attach_duplicate_info(raw_records)
     return InventoryScanResult(
         scanned_files=len(supported_records) + len(unsupported_records),
@@ -86,7 +90,7 @@ def _iter_input_files(input_dir: Path) -> list[Path]:
         if item.name.startswith("~$"):
             continue
         files.append(item)
-    return sorted(files, key=lambda item: item.relative_to(input_dir).as_posix().lower())
+    return sorted(files, key=lambda item: _relative_path_sort_key(item.relative_to(input_dir).as_posix()))
 
 
 def _build_record(input_dir: Path, path: Path, detection: DetectionResult) -> InventoryRecord:
@@ -116,11 +120,12 @@ def _build_unsupported_record(input_dir: Path, path: Path) -> UnsupportedInvento
 
 def _attach_duplicate_info(records: list[InventoryRecord]) -> list[InventoryRecord]:
     by_hash: dict[str, list[InventoryRecord]] = {}
-    for record in records:
+    sorted_records = sorted(records, key=_inventory_record_sort_key)
+    for record in sorted_records:
         by_hash.setdefault(record.sha256, []).append(record)
 
     result: list[InventoryRecord] = []
-    for record in records:
+    for record in sorted_records:
         group = by_hash[record.sha256]
         if len(group) == 1:
             result.append(record)
@@ -142,3 +147,15 @@ def _attach_duplicate_info(records: list[InventoryRecord]) -> list[InventoryReco
             )
         )
     return result
+
+
+def _inventory_record_sort_key(record: InventoryRecord) -> tuple[str, str, str]:
+    return (*_relative_path_sort_key(record.relative_path), record.sha256)
+
+
+def _unsupported_record_sort_key(record: UnsupportedInventoryRecord) -> tuple[str, str]:
+    return _relative_path_sort_key(record.relative_path)
+
+
+def _relative_path_sort_key(relative_path: str) -> tuple[str, str]:
+    return (relative_path.lower(), relative_path)

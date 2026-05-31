@@ -1,7 +1,7 @@
 # Current Status
 
-Последнее обновление: 2026-05-30
-Статус контура: wave 2 complete, S9.1 gate automation live
+Последнее обновление: 2026-05-31
+Статус контура: wave 2 complete, S9.2 nightly burn-in active, S9.3/S3.1/S3.2/S3.3/S4.1/S4.2/S4.3 implemented locally
 
 ## 1. Краткий снимок состояния
 
@@ -15,6 +15,14 @@
 - Sprint 6 завершён;
 - Sprint 7 завершён;
 - critical-path sprint S9.1 завершён;
+- critical-path sprint S9.2 активирован;
+- critical-path sprint S9.3 реализован локально; первый tag proof pending;
+- независимый sprint S3.1 реализован локально поверх активного S9.2 wait-state;
+- независимый sprint S3.2 реализован локально поверх активного S9.2 wait-state;
+- независимый sprint S3.3 реализован локально поверх активного S9.2 wait-state;
+- независимый sprint S4.1 реализован локально поверх активного S9.2 wait-state;
+- независимый sprint S4.2 реализован локально поверх активного S9.2 wait-state;
+- независимый sprint S4.3 реализован локально поверх активного S9.2 wait-state;
 - roadmap wave 1 завершена;
 - roadmap wave 2 завершена;
 - state layer уже создан;
@@ -154,6 +162,23 @@
 127. Закрыт production roadmap Sprint S7.1: `validate_run_directories` теперь fail-closed отклоняет symlink components в `input_dir`/`output_dir`/`runs_dir`, DOCX admission проверяет entry-count и uncompressed-size limits до `python-docx`, WMF parser ограничен по размеру blob и количеству records, а новый `docs/security.md` фиксирует threat model, subprocess inventory и font/path policy. Focused security slice (`tests/test_docx_converter.py` + `tests/test_run_paths.py`, 88 tests), `python -m unittest discover -v` (156 tests, skipped 4), `ruff` и `pyright` прошли зелёно.
 128. Закрыт production roadmap Sprint S7.2: `windows-ci` теперь ставит Gitleaks и выполняет required git-backed secret scan `gitleaks git --config .gitleaks.toml --exit-code 1 .`, `.gitleaks.toml` расширяет default rules узким product-specific rule для `OPENROUTER_API_KEY` / `FORMULA_RECOGNITION_API_KEY`, а global allowlist покрывает только известные fake fixtures и `.env.example`. Focused local validation подтвердила `clean repo exit 0` и `synthetic git canary exit 1`.
 129. Закрыт production roadmap Sprint S9.1: на `main` включены strict required PR checks `secret-scan`, `lint`, `typecheck`, `unit-tests`, `harness-validator`, `formula-benchmark-gate`, `document-package-validator` и `release-smoke`, PR template требует feature/state/validation closeout, а workflow `.github/workflows/autonomous-pr-auto-merge.yml` на base branch включает squash auto-merge для same-repo non-draft PR с label `agent:autonomous`. Bootstrap tranche потребовал отдельного release-smoke hardening, после чего proof PR агента merge-ится автоматически без ручного `gh pr merge`.
+130. Открыт production roadmap Sprint S9.2: добавлен hosted-runner workflow `.github/workflows/nightly-full-e2e.yml`, repo-safe `samples/manifest.table-anchors.ci.jsonl`, monitor-only path `--no-thresholds` для полного formula manifest на GitHub-hosted runner и helper `scripts/create_nightly_failure_issue.py`, который при падении nightly создаёт issue с latest merged PR context и `agent_id` из PR body с fallback на `head_ref`/author.
+131. Закрыт production roadmap Sprint S3.2: `src/doc_converter/ocr/backends.py` вводит `OcrmypdfBackend` и `NullOcrBackend`, `src/doc_converter/run/catalog_writers.py` выносит `JsonCatalogWriter` и `XlsxCatalogWriter`, `ConverterOptions` сериализует `ocr_backend`/`catalog_writers` в `run.json`, а config-driven smoke подтверждает explicit null OCR backend и json-only catalog без поломки default operator path.
+132. Закрыт production roadmap Sprint S3.3: добавлен общий `src/doc_converter/redaction.py`, который применяется на границах `run.json`, `manifest/review JSONL`, telemetry/error mirrors, `formula-recognition.jsonl` и catalog outputs; новый `tests/test_provider_secret_redaction.py` побайтно сканирует temp run artifacts и подтверждает, что значения env vars `*API_KEY*/*TOKEN*/*SECRET*` не утекают ни в primary JSON, ни в legacy compatibility mirrors.
+133. Закрыт production roadmap Sprint S4.1: `src/doc_converter/inventory.py` теперь сортирует finalized supported/unsupported records и duplicate groups по deterministic key `relative_path + sha256`, поэтому primary duplicate больше не зависит от iterator order; новый `tests/test_run_determinism.py` принудительно подаёт два разных порядка `_iter_input_files` и всё равно получает идентичный clean-run `manifest.jsonl`.
+134. Реализован production roadmap Sprint S4.2: `src/doc_converter/formula_benchmark.py` теперь держит versioned per-entry cache по `sha256(asset)` + manifest fingerprint + `benchmark_version`, unchanged rerun reuse-ит cached case reports, а изменение manifest/gold снова вызывает full case rebuild; `tests/test_formula_benchmark.py` покрывает hit/miss и сохранение `required_gate` поверх cached reports. Full-corpus timing smoke для exit `<30s` в этой сессии не был повторён: heavy local command был отклонён usage-limit guard до старта.
+135. Реализован production roadmap Sprint S4.3: shared `src/doc_converter/font_bundle.py` выровнял font discovery между `document-converter doctor`, DOCX inline glyph matcher и frozen/runtime layouts; в `assets/fonts/` добавлены `DejaVuSans.ttf` и `LICENSE_DEJAVU`, `inline_glyph.py` теперь предпочитает bundled font paths системным шрифтам, а `scripts/build-windows.ps1` и оба PyInstaller spec-файла включают `assets` в packaged output. Focused bundled-font tests, полный `tests.test_docx_converter` + `tests.test_cli_smoke` slice (73 tests), `ruff`, `pyright` и build smoke `DocumentConverter-next` прошли зелёно.
+136. Запущен production roadmap Sprint S5.1 локальным `1/пр` residue slice: data-driven known-pattern recovery в `src/doc_converter/formulas/known-patterns.v1.json` теперь закрывает noisy average/resource-cost formulas `(24)` и `(25)` как machine-readable `calc_expr`/LaTeX, а расширенный regression slice `tests.test_docx_converter` + `tests.test_known_formula_patterns` прошёл `50/50`. Fresh one-doc benchmark rerun для `gate-metod-1-pr` не удалось воспроизвести в этом workspace, потому что исходный `D:\ФСНБ\...` source path отсутствует локально.
+137. Продолжен production roadmap Sprint S5.1 следующим локальным `1/пр` residue slice: canonical `samples/formulas/known-patterns.v1.json` и экспортируемая package copy теперь закрывают noisy technical-cost formulas `(15)`, `(17)`, `(19)`, `(20)` и `(22)` как machine-readable `calc_expr`/LaTeX без parser-side Python ветвления, а regression path подтвердил focused `test_formula_representation_recovers_noisy_1pr_technical_cost_family`, broader `tests.test_docx_converter` + `tests.test_known_formula_patterns` (`45/45`) и `scripts/validate_known_formulas.py` после repair canonical/package sync. Fresh `gate-metod-1-pr` benchmark rerun всё ещё blocked только отсутствующим в workspace внешним `D:\ФСНБ\...` source DOCX.
+138. Продолжен production roadmap Sprint S5.1 ещё одним локальным `1/пр` residue slice: canonical `samples/formulas/known-patterns.v1.json` и synced package copy теперь дополнительно закрывают noisy formulas `(9)` и `(11)` как `Н_(тп) = Т_(тп) × 100 / Т_(вр)` и `К_(ср) = К_(уч) / Ч_(факт)` с machine-readable `calc_expr`/LaTeX, а regression path подтвердил focused tests `test_formula_representation_recovers_noisy_1pr_tech_break_formula` и `test_formula_representation_recovers_noisy_1pr_participation_average_formula`, broader `tests.test_docx_converter` + `tests.test_known_formula_patterns` (`98/98`) и повторный `scripts/validate_known_formulas.py` без canonical/package drift. Fresh `gate-metod-1-pr` benchmark rerun всё ещё blocked только отсутствующим в workspace внешним `D:\ФСНБ\...` source DOCX.
+139. Продолжен production roadmap Sprint S5.1 ещё одним соседним локальным `1/пр` residue slice: canonical `samples/formulas/known-patterns.v1.json` и synced package copy теперь также закрывают noisy formula `(12)` как `К_(уч) = ТК × Ч_(i) × Т_(1раб) / Н_(ВрП)` с machine-readable `calc_expr`/LaTeX без parser-side Python ветвления, а regression path подтвердил focused `test_formula_representation_recovers_noisy_1pr_participation_formula`, broader `tests.test_docx_converter` + `tests.test_known_formula_patterns` (`99/99`) и повторный `scripts/validate_known_formulas.py` при сохранённом canonical/package sync. Fresh `gate-metod-1-pr` benchmark rerun всё ещё blocked только отсутствующим в workspace внешним `D:\ФСНБ\...` source DOCX.
+140. Продолжен production roadmap Sprint S5.1 ещё одним structurally repeated `1/пр` residue slice: canonical `samples/formulas/known-patterns.v1.json` и synced package copy теперь также закрывают cameral participation formulas `(35)` и `(36)` как `К_(срК) = К_(учК) / Ч_(общ)` и `К_(учК) = ТК × Ч_(i) × Т_(КАМ1) / Т_(КАМобщ)` с machine-readable `calc_expr`/LaTeX без parser-side Python ветвления, а regression path подтвердил focused `test_formula_representation_recovers_noisy_1pr_cameral_participation_family`, broader `tests.test_docx_converter` + `tests.test_known_formula_patterns` (`100/100`) и повторный `scripts/validate_known_formulas.py`, который теперь фиксирует `14` noisy recovery mappings и `40` formula representations при сохранённом canonical/package sync. Fresh `gate-metod-1-pr` benchmark rerun всё ещё blocked только отсутствующим в workspace внешним `D:\ФСНБ\...` source DOCX.
+141. Продолжен production roadmap Sprint S5.1 ещё одним cheap `1/пр` residue slice: canonical `samples/formulas/known-patterns.v1.json` и synced package copy теперь также закрывают noisy formula `(37)` как `Н_(ДЗ) = ДЗ × 100 / С_(р)` с machine-readable `calc_expr`/LaTeX без parser-side Python ветвления, а regression path подтвердил focused `test_formula_representation_recovers_noisy_1pr_additional_cost_formula`, broader `tests.test_docx_converter` + `tests.test_known_formula_patterns` (`101/101`) и повторный `scripts/validate_known_formulas.py`, который теперь фиксирует `15` noisy recovery mappings и `41` formula representations при сохранённом canonical/package sync. Fresh `gate-metod-1-pr` benchmark rerun всё ещё blocked только отсутствующим в workspace внешним `D:\ФСНБ\...` source DOCX.
+142. Продолжен production roadmap Sprint S5.1 ещё одним batched `1/пр` residue slice: canonical `samples/formulas/known-patterns.v1.json` и synced package copy теперь также закрывают оцениваемую-полевую participation pair `(38)` и `(39)` как `К_(учО) = ТК_(о) × Ч_(Оi) × Т_(Оi) / Т_(Ообщ)` и `К_(срО) = К_(учО) / Ч_(Ообщ)` с machine-readable `calc_expr`/LaTeX без parser-side Python ветвления, несмотря на OCR-путаницу `П/О` в noisy token formula `(39)`. Regression path подтвердил focused `test_formula_representation_recovers_noisy_1pr_estimated_work_participation_family`, broader `tests.test_docx_converter` + `tests.test_known_formula_patterns` (`102/102`) и повторный `scripts/validate_known_formulas.py`, который теперь фиксирует `17` noisy recovery mappings и `43` formula representations при сохранённом canonical/package sync. После этого локальный `1/пр` residue сузился в основном до evidence-blocked formulas `(10)` и `(13)`, а fresh `gate-metod-1-pr` benchmark rerun всё ещё blocked отсутствующим в workspace внешним `D:\ФСНБ\...` source DOCX.
+143. Автономное исполнение production roadmap остановлено на реальном внешнем blocker-е после локального closeout formulas `(37)`-`(39)`: честных следующих local slices для `S5.1` больше не осталось, потому что `1/пр` residue теперь сводится к evidence-blocked formulas `(10)` и `(13)`, где доступные артефакты не оправдывают домысливание скрытых коэффициентов, а fresh `gate-metod-1-pr` benchmark rerun и threshold closeout по-прежнему требуют отсутствующий в workspace внешний `D:\ФСНБ\...` source DOCX. Параллельно critical-path sprints `S9.2` и `S9.3` остаются blocked на GitHub-hosted nightly/tag evidence; все локально доступные проверки для touched scope и state layer при этом зелёные.
+144. Пользователь предоставил реальный source DOCX для `gate-metod-1-pr` по пути `D:\Документы\ФСНБ\Документы\для парсера\Российские\metod`, и direct WMF inspection снял прежний blocker по формулам `(10)` и `(13)`: canonical `samples/formulas/known-patterns.v1.json` и synced package copy теперь также закрывают wage/worker-time formulas `(10)` и `(13)` вместе с estimated-work cost formulas `(42)` и `(43)` как machine-readable `calc_expr`/LaTeX без parser-side Python ветвления. Regression path подтвердил focused `test_formula_representation_recovers_noisy_1pr_wage_and_worker_time_formulas`, broader `tests.test_docx_converter` + `tests.test_known_formula_patterns` (`104/104`) и повторный `scripts/validate_known_formulas.py`, который теперь фиксирует `21` noisy recovery mappings и `47` formula representations при сохранённом canonical/package sync. Cold rerun `runs\formula-debug-1pr-source-fresh\runs\20260531T072130Z` довёл `gate-metod-1-pr` до `49/49` `calc_expr` units и `26/49` native formulas; повторный rerun в старом output root кратко показал stale `47/49` только из-за `formula_benchmark` cache hit, а не из-за regression.
+145. Диагностирован latest GitHub `windows-ci` failure на PR #3: `.github/workflows/windows-ci.yml` синтаксически валиден, а реальные падения были в проверяемом содержимом ветки. `harness-validator` падал из-за telemetry feature id `determinism-font-bundle`, отсутствующего в pushed feature spine; `typecheck` и `unit-tests` падали из-за missing tracked module `src/doc_converter/font_bundle.py`; дополнительный `unit-tests` failure был Windows-hosted alias mismatch `C:\Users\RUNNER~1` vs `C:\Users\runneradmin` в тестовых сравнениях путей. Локальная правка сделала `tests/test_sample_pilot.py` и `tests/test_run_determinism.py` устойчивыми к `Path.resolve()` на hosted runner, а focused/full validation прошла: `tests.test_sample_pilot tests.test_run_determinism tests.test_docx_converter` (`54` tests), full `unittest discover` (`192` tests, `4` skipped), `pyright`, `ruff` по touched files и `scripts/validate_harness_assets.py` зелёные. Для GitHub proof следующий commit/push должен включать не только workflow-adjacent tests, но и уже подготовленные `src/doc_converter/font_bundle.py`, `assets/fonts/` и `docs/agent-feature-spine.json`.
+146. Разобран текущий blocker внешнего evidence для `S9.2/S9.3`: GitHub Actions registry на default branch видит только `autonomous-pr-auto-merge`, `windows-ci` и `Copilot`, а `.github/workflows/nightly-full-e2e.yml` и `.github/workflows/release.yml` существуют только на PR branch `agent/s9-2-nightly-dispatch`, поэтому schedule/manual nightly и tag-driven release proof не могут стартовать до merge в `main`. Дополнительный merge blocker после commit `1bdba2c` был `harness-validator`: `determinism-font-bundle` в `docs/agent-feature-spine.json` ссылался на локальные ignored PyInstaller files `DocumentConverter.spec` и `DocumentConverter-next.spec`, которых нет на GitHub fresh checkout. Feature spine исправлен на git-tracked evidence; локальный `scripts/validate_harness_assets.py` снова возвращает `status: ok`.
 
 ### Готовые артефакты
 
@@ -204,6 +229,7 @@
 - .github/PULL_REQUEST_TEMPLATE.md
 - .github/workflows/windows-ci.yml
 - .github/workflows/autonomous-pr-auto-merge.yml
+- .github/workflows/nightly-full-e2e.yml
 - .github/prompts/production-readiness-hardening.prompt.md
 - .github/prompts/execute-production-roadmap-autonomous.prompt.md
 - .vscode/extensions.json
@@ -211,6 +237,7 @@
 - .vscode/settings.json
 - samples/manifest.sample.jsonl
 - samples/manifest.table-anchors.jsonl
+- samples/manifest.table-anchors.ci.jsonl
 - samples/pdf-text-layer-check.sample.json
 - samples/expected/README.md
 - samples/expected/sample_001.expected-units.json
@@ -249,7 +276,7 @@
 
 ## 3. Что делается сейчас
 
-Текущий фокус: после закрытия S9.1 следующий critical-path sprint production roadmap — S9.2, то есть nightly full e2e поверх уже зафиксированных PR-gates, branch protection и autonomous merge.
+Текущий фокус: S9.2 остаётся активным как hosted nightly burn-in contour, S9.3 уже реализован локально через tag-driven release workflow, а во время этого wait-state уже локально закрыта вся Wave 3: formula-recognition dispatch идёт через `FormulaProvider`, OCR scan path идёт через `OcrBackend`, root catalog emission идёт через `CatalogWriter`, а artifact serialization boundaries проходят через общий secret-redaction слой. Следующий внешний proof теперь не в коде, а в первом GitHub run для nightly и первом `v*` tag push для release automation.
 
 Новый architecture-learning по input hardening: самые дешёвые security controls снова закрываются в shared admission boundary, а не в route-specific хвостах. Один guard в `run/paths.py` и один DOCX archive preflight дают больше контроля, чем поздние локальные проверки после начала extraction.
 
@@ -263,9 +290,21 @@
 
 Новый release-smoke-learning по S9.1: GitHub-hosted runner без `tesseract`/`ghostscript` должен считаться валидным `environment_invalid` ответом для `check-ocr`; release-smoke здесь проверяет schema-backed CLI envelope и exit-code contract, а не готовность OCR runtime на каждом runner.
 
+Новый release-automation-learning по S9.3: portable package notes должны рендериться из git-tracked `CHANGELOG.md`, а не из захардкоженного шаблона в PowerShell, иначе nightly/pre-release и stable tag paths расходятся и перестают быть тестируемым единым контрактом.
+
+Новый provider-learning по S3.1: pluggable protocol начинает окупаться только когда fallback chain перестаёт быть ручной `if`-лесенкой в orchestration-коде. Явный `FormulaProvider` contract плюс `NullProvider` даёт тестируемый no-network path и убирает special-case knowledge о провайдере из postprocess loop.
+
+Новый secret-redaction-learning по S3.3: compatibility mirrors и альтернативные operator formats (`errors.jsonl`, `processing-log.jsonl`, XLSX catalog) являются той же leak surface, что и primary schema-backed JSON/JSONL. Redaction нужно ставить на последней serialization boundary, а не только на «главных» артефактах.
+
+Новый determinism-ordering-learning по S4.1: одного sorted traversal недостаточно для устойчивого rerun diff. Ordering contract нужно закреплять на уже собранных inventory records и duplicate groups, иначе любой альтернативный iterator source или case-tie возвращает filesystem order обратно в manifest semantics.
+
+Новый formula-benchmark-incremental-learning по S4.2: cache key для benchmark case нельзя строить только из input asset и path-string в manifest. Чтобы rerun честно инвалидировался на gold drift, manifest fingerprint должен включать содержимое связанных quality artifacts, а required gate обязан пересчитываться на каждом запуске даже если сами case payloads пришли из cache.
+
 В работе:
 
-- открыть production roadmap S9.2: nightly full e2e как следующий automation tranche поверх уже закрытого S9.1;
+- дождаться первого GitHub evidence для `nightly-full-e2e` и зафиксировать artifact bundle или auto-issue path в state layer;
+- снять первый `v*` tag proof для `.github/workflows/release.yml`, чтобы S9.3 получил не только локальную, но и hosted GitHub Release evidence;
+- после локальной реализации S4.3 вернуться к следующему independent hardening sprint вне critical-path wait-state; следующий на очереди теперь W5 formula corpus expansion и measured DOCX/table backlog;
 - держать contract required-status contexts и label `agent:autonomous` синхронными с `.github/workflows/windows-ci.yml` и `.github/workflows/autonomous-pr-auto-merge.yml`;
 - удерживать `.gitleaks.toml` allowlist узким и не расширять его за пределы test/example surfaces без нового evidence;
 - держать `src/doc_converter/formula_benchmark.py` как отдельный non-critical architecture follow-up по file-size debt;
@@ -274,11 +313,11 @@
 
 ## 4. Что идёт дальше
 
-Следующая последовательность после закрытия S9.1:
+Следующая последовательность после локальной реализации S4.3 при продолжающемся ожидании hosted proof по S9.x:
 
-1. Открыть production roadmap S9.2: nightly full e2e.
-2. Затем открыть S9.3: release automation поверх стабильного nightly/regression контура.
-3. После security baseline решить отдельным tranche дальнейший hardening для PDF/XLSX admission, если он станет критичным.
+1. Зафиксировать hosted evidence для `S9.2`: первый `nightly-full-e2e` artifact bundle или auto-issue path на GitHub.
+2. Зафиксировать hosted evidence для `S9.3`: первый `v*` tag release с опубликованными zip/checksum и notes из `CHANGELOG.md`.
+3. Затем возвращаться к ближайшему независимому product-hardening sprint из W5/W8, не конфликтующему с ожиданием S9.2 burn-in; после локальной реализации S4.3 следующий на очереди — S5.1 и measured DOCX/table backlog.
 4. Держать `src/doc_converter/formula_benchmark.py` как отдельный follow-up по repo-wide file-size debt вне critical path.
 5. Продолжать measured table backlog по `sample_020`, warning density на `sample_009/018` и negative/control false-positive contour уже поверх shared `tables/` package.
 6. Затем вернуться к richer DOCX table semantics и generalized WMF parser backlog для formula-rich DOCX.

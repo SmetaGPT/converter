@@ -7,7 +7,16 @@ from pathlib import Path
 from unittest.mock import patch
 
 from doc_converter.config import FormulaRecognitionConfig
-from doc_converter.formula_recognition import _request_openrouter_completion, run_formula_recognition_postprocess
+from doc_converter.formula_recognition import run_formula_recognition_postprocess
+from doc_converter.formulas.providers import (
+    FormulaRecognitionAsset,
+    FormulaProviderContext,
+    LocalTesseractProvider,
+    NullProvider,
+    OpenRouterProvider,
+    _request_openrouter_completion,
+    build_formula_provider_chain,
+)
 from doc_converter.schema_validation import validate_payload
 
 
@@ -27,7 +36,7 @@ class FormulaRecognitionPostprocessTests(unittest.TestCase):
             )
 
             with patch(
-                "doc_converter.formula_recognition._request_openrouter_completion",
+                "doc_converter.formulas.providers._request_openrouter_completion",
                 return_value={
                     "choices": [
                         {
@@ -122,7 +131,7 @@ class FormulaRecognitionPostprocessTests(unittest.TestCase):
             captured["body"] = json.loads(request.data.decode("utf-8"))
             return _FakeResponse()
 
-        with patch("doc_converter.formula_recognition.urllib.request.urlopen", side_effect=_fake_urlopen):
+        with patch("doc_converter.formulas.providers.urllib.request.urlopen", side_effect=_fake_urlopen):
             _request_openrouter_completion(
                 api_key="secret",
                 model="openai/gpt-4o",
@@ -149,7 +158,7 @@ class FormulaRecognitionPostprocessTests(unittest.TestCase):
             )
 
             with patch(
-                "doc_converter.formula_recognition._request_openrouter_completion",
+                "doc_converter.formulas.providers._request_openrouter_completion",
                 return_value={
                     "choices": [
                         {
@@ -198,7 +207,7 @@ class FormulaRecognitionPostprocessTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            with patch("doc_converter.formula_recognition._request_openrouter_completion") as mocked_provider:
+            with patch("doc_converter.formulas.providers._request_openrouter_completion") as mocked_provider:
                 result = run_formula_recognition_postprocess(
                     document_dir,
                     FormulaRecognitionConfig(provider="openrouter", model="openai/gpt-4o", api_key="secret"),
@@ -225,7 +234,7 @@ class FormulaRecognitionPostprocessTests(unittest.TestCase):
             )
 
             with patch(
-                "doc_converter.formula_recognition._request_openrouter_completion",
+                "doc_converter.formulas.providers._request_openrouter_completion",
                 return_value={
                     "choices": [
                         {
@@ -270,7 +279,7 @@ class FormulaRecognitionPostprocessTests(unittest.TestCase):
             )
 
             with patch(
-                "doc_converter.formula_recognition._recognize_formula_with_local_backend",
+                "doc_converter.formulas.providers._recognize_formula_with_tesseract",
                 return_value={
                     "source_format": "heuristic_latex",
                     "linear_text": "C = A + B",
@@ -280,7 +289,7 @@ class FormulaRecognitionPostprocessTests(unittest.TestCase):
                     "warnings": ["formula_local_backend_tesseract"],
                 },
             ) as mocked_local_backend, patch(
-                "doc_converter.formula_recognition._request_openrouter_completion"
+                "doc_converter.formulas.providers._request_openrouter_completion"
             ) as mocked_provider:
                 result = run_formula_recognition_postprocess(
                     document_dir,
@@ -325,10 +334,10 @@ class FormulaRecognitionPostprocessTests(unittest.TestCase):
             )
 
             with patch(
-                "doc_converter.formula_recognition._recognize_formula_with_local_backend",
+                "doc_converter.formulas.providers._recognize_formula_with_tesseract",
                 return_value=None,
             ) as mocked_local_backend, patch(
-                "doc_converter.formula_recognition._request_openrouter_completion",
+                "doc_converter.formulas.providers._request_openrouter_completion",
                 return_value={
                     "choices": [
                         {
@@ -357,6 +366,105 @@ class FormulaRecognitionPostprocessTests(unittest.TestCase):
             mocked_provider.assert_called_once()
             self.assertEqual(result.recognized, 1)
             self.assertEqual(result.provider_calls, 1)
+
+    def test_build_formula_provider_chain_returns_null_provider_when_unconfigured(self) -> None:
+        providers = build_formula_provider_chain(FormulaRecognitionConfig())
+
+        self.assertEqual(len(providers), 1)
+        self.assertIsInstance(providers[0], NullProvider)
+
+    def test_local_tesseract_provider_returns_prediction(self) -> None:
+        provider = LocalTesseractProvider(backend="tesseract")
+        asset = FormulaRecognitionAsset(path=Path("formula.png"), blob=b"png")
+        context = FormulaProviderContext(
+            candidate_kind="formula_image",
+            asset_name="formula.png",
+            local_hint_text=None,
+            source_text=None,
+        )
+
+        with patch(
+            "doc_converter.formulas.providers._recognize_formula_with_tesseract",
+            return_value={
+                "source_format": "heuristic_latex",
+                "linear_text": "C = A + B",
+                "display_latex": r"C = A + B",
+                "calc_expr": "C = A + B",
+                "confidence": "high",
+                "warnings": [],
+            },
+        ) as mocked_backend:
+            prediction = provider.predict(asset, context)
+
+        mocked_backend.assert_called_once()
+        assert prediction is not None
+        self.assertEqual(prediction.origin, "local_backend")
+        self.assertEqual(prediction.formula["calc_expr"], "C = A + B")
+
+    def test_openrouter_provider_returns_prediction(self) -> None:
+        provider = OpenRouterProvider(provider="openrouter", model="openai/gpt-4o", api_key="secret")
+        asset = FormulaRecognitionAsset(path=None, blob=None)
+        context = FormulaProviderContext(
+            candidate_kind="formula_text",
+            asset_name=None,
+            local_hint_text=None,
+            source_text="C = A + B",
+        )
+
+        with patch(
+            "doc_converter.formulas.providers._request_openrouter_completion",
+            return_value={
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "linear_text": "C = A + B",
+                                    "display_latex": r"C = A + B",
+                                    "calc_expr": "C = A + B",
+                                    "confidence": "high",
+                                    "warnings": [],
+                                },
+                                ensure_ascii=False,
+                            )
+                        }
+                    }
+                ]
+            },
+        ) as mocked_request:
+            prediction = provider.predict(asset, context)
+
+        mocked_request.assert_called_once()
+        assert prediction is not None
+        self.assertEqual(prediction.origin, "provider")
+        self.assertEqual(prediction.formula["display_latex"], r"C = A + B")
+
+    def test_formula_recognition_postprocess_accepts_explicit_null_provider(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            document_dir = Path(temp_dir)
+            assets_dir = document_dir / "assets"
+            assets_dir.mkdir()
+            asset_path = assets_dir / "formula.png"
+            asset_path.write_bytes(b"png")
+
+            payload = _minimal_document_payload(asset_path)
+            (document_dir / "document.v1.json").write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            result = run_formula_recognition_postprocess(
+                document_dir,
+                FormulaRecognitionConfig(),
+                providers=(NullProvider(),),
+            )
+
+            self.assertEqual(result.attempted, 1)
+            self.assertEqual(result.recognized, 0)
+            self.assertEqual(result.provider_calls, 0)
+            artifact_record = json.loads((document_dir / "formula-recognition.jsonl").read_text(encoding="utf-8").splitlines()[0])
+            self.assertEqual(artifact_record["status"], "unresolved_without_provider")
+            self.assertEqual(artifact_record["provider"], "null")
 
 
 def _minimal_document_payload(asset_path: Path) -> dict[str, object]:

@@ -1,6 +1,6 @@
 {
   "schema_version": "agent-feature-spine.v1",
-  "last_updated": "2026-05-30",
+  "last_updated": "2026-05-31",
   "features": [
     {
       "feature_id": "state-layer",
@@ -986,6 +986,7 @@
       "behavior": "`document-converter doctor` reports OCR runtime, bundled font availability, schema availability and OpenRouter reachability through the same CLI envelope and returns `environment_invalid` when the runtime is not ready.",
       "owner_docs": [
         "src/doc_converter/cli.py",
+        "src/doc_converter/font_bundle.py",
         "src/doc_converter/ocr_runtime.py",
         "schemas/cli-result.v1.schema.json",
         "tests/test_cli_smoke.py"
@@ -998,11 +999,12 @@
       ],
       "evidence": [
         "src/doc_converter/cli.py",
+        "src/doc_converter/font_bundle.py",
         "src/doc_converter/ocr_runtime.py",
         "schemas/cli-result.v1.schema.json",
         "tests/test_cli_smoke.py"
       ],
-      "residual_risk": "Bundled font checks are expected to stay red until S4.3, and OpenRouter reachability is only probed when provider configuration is present."
+      "residual_risk": "Doctor now verifies a real bundled-font directory in repo/frozen layouts, but font availability alone is still not a full glyph-coverage proof; OpenRouter reachability is also only probed when provider configuration is present."
     },
     {
       "feature_id": "operator-dry-run",
@@ -1209,6 +1211,396 @@
         "docs/release-status.md"
       ],
       "residual_risk": "This proof must happen on a PR opened after the workflow already exists on the base branch; the bootstrap PR that first introduces the workflow cannot prove the path by itself."
+    },
+    {
+      "feature_id": "ci-nightly-e2e",
+      "area": "process",
+      "title": "Hosted nightly full e2e contour",
+      "status": "active",
+      "behavior": "A dedicated nightly workflow runs synthetic e2e, a full formula benchmark monitor, a CI-safe formula gate, repo-tracked table anchors, portable package build, EXE smoke and opens a diagnostic GitHub issue on failure with context from the latest merged PR.",
+      "owner_docs": [
+        ".github/PULL_REQUEST_TEMPLATE.md",
+        ".github/workflows/nightly-full-e2e.yml",
+        "samples/manifest.table-anchors.ci.jsonl",
+        "scripts/create_nightly_failure_issue.py",
+        "scripts/run_sample_pilot.py",
+        "src/doc_converter/formula_benchmark.py",
+        "docs/current-sprint.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_sample_pilot tests.test_formula_benchmark tests.test_nightly_failure_issue -v"
+        },
+        {
+          "type": "procedure",
+          "target": "Trigger `.github/workflows/nightly-full-e2e.yml` via workflow_dispatch or schedule and confirm artifact upload or auto-issued GitHub failure report."
+        }
+      ],
+      "evidence": [
+        ".github/PULL_REQUEST_TEMPLATE.md",
+        ".github/workflows/nightly-full-e2e.yml",
+        "samples/manifest.table-anchors.ci.jsonl",
+        "scripts/create_nightly_failure_issue.py",
+        "scripts/run_sample_pilot.py",
+        "src/doc_converter/formula_benchmark.py",
+        "docs/current-sprint.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "residual_risk": "GitHub-hosted runners still cannot access the external D:\\ corpus, so the full formula manifest currently runs as monitor-only without thresholds and the failure issue can fall back to head_ref/author for historical merges that predate the explicit PR template field."
+    },
+    {
+      "feature_id": "ci-release-automation",
+      "area": "process",
+      "title": "Tag-driven release publication",
+      "status": "validated",
+      "behavior": "A dedicated release workflow reacts to `v*` tags, rebuilds the portable Windows package, regenerates changelog-backed release notes, and publishes the zip plus checksum to GitHub Releases without a manual publication step.",
+      "owner_docs": [
+        "CHANGELOG.md",
+        ".github/workflows/release.yml",
+        "scripts/package-release.ps1",
+        "scripts/render_release_notes.py",
+        "src/doc_converter/release_notes.py",
+        "tests/test_release_notes.py",
+        "docs/current-status.md",
+        "docs/current-sprint.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_release_notes -v"
+        },
+        {
+          "type": "command",
+          "target": "powershell -ExecutionPolicy Bypass -File scripts\\package-release.ps1 -Name DocumentConverter -Version 0.3.0-nightly -SkipBuild"
+        },
+        {
+          "type": "procedure",
+          "target": "Push a `v0.x.y` tag and confirm `.github/workflows/release.yml` creates or updates the matching GitHub Release with the portable zip, checksum and notes rendered from `CHANGELOG.md`."
+        }
+      ],
+      "evidence": [
+        "CHANGELOG.md",
+        ".github/workflows/release.yml",
+        "scripts/package-release.ps1",
+        "scripts/render_release_notes.py",
+        "src/doc_converter/release_notes.py",
+        "tests/test_release_notes.py",
+        "docs/current-status.md",
+        "docs/current-sprint.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "residual_risk": "The code path is validated locally, but the first hosted proof still depends on a real `v*` tag push; stable tags intentionally fail if `CHANGELOG.md` does not contain an exact version section."
+    },
+    {
+      "feature_id": "providers-formula-protocol",
+      "area": "architecture",
+      "title": "Pluggable formula provider chain",
+      "status": "validated",
+      "behavior": "Formula-recognition postprocess no longer hard-codes backend/provider branching; it dispatches through a `FormulaProvider` protocol with `LocalTesseractProvider`, `OpenRouterProvider` and `NullProvider`, so fallback order is explicit data rather than orchestration-specific conditionals.",
+      "owner_docs": [
+        "src/doc_converter/formulas/providers.py",
+        "src/doc_converter/formula_recognition.py",
+        "tests/test_formula_recognition.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_formula_recognition -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m pyright src/doc_converter/formula_recognition.py src/doc_converter/formulas/providers.py tests/test_formula_recognition.py"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest discover -v"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/formulas/providers.py",
+        "src/doc_converter/formula_recognition.py",
+        "tests/test_formula_recognition.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "residual_risk": "Formula providers are now abstracted, but the wider pluggable surface still depends on S3.2 for OCR and catalog writers, and live provider quality/cost remains an operator-triggered concern outside automated tests."
+    },
+    {
+      "feature_id": "providers-ocr-protocol",
+      "area": "architecture",
+      "title": "Pluggable OCR backend dispatch",
+      "status": "validated",
+      "behavior": "PDF scan OCR no longer hard-codes `ocrmypdf` subprocess logic inside the converter; it dispatches through an `OCRBackend` protocol with `OcrmypdfBackend` and `NullOcrBackend`, so runtime OCR side effects can be replaced through `ConverterOptions` without rewriting the scan payload builder.",
+      "owner_docs": [
+        "src/doc_converter/ocr/backends.py",
+        "src/doc_converter/converters/pdf_scan.py",
+        "src/doc_converter/converters/__init__.py",
+        "tests/test_pdf_scan_converter.py",
+        "tests/test_cli_smoke.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_pdf_scan_converter tests.test_cli_smoke.CliSmokeTests.test_convert_folder_honors_configured_null_ocr_backend_and_json_only_catalog -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m pyright"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest discover -v"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/ocr/backends.py",
+        "src/doc_converter/converters/pdf_scan.py",
+        "src/doc_converter/converters/__init__.py",
+        "tests/test_pdf_scan_converter.py",
+        "tests/test_cli_smoke.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "residual_risk": "OCR backend dispatch is now explicit and configurable, but live OCR quality still depends on local/runtime tool availability and any future OCR integrations must adopt the same artifact-redaction discipline."
+    },
+    {
+      "feature_id": "providers-catalog-protocol",
+      "area": "architecture",
+      "title": "Pluggable processed-document catalog writers",
+      "status": "validated",
+      "behavior": "Root run catalogs no longer hard-code JSON plus XLSX emission inside orchestration-specific helpers; they dispatch through a `CatalogWriter` protocol with `JsonCatalogWriter` and `XlsxCatalogWriter`, and `ConverterOptions.catalog_writers` controls which operator artifacts are emitted while preserving the default dual-output path.",
+      "owner_docs": [
+        "src/doc_converter/run/catalog.py",
+        "src/doc_converter/run/catalog_writers.py",
+        "src/doc_converter/run/orchestration.py",
+        "schemas/run.v1.schema.json",
+        "tests/test_cli_smoke.py",
+        "tests/test_config.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_cli_smoke.CliSmokeTests.test_empty_folder_creates_run_package tests.test_cli_smoke.CliSmokeTests.test_processed_documents_catalog_describes_output_folder_and_status tests.test_cli_smoke.CliSmokeTests.test_convert_folder_honors_configured_null_ocr_backend_and_json_only_catalog tests.test_config -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m ruff check src tests scripts"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest discover -v"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/run/catalog.py",
+        "src/doc_converter/run/catalog_writers.py",
+        "src/doc_converter/run/orchestration.py",
+        "schemas/run.v1.schema.json",
+        "tests/test_cli_smoke.py",
+        "tests/test_config.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md"
+      ],
+      "residual_risk": "Catalog emission is now protocol-driven, but any future catalog formats will still need explicit validation, operator-compatibility tests, and the same boundary-level redaction discipline."
+    },
+    {
+      "feature_id": "security-secret-redaction",
+      "area": "security",
+      "title": "Artifact secret redaction boundary",
+      "status": "validated",
+      "behavior": "Run/package/provider artifacts no longer rely on individual call-sites to avoid leaking credentials; a shared `redact_secrets` helper rewrites env-secret values at the last serialization boundary for JSON, JSONL, compatibility mirrors, formula-recognition sidecars and processed-document catalogs, including XLSX-backed operator output.",
+      "owner_docs": [
+        "src/doc_converter/redaction.py",
+        "src/doc_converter/run/orchestration.py",
+        "src/doc_converter/run/logging.py",
+        "src/doc_converter/run/catalog.py",
+        "src/doc_converter/formula_recognition.py",
+        "tests/test_provider_secret_redaction.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "memories/repo/backend-notes.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_provider_secret_redaction tests.test_formula_recognition tests.test_cli_smoke.CliSmokeTests.test_failed_document_writes_review_required_file_and_failed_reason -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m ruff check src tests scripts"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest discover -v"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/redaction.py",
+        "src/doc_converter/run/orchestration.py",
+        "src/doc_converter/run/logging.py",
+        "src/doc_converter/run/catalog.py",
+        "src/doc_converter/formula_recognition.py",
+        "tests/test_provider_secret_redaction.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "memories/repo/backend-notes.md"
+      ],
+      "residual_risk": "Artifact serialization now redacts env-secret values centrally, but future non-JSON export surfaces and external integrations still need to opt into the same boundary discipline and tests."
+    },
+    {
+      "feature_id": "determinism-ordering",
+      "area": "runtime",
+      "title": "Deterministic inventory ordering",
+      "status": "validated",
+      "behavior": "Manifest order and duplicate-primary selection no longer depend on filesystem iterator order. Finalized supported and unsupported inventory records are sorted by deterministic relative path keys, and duplicate groups use the same key plus sha256 before skip/reuse logic writes run artifacts.",
+      "owner_docs": [
+        "src/doc_converter/inventory.py",
+        "tests/test_inventory.py",
+        "tests/test_run_determinism.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "memories/repo/backend-notes.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_inventory tests.test_run_determinism tests.test_cli_smoke.CliSmokeTests.test_repeated_run_reuses_previous_output_for_unchanged_input -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m ruff check src tests scripts"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest discover -v"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/inventory.py",
+        "tests/test_inventory.py",
+        "tests/test_run_determinism.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "memories/repo/backend-notes.md"
+      ],
+      "residual_risk": "The deterministic contract is currently defined for clean runs. Resume mode still intentionally adds run-scoped reuse markers such as resumed_from_run_id/reused_previous_output, so comparisons across resumed runs must normalize those fields separately."
+    },
+    {
+      "feature_id": "formula-benchmark-incremental",
+      "area": "quality",
+      "title": "Incremental formula benchmark cache",
+      "status": "validated",
+      "behavior": "Formula benchmark reruns no longer recompute every unchanged case. Each case is cached under a versioned key built from the input asset hash plus a manifest fingerprint that includes linked gold-artifact content, while every rerun still rebuilds totals and required_gate from the full set of cached or freshly rebuilt case reports.",
+      "owner_docs": [
+        "src/doc_converter/formula_benchmark.py",
+        "tests/test_formula_benchmark.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "memories/repo/backend-notes.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_formula_benchmark -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m ruff check src tests scripts"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest discover -v"
+        }
+      ],
+      "evidence": [
+        "src/doc_converter/formula_benchmark.py",
+        "tests/test_formula_benchmark.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "memories/repo/backend-notes.md"
+      ],
+      "residual_risk": "Cache correctness is covered by unit-level hit/miss tests, but the full-corpus `<30s` timing target was not remeasured in this session after a local usage-limit rejection on the heavy benchmark command. Converter-semantic changes also still rely on a deliberate benchmark_version bump to invalidate previously cached cases."
+    },
+    {
+      "feature_id": "determinism-font-bundle",
+      "area": "runtime",
+      "title": "Bundled inline-glyph font set",
+      "status": "validated",
+      "behavior": "DOCX inline-glyph recognition and `document-converter doctor` now resolve the same bundled font directory from repo and frozen layouts before consulting system fonts. The repository ships a minimal DejaVuSans bundle with its license in `assets/fonts/`, and PyInstaller build paths include that bundle in packaged output.",
+      "owner_docs": [
+        "assets/fonts/README.md",
+        "src/doc_converter/font_bundle.py",
+        "src/doc_converter/converters/docx/inline_glyph.py",
+        "src/doc_converter/cli.py",
+        "scripts/build-windows.ps1",
+        "tests/test_docx_converter.py",
+        "tests/test_cli_smoke.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "memories/repo/backend-notes.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_docx_converter.DocxConverterTests.test_inline_glyph_fonts_prefer_bundled_assets tests.test_cli_smoke.CliSmokeTests.test_check_font_bundle_detects_repo_assets -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_docx_converter tests.test_cli_smoke -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m ruff check src\\doc_converter\\font_bundle.py src\\doc_converter\\cli.py src\\doc_converter\\converters\\docx\\inline_glyph.py tests\\test_docx_converter.py tests\\test_cli_smoke.py"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m pyright src\\doc_converter\\font_bundle.py src\\doc_converter\\cli.py src\\doc_converter\\converters\\docx\\inline_glyph.py"
+        },
+        {
+          "type": "command",
+          "target": "powershell -ExecutionPolicy Bypass -File scripts\\build-windows.ps1 -Name DocumentConverter-next"
+        }
+      ],
+      "evidence": [
+        "assets/fonts/README.md",
+        "src/doc_converter/font_bundle.py",
+        "src/doc_converter/converters/docx/inline_glyph.py",
+        "src/doc_converter/cli.py",
+        "scripts/build-windows.ps1",
+        "tests/test_docx_converter.py",
+        "tests/test_cli_smoke.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "memories/repo/backend-notes.md"
+      ],
+      "residual_risk": "The bundle currently carries a minimal DejaVuSans set aimed at inline math-symbol matching. A clean-room glyph-coverage proof without any preinstalled fonts is still a stronger external check, and broader symbol vocabularies may require expanding the bundled font set later."
     },
     {
       "feature_id": "machine-readable-telemetry",

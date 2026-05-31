@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from doc_converter.inventory import build_inventory, classify_route
 
@@ -38,6 +39,35 @@ class InventoryTests(unittest.TestCase):
         route, warnings = classify_route(Path("sample.xlsx"))
         self.assertEqual(route, "xlsx_native")
         self.assertEqual(warnings, ())
+
+    def test_build_inventory_sorts_records_and_duplicate_primary_independently_of_iterator_order(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            later_duplicate = root / "z.docx"
+            earlier_duplicate = root / "a.docx"
+            unique = root / "m.docx"
+            unsupported = root / "note.txt"
+
+            later_duplicate.write_bytes(b"same")
+            earlier_duplicate.write_bytes(b"same")
+            unique.write_bytes(b"unique")
+            unsupported.write_text("ignored", encoding="utf-8")
+
+            with patch(
+                "doc_converter.inventory._iter_input_files",
+                return_value=[later_duplicate, unsupported, unique, earlier_duplicate],
+            ):
+                scan = build_inventory(root)
+
+            self.assertEqual(
+                [record.relative_path for record in scan.supported_records],
+                ["a.docx", "m.docx", "z.docx"],
+            )
+            self.assertEqual([record.relative_path for record in scan.unsupported_records], ["note.txt"])
+
+            records_by_path = {record.relative_path: record for record in scan.supported_records}
+            self.assertIsNone(records_by_path["a.docx"].duplicate_of)
+            self.assertEqual(records_by_path["z.docx"].duplicate_of, "a.docx")
 
 
 if __name__ == "__main__":

@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
 
 from .config import AgentRunMetadata, ConverterConfig, ConverterOptions, FormulaRecognitionConfig
+from .font_bundle import bundled_font_paths, font_bundle_directory
 from .formula_eval import (
     DocumentFormulaEvaluationItem,
     FormulaEvaluationError,
@@ -41,7 +41,6 @@ _REQUIRED_SCHEMA_FILENAMES = (
     "run.v1.schema.json",
     "summary.v1.schema.json",
 )
-_FONT_SUFFIXES = {".otf", ".ttc", ".ttf"}
 _OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models"
 
 
@@ -452,41 +451,14 @@ def _check_schema_contracts() -> dict[str, Any]:
 
 
 def _check_font_bundle() -> dict[str, Any]:
-    candidates = _font_bundle_candidates()
-    bundle_dir = next((candidate for candidate in candidates if candidate.exists()), candidates[0])
-    fonts = sorted(
-        path.name
-        for path in bundle_dir.rglob("*")
-        if path.is_file() and path.suffix.lower() in _FONT_SUFFIXES
-    ) if bundle_dir.exists() else []
+    bundle_dir = font_bundle_directory()
+    fonts = sorted(path.name for path in bundled_font_paths())
     return {
         "status": "ready" if fonts else "missing",
         "directory": str(bundle_dir),
         "fonts": fonts,
         "warnings": [] if fonts else ["Bundled fonts directory is missing or empty."],
     }
-
-
-def _font_bundle_candidates() -> list[Path]:
-    candidates: list[Path] = []
-    if getattr(sys, "frozen", False):
-        executable_dir = Path(sys.executable).resolve().parent
-        candidates.extend(
-            [
-                executable_dir / "assets" / "fonts",
-                executable_dir / "_internal" / "assets" / "fonts",
-            ]
-        )
-    candidates.append(Path(__file__).resolve().parents[2] / "assets" / "fonts")
-    unique: list[Path] = []
-    seen: set[Path] = set()
-    for candidate in candidates:
-        resolved = candidate.resolve()
-        if resolved in seen:
-            continue
-        seen.add(resolved)
-        unique.append(resolved)
-    return unique
 
 
 def _check_openrouter_reachability(config: FormulaRecognitionConfig) -> dict[str, Any]:

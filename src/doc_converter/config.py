@@ -125,6 +125,8 @@ def serialize_converter_options(options: "ConverterOptions") -> dict[str, object
         "ocr_languages": list(options.ocr_languages),
         "include_originals": options.include_originals,
         "duplicate_policy": options.duplicate_policy,
+        "ocr_backend": options.ocr_backend,
+        "catalog_writers": list(options.catalog_writers),
     }
     formula_payload = options.formula_recognition.public_payload()
     if len(formula_payload) > 1 or bool(formula_payload.get("configured")):
@@ -238,6 +240,8 @@ class ConverterOptions:
     ocr_languages: tuple[str, ...] = ("rus", "eng")
     include_originals: bool = False
     duplicate_policy: str = "record_provenance"
+    ocr_backend: str = "ocrmypdf"
+    catalog_writers: tuple[str, ...] = ("json", "xlsx")
     formula_recognition: FormulaRecognitionConfig = field(default_factory=load_formula_recognition_config)
 
 

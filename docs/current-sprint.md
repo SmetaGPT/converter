@@ -1,24 +1,47 @@
 # Current Sprint
 
-Последнее обновление: 2026-05-30
-Активный спринт: S9.1 — PR-gates и branch protection
-Статус: completed
+Последнее обновление: 2026-05-31
+Активный спринт: S9.2 — Nightly full e2e
+Статус: blocked
 
-Предыдущий приоритетный tranche: S7.2 — Secret scan CI
+Предыдущий приоритетный tranche: S9.1 — PR-gates и branch protection
 Статус: completed
 Статус wave W9: in_progress
 
 ## 1. Цель спринта
 
-Сделать merge автономным при зелёных required checks: `main` защищён branch protection, PR template требует state/telemetry closeout, а same-repo PR с label `agent:autonomous` получает auto-merge без ручного `gh pr merge`.
+Запустить hosted-runner nightly regression contour поверх закрытого S9.1: synthetic e2e, full formula benchmark monitor, CI-safe formula gate, repo-tracked table anchors, portable package build, EXE smoke и auto-issue при падении с привязкой к последнему merged PR.
 
 ## 2. Артефакты спринта
 
 - .github/PULL_REQUEST_TEMPLATE.md
-- .github/workflows/windows-ci.yml
-- .github/workflows/autonomous-pr-auto-merge.yml
-- scripts/package-release.ps1
-- scripts/validate_ocr_preflight_cli.py
+- .github/workflows/nightly-full-e2e.yml
+- .github/workflows/release.yml
+- CHANGELOG.md
+- samples/manifest.table-anchors.ci.jsonl
+- scripts/create_nightly_failure_issue.py
+- scripts/render_release_notes.py
+- scripts/run_sample_pilot.py
+- src/doc_converter/inventory.py
+- src/doc_converter/formulas/providers.py
+- src/doc_converter/ocr/backends.py
+- src/doc_converter/redaction.py
+- src/doc_converter/release_notes.py
+- src/doc_converter/formula_benchmark.py
+- src/doc_converter/run/catalog_writers.py
+- src/doc_converter/run/logging.py
+- schemas/run.v1.schema.json
+- tests/test_config.py
+- tests/test_formula_recognition.py
+- tests/test_nightly_failure_issue.py
+- tests/test_inventory.py
+- tests/test_pdf_scan_converter.py
+- tests/test_provider_secret_redaction.py
+- tests/test_release_notes.py
+- tests/test_run_determinism.py
+- tests/test_sample_pilot.py
+- tests/test_formula_benchmark.py
+- memories/repo/backend-notes.md
 - docs/current-status.md
 - docs/current-sprint.md
 - docs/production-roadmap.md
@@ -35,34 +58,38 @@
 
 | Задача | Статус |
 | --- | --- |
-| Зафиксировать PR template с обязательными feature/state/validation полями | Готово |
-| Включить strict branch protection и required contexts на `main` | Готово |
-| Довести `windows-ci` и `release-smoke` до стабильного required gate на GitHub | Готово |
-| Включить label-driven auto-merge для same-repo non-draft PR | Готово |
-| Синхронизировать state docs, feature spine, telemetry и generated companions | Готово |
+| Поднять отдельный nightly workflow на hosted runner | Готово |
+| Сделать table anchor manifest repo-safe и независимым от `cwd`/`D:\...` | Готово |
+| Развести full formula monitor и CI-safe required gate | Готово |
+| Открыть auto-issue path на failure с контекстом latest merged PR | Готово |
+| Собрать tag-driven release automation с changelog-backed release notes и GitHub Release publish path | Готово |
+| Набрать 7 ночей burn-in evidence и убедиться, что auto-issue path не флапает | В работе |
 
 ## 4. Validation targets спринта
 
-1. `gh api repos/SmetaGPT/converter/branches/main/protection` показывает `strict = true`, `required_approving_review_count = 0` и required contexts `secret-scan`, `lint`, `typecheck`, `unit-tests`, `harness-validator`, `formula-benchmark-gate`, `document-package-validator`, `release-smoke`.
-2. `gh api repos/SmetaGPT/converter/actions/runs/26690514184` подтверждает final green bootstrap run после release-smoke hardening на GitHub.
-3. Same-repo non-draft PR с label `agent:autonomous` получает `autoMergeRequest` через `.github/workflows/autonomous-pr-auto-merge.yml` и merge-ится автоматически после всех required checks.
-4. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe scripts\refresh_agent_eval.py` пересобирает generated companions без drift.
-5. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe scripts\validate_harness_assets.py` возвращает `status: ok`, `features: 42`, `validated: 42`, `telemetry_entries: 75`.
+1. `runTests tests/test_sample_pilot.py tests/test_formula_benchmark.py tests/test_nightly_failure_issue.py` проходит зелёно и фиксирует portability/monitor/auto-issue contracts.
+2. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe scripts\refresh_agent_eval.py` пересобирает generated companions без drift.
+3. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe scripts\validate_harness_assets.py` возвращает `status: ok` с активным feature `ci-nightly-e2e`.
+4. Первый `workflow_dispatch` или schedule run `nightly-full-e2e` на GitHub публикует artifact bundle с synthetic run, formula monitor, formula gate, table-anchor run и nightly portable package либо автоматически создаёт issue с диагностикой.
 
 ## 5. Риски спринта
 
-- Required contexts жёстко привязаны к именам job-ов в `.github/workflows/windows-ci.yml`; любое переименование нужно синхронизировать с branch protection.
-- `pull_request_target` auto-merge можно доказать только на PR, открытом после того, как workflow уже живёт на base branch; bootstrap и proof нельзя сливать в один PR.
-- Nightly full e2e и release automation ещё не закрыты, поэтому после S9.1 следующий critical path смещается в S9.2/S9.3.
+- GitHub-hosted runner не видит внешний `D:\ФСНБ\...` corpus, поэтому full formula manifest в nightly идёт в monitor-only режиме без thresholds, а required gate пока держится на CI-safe subset.
+- `agent_id` для failure issue будет точным только для PR, где заполнен новый template field; для старых merges helper честно падает назад на `head_ref`, затем author login.
+- Exit спринта зависит не от локального validation, а от 7-night burn-in/auto-issue evidence на GitHub.
+- Для `S9.3` локальный workflow/script proof уже есть, но первый hosted `v*` tag run ещё не зафиксирован в state layer, поэтому wave W9 остаётся открытой до GitHub evidence.
+- Параллельный локальный `S5.1` follow-up по `gate-metod-1-pr` больше не blocked: предоставленный source DOCX `D:\Документы\ФСНБ\Документы\для парсера\Российские\metod\Приказ Минстроя России от 09.01.2024 N 1_пр  Об утверждении.docx` и rendered WMF доказали formulas `(10)` и `(13)`, а cold rerun `runs\formula-debug-1pr-source-fresh\runs\20260531T072130Z` закрыл документ до `49/49` `calc_expr` и `26/49` native. Для targeted benchmark proof важно помнить, что reuse одного и того же `output_root` может вернуть stale case через `cache_status: hit`.
 
 ## 6. Критерий выхода
 
-Спринт закрыт: `main` защищён strict required checks, PR template требует feature/state/validation closeout, а same-repo demo PR с label `agent:autonomous` merge-ится автоматически без human review и без ручной merge-команды.
+Спринт закрыт, когда hosted nightly contour либо проходит 7 ночей подряд, либо детерминированно открывает диагностический issue со ссылкой на failing run и latest merged PR context без ручного вмешательства.
 
 ## 7. Следующий operational focus
 
-1. Открыть critical-path sprint S9.2 и запустить nightly full e2e.
-2. Затем открыть S9.3 и перевести release automation на стабильный nightly/regression контур.
-3. Держать required-check names и label contract синхронными с workflow definitions.
-4. Держать `src/doc_converter/formula_benchmark.py` как отдельный non-critical follow-up по oversize debt.
-5. После critical path продолжать measured table backlog и richer DOCX semantics.
+1. Довести PR #3 до merge в `main`: пока `.github/workflows/nightly-full-e2e.yml` и `.github/workflows/release.yml` существуют только на branch `agent/s9-2-nightly-dispatch`, GitHub Actions registry их не видит и external evidence не стартует.
+2. После merge запустить первый GitHub run `nightly-full-e2e` через `workflow_dispatch` или дождаться schedule, затем зафиксировать artifact/issue evidence в state layer.
+3. Снять первый hosted proof для `.github/workflows/release.yml`: после появления workflow на `main` push `v*` tag должен опубликовать GitHub Release с zip, checksum и notes из `CHANGELOG.md`.
+4. Держать `agent_id` field обязательной частью agent PR closeout, чтобы auto-issue path перестал зависеть от fallback inference.
+5. Пока hosted proof по S9.x идёт отдельно на GitHub, локально уже закрыты Wave 3 и весь Wave 4 (`S4.1`-`S4.3`), а `S5.1` теперь закрыл девять `1/пр` data-driven slices: work-time/wage/participation formulas `(9)`-`(13)`, average/resource-cost formulas `(24)` и `(25)`, technical-cost family `(15)`, `(17)`, `(19)`, `(20)` и `(22)`, cameral participation formulas `(35)` и `(36)`, additional-cost formula `(37)`, estimated-work participation formulas `(38)` и `(39)` и estimated-work cost formulas `(42)` и `(43)` с сохранённым canonical known-pattern sync.
+6. Локальный formula backlog для `gate-metod-1-pr` теперь закрыт: cold rerun `runs\formula-debug-1pr-source-fresh\runs\20260531T072130Z` даёт `49/49` `calc_expr` units и `26/49` native formulas, поэтому следующий независимый local follow-up, если он потребуется до GitHub evidence, надо выбирать уже вне этого `1/пр` residue slice.
+7. Реальный внешний blocker сейчас только GitHub-hosted nightly/tag evidence для `S9.2/S9.3`; source DOCX больше не является локальным ограничением.

@@ -137,3 +137,13 @@ class FormulaRecognitionConfigTests(unittest.TestCase):
             self.assertEqual(options.formula_recognition.model, "openai/gpt-4o")
             self.assertIsNone(options.formula_recognition.api_key)
             self.assertFalse(options.formula_recognition.is_configured())
+
+    def test_converter_options_default_to_ocrmypdf_and_both_catalog_writers(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+
+            with patch("doc_converter.config.Path.cwd", return_value=root):
+                options = ConverterOptions()
+
+            self.assertEqual(options.ocr_backend, "ocrmypdf")
+            self.assertEqual(options.catalog_writers, ("json", "xlsx"))
