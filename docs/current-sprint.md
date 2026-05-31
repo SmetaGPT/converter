@@ -2,7 +2,7 @@
 
 Последнее обновление: 2026-05-31
 Активный спринт: S9.2 — Nightly full e2e
-Статус: blocked
+Статус: in_progress
 
 Предыдущий приоритетный tranche: S9.1 — PR-gates и branch protection
 Статус: completed
@@ -63,6 +63,7 @@
 | Развести full formula monitor и CI-safe required gate | Готово |
 | Открыть auto-issue path на failure с контекстом latest merged PR | Готово |
 | Собрать tag-driven release automation с changelog-backed release notes и GitHub Release publish path | Готово |
+| Исправить hosted full monitor Unicode/monitor-only failure после первого dispatch | Готово локально; hosted proof pending |
 | Набрать 7 ночей burn-in evidence и убедиться, что auto-issue path не флапает | В работе |
 
 ## 4. Validation targets спринта
@@ -71,12 +72,14 @@
 2. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe scripts\refresh_agent_eval.py` пересобирает generated companions без drift.
 3. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe scripts\validate_harness_assets.py` возвращает `status: ok` с активным feature `ci-nightly-e2e`.
 4. Первый `workflow_dispatch` или schedule run `nightly-full-e2e` на GitHub публикует artifact bundle с synthetic run, formula monitor, formula gate, table-anchor run и nightly portable package либо автоматически создаёт issue с диагностикой.
+5. Hosted monitor regression repair: `.\.venv\Scripts\python.exe -m unittest tests.test_formula_benchmark -v`, cp1252 reproducer `scripts\run_formula_benchmark.py samples\formula-benchmark.manifest.jsonl --no-thresholds`, focused `ruff` и `pyright` по `formula_benchmark` slice проходят зелёно.
 
 ## 5. Риски спринта
 
 - GitHub-hosted runner не видит внешний `D:\ФСНБ\...` corpus, поэтому full formula manifest в nightly идёт в monitor-only режиме без thresholds, а required gate пока держится на CI-safe subset.
 - `agent_id` для failure issue будет точным только для PR, где заполнен новый template field; для старых merges helper честно падает назад на `head_ref`, затем author login.
 - Exit спринта зависит не от локального validation, а от 7-night burn-in/auto-issue evidence на GitHub.
+- First dispatch runs `26707002316` и `26707185880` уже доказали auto-issue path и открыли issue #4, но также выявили hosted Windows stdout/monitor-only bug: non-ASCII JSON падал под cp1252, а `--no-thresholds` возвращал nonzero на monitor drift до CI-safe required gate. Локальный repair pending merge в `agent/s9-2-nightly-monitor-fix`.
 - Для `S9.3` локальный workflow/script proof уже есть, но первый hosted `v*` tag run ещё не зафиксирован в state layer, поэтому wave W9 остаётся открытой до GitHub evidence.
 - Параллельный локальный `S5.1` follow-up по `gate-metod-1-pr` больше не blocked: предоставленный source DOCX `D:\Документы\ФСНБ\Документы\для парсера\Российские\metod\Приказ Минстроя России от 09.01.2024 N 1_пр  Об утверждении.docx` и rendered WMF доказали formulas `(10)` и `(13)`, а cold rerun `runs\formula-debug-1pr-source-fresh\runs\20260531T072130Z` закрыл документ до `49/49` `calc_expr` и `26/49` native. Для targeted benchmark proof важно помнить, что reuse одного и того же `output_root` может вернуть stale case через `cache_status: hit`.
 
@@ -86,9 +89,9 @@
 
 ## 7. Следующий operational focus
 
-1. Довести PR #3 до merge в `main`: пока `.github/workflows/nightly-full-e2e.yml` и `.github/workflows/release.yml` существуют только на branch `agent/s9-2-nightly-dispatch`, GitHub Actions registry их не видит и external evidence не стартует.
-2. После merge запустить первый GitHub run `nightly-full-e2e` через `workflow_dispatch` или дождаться schedule, затем зафиксировать artifact/issue evidence в state layer.
-3. Снять первый hosted proof для `.github/workflows/release.yml`: после появления workflow на `main` push `v*` tag должен опубликовать GitHub Release с zip, checksum и notes из `CHANGELOG.md`.
+1. Смержить fix branch `agent/s9-2-nightly-monitor-fix`, чтобы full formula monitor стал настоящим non-blocking `--no-thresholds` contour на hosted Windows.
+2. Повторить GitHub run `nightly-full-e2e` через `workflow_dispatch` на новом `main`, затем зафиксировать artifact/issue evidence в state layer.
+3. Снять первый hosted proof для `.github/workflows/release.yml`: после успешного появления workflow на `main` push `v*` tag должен опубликовать GitHub Release с zip, checksum и notes из `CHANGELOG.md`.
 4. Держать `agent_id` field обязательной частью agent PR closeout, чтобы auto-issue path перестал зависеть от fallback inference.
 5. Пока hosted proof по S9.x идёт отдельно на GitHub, локально уже закрыты Wave 3 и весь Wave 4 (`S4.1`-`S4.3`), а `S5.1` теперь закрыл девять `1/пр` data-driven slices: work-time/wage/participation formulas `(9)`-`(13)`, average/resource-cost formulas `(24)` и `(25)`, technical-cost family `(15)`, `(17)`, `(19)`, `(20)` и `(22)`, cameral participation formulas `(35)` и `(36)`, additional-cost formula `(37)`, estimated-work participation formulas `(38)` и `(39)` и estimated-work cost formulas `(42)` и `(43)` с сохранённым canonical known-pattern sync.
 6. Локальный formula backlog для `gate-metod-1-pr` теперь закрыт: cold rerun `runs\formula-debug-1pr-source-fresh\runs\20260531T072130Z` даёт `49/49` `calc_expr` units и `26/49` native formulas, поэтому следующий независимый local follow-up, если он потребуется до GitHub evidence, надо выбирать уже вне этого `1/пр` residue slice.

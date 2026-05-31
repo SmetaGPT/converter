@@ -16,20 +16,21 @@
     "eval_instructions": "docs/agent-evals.md"
   },
   "telemetry_window_summary": {
-    "total_entries": 56,
+    "total_entries": 57,
     "validation_results": {
       "passed": 41,
-      "passed_after_repair": 15,
+      "passed_after_repair": 16,
       "failed": 0,
       "blocked": 0
     },
-    "state_updates": 56,
-    "feature_traceable_entries": 56,
+    "state_updates": 57,
+    "feature_traceable_entries": 57,
     "task_types": {
       "ci/docs": 1,
       "code/ci/docs": 2,
       "code/ci/docs/tests": 1,
       "code/ci/release/docs": 1,
+      "code/ci/tests/docs": 1,
       "code/docs/tests/schema": 1,
       "code/runtime/docs": 2,
       "code/runtime/release/tests/docs": 1,
@@ -109,21 +110,21 @@
         "title": "Validation discipline",
         "score": 5,
         "scale_max": 5,
-        "basis": "94/94 telemetry entries have pass-like validation results."
+        "basis": "95/95 telemetry entries have pass-like validation results."
       },
       {
         "signal_id": "state-hygiene",
         "title": "State hygiene",
         "score": 5,
         "scale_max": 5,
-        "basis": "94/94 telemetry entries report state_update=true."
+        "basis": "95/95 telemetry entries report state_update=true."
       },
       {
         "signal_id": "feature-traceability",
         "title": "Feature traceability",
         "score": 5,
         "scale_max": 5,
-        "basis": "94/94 telemetry entries reference at least one feature_id."
+        "basis": "95/95 telemetry entries reference at least one feature_id."
       },
       {
         "signal_id": "feature-coverage",

@@ -1,7 +1,7 @@
 # Current Status
 
 Последнее обновление: 2026-05-31
-Статус контура: wave 2 complete, S9.2 nightly burn-in active, S9.3/S3.1/S3.2/S3.3/S4.1/S4.2/S4.3 implemented locally
+Статус контура: wave 2 complete, S9.2 nightly burn-in active with hosted monitor repair pending, S9.3/S3.1/S3.2/S3.3/S4.1/S4.2/S4.3 implemented locally
 
 ## 1. Краткий снимок состояния
 
@@ -179,6 +179,7 @@
 144. Пользователь предоставил реальный source DOCX для `gate-metod-1-pr` по пути `D:\Документы\ФСНБ\Документы\для парсера\Российские\metod`, и direct WMF inspection снял прежний blocker по формулам `(10)` и `(13)`: canonical `samples/formulas/known-patterns.v1.json` и synced package copy теперь также закрывают wage/worker-time formulas `(10)` и `(13)` вместе с estimated-work cost formulas `(42)` и `(43)` как machine-readable `calc_expr`/LaTeX без parser-side Python ветвления. Regression path подтвердил focused `test_formula_representation_recovers_noisy_1pr_wage_and_worker_time_formulas`, broader `tests.test_docx_converter` + `tests.test_known_formula_patterns` (`104/104`) и повторный `scripts/validate_known_formulas.py`, который теперь фиксирует `21` noisy recovery mappings и `47` formula representations при сохранённом canonical/package sync. Cold rerun `runs\formula-debug-1pr-source-fresh\runs\20260531T072130Z` довёл `gate-metod-1-pr` до `49/49` `calc_expr` units и `26/49` native formulas; повторный rerun в старом output root кратко показал stale `47/49` только из-за `formula_benchmark` cache hit, а не из-за regression.
 145. Диагностирован latest GitHub `windows-ci` failure на PR #3: `.github/workflows/windows-ci.yml` синтаксически валиден, а реальные падения были в проверяемом содержимом ветки. `harness-validator` падал из-за telemetry feature id `determinism-font-bundle`, отсутствующего в pushed feature spine; `typecheck` и `unit-tests` падали из-за missing tracked module `src/doc_converter/font_bundle.py`; дополнительный `unit-tests` failure был Windows-hosted alias mismatch `C:\Users\RUNNER~1` vs `C:\Users\runneradmin` в тестовых сравнениях путей. Локальная правка сделала `tests/test_sample_pilot.py` и `tests/test_run_determinism.py` устойчивыми к `Path.resolve()` на hosted runner, а focused/full validation прошла: `tests.test_sample_pilot tests.test_run_determinism tests.test_docx_converter` (`54` tests), full `unittest discover` (`192` tests, `4` skipped), `pyright`, `ruff` по touched files и `scripts/validate_harness_assets.py` зелёные. Для GitHub proof следующий commit/push должен включать не только workflow-adjacent tests, но и уже подготовленные `src/doc_converter/font_bundle.py`, `assets/fonts/` и `docs/agent-feature-spine.json`.
 146. Разобран текущий blocker внешнего evidence для `S9.2/S9.3`: GitHub Actions registry на default branch видит только `autonomous-pr-auto-merge`, `windows-ci` и `Copilot`, а `.github/workflows/nightly-full-e2e.yml` и `.github/workflows/release.yml` существуют только на PR branch `agent/s9-2-nightly-dispatch`, поэтому schedule/manual nightly и tag-driven release proof не могут стартовать до merge в `main`. Дополнительный merge blocker после commit `1bdba2c` был `harness-validator`: `determinism-font-bundle` в `docs/agent-feature-spine.json` ссылался на локальные ignored PyInstaller files `DocumentConverter.spec` и `DocumentConverter-next.spec`, которых нет на GitHub fresh checkout. Feature spine исправлен на git-tracked evidence; локальный `scripts/validate_harness_assets.py` снова возвращает `status: ok`.
+147. После auto-merge PR #3 workflow registry на `main` увидел `nightly-full-e2e` и `release`; первые hosted dispatch runs `26707002316` и `26707185880` доказали `create-nightly-failure-issue` path и открыли issue #4, но оба упали раньше required gate из-за real Windows runner bug: full formula monitor печатал non-ASCII JSON через cp1252 stdout, а `--no-thresholds` всё равно возвращал nonzero при monitor report drift. Локальная ветка `agent/s9-2-nightly-monitor-fix` исправляет S9.2 monitor semantics: `formula_benchmark` reconfigure-ит stdout/stderr в UTF-8, `--no-thresholds` сохраняет `report.status=failed` как artifact signal, но возвращает exit 0, а nightly workflow задаёт `PYTHONUTF8=1`/`PYTHONIOENCODING=utf-8`. Focused validation прошла: `tests.test_formula_benchmark` (`11` tests), cp1252 reproducer full manifest command, focused `ruff` и `pyright` зелёные.
 
 ### Готовые артефакты
 
@@ -276,7 +277,7 @@
 
 ## 3. Что делается сейчас
 
-Текущий фокус: S9.2 остаётся активным как hosted nightly burn-in contour, S9.3 уже реализован локально через tag-driven release workflow, а во время этого wait-state уже локально закрыта вся Wave 3: formula-recognition dispatch идёт через `FormulaProvider`, OCR scan path идёт через `OcrBackend`, root catalog emission идёт через `CatalogWriter`, а artifact serialization boundaries проходят через общий secret-redaction слой. Следующий внешний proof теперь не в коде, а в первом GitHub run для nightly и первом `v*` tag push для release automation.
+Текущий фокус: S9.2 остаётся активным как hosted nightly burn-in contour, S9.3 уже реализован локально через tag-driven release workflow, а PR #3 уже auto-merged в `main`. Первый GitHub proof теперь есть в форме failed dispatch runs `26707002316`/`26707185880` и issue #4, но nightly success path требует merge ветки `agent/s9-2-nightly-monitor-fix`, потому что full monitor должен быть наблюдаемым `--no-thresholds` контуром, а не blocking required gate. Во время этого wait-state уже локально закрыта вся Wave 3: formula-recognition dispatch идёт через `FormulaProvider`, OCR scan path идёт через `OcrBackend`, root catalog emission идёт через `CatalogWriter`, а artifact serialization boundaries проходят через общий secret-redaction слой.
 
 Новый architecture-learning по input hardening: самые дешёвые security controls снова закрываются в shared admission boundary, а не в route-specific хвостах. Один guard в `run/paths.py` и один DOCX archive preflight дают больше контроля, чем поздние локальные проверки после начала extraction.
 
@@ -315,9 +316,9 @@
 
 Следующая последовательность после локальной реализации S4.3 при продолжающемся ожидании hosted proof по S9.x:
 
-1. Зафиксировать hosted evidence для `S9.2`: первый `nightly-full-e2e` artifact bundle или auto-issue path на GitHub.
+1. Смержить `agent/s9-2-nightly-monitor-fix`, затем повторить `workflow_dispatch` для `nightly-full-e2e` на `main` и зафиксировать artifact bundle либо новую диагностическую issue.
 2. Зафиксировать hosted evidence для `S9.3`: первый `v*` tag release с опубликованными zip/checksum и notes из `CHANGELOG.md`.
-3. Затем возвращаться к ближайшему независимому product-hardening sprint из W5/W8, не конфликтующему с ожиданием S9.2 burn-in; после локальной реализации S4.3 следующий на очереди — S5.1 и measured DOCX/table backlog.
+3. Затем возвращаться к ближайшему независимому product-hardening sprint из W5/W8, не конфликтующему с ожиданием S9.2 burn-in; после полного локального closeout `1/пр` следующий на очереди — S5.2/S5.3 или measured table backlog.
 4. Держать `src/doc_converter/formula_benchmark.py` как отдельный follow-up по repo-wide file-size debt вне critical path.
 5. Продолжать measured table backlog по `sample_020`, warning density на `sample_009/018` и negative/control false-positive contour уже поверх shared `tables/` package.
 6. Затем вернуться к richer DOCX table semantics и generalized WMF parser backlog для formula-rich DOCX.

@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import shutil
+import sys
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
@@ -42,6 +43,8 @@ class FormulaBenchmarkError(ValueError):
 
 
 def main(argv: list[str] | None = None) -> int:
+    _configure_utf8_stdio()
+
     parser = argparse.ArgumentParser(
         description="Run a formula benchmark manifest and write machine-readable benchmark artifacts."
     )
@@ -77,7 +80,16 @@ def main(argv: list[str] | None = None) -> int:
         thresholds_path=None if args.no_thresholds else args.thresholds,
     )
     print(json.dumps(report, ensure_ascii=False, indent=2))
+    if args.no_thresholds:
+        return 0
     return 0 if report["status"] == "ok" else 1
+
+
+def _configure_utf8_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8", errors="backslashreplace")
 
 
 def run_benchmark_manifest(
