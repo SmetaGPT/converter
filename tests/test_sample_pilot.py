@@ -49,7 +49,7 @@ class RunSamplePilotTests(unittest.TestCase):
             staged_path = input_dir / "sample_009__sample.pdf"
             self.assertTrue(staged_path.exists())
             self.assertEqual(staged_path.read_text(encoding="utf-8"), "fixture")
-            self.assertEqual(staged_records[0]["source_path"], str(source_path))
+            self.assertEqual(Path(staged_records[0]["source_path"]).resolve(), source_path.resolve())
             self.assertEqual(staged_records[0]["staged_relative_path"], "sample_009__sample.pdf")
 
 

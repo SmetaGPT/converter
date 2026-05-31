@@ -17,3 +17,9 @@
 - Trigger: the first `S4.2` cache implementation reused a benchmark case after the gold payload changed at the same path, which would have hidden quality drift behind a cache hit.
 - Confirmed fact: for benchmark caching, a manifest path string is not enough. The cache fingerprint has to include the content hash of linked quality artifacts such as `gold_path`, and `required_gate` still needs a fresh aggregate pass on every rerun.
 - Practical guidance: build the per-entry cache key from `sha256(asset)` plus a manifest fingerprint that already embeds hashes of any referenced gold/quality files, and keep a regression test that changes the gold payload without moving the file path.
+
+## 2026-05-31 - Font bundle resolution must be shared across runtime, doctor and packaging
+
+- Trigger: the first S4.3 validation proved the new bundled-font code path was correct, but both focused tests still failed because `assets/fonts` was empty; before the repair, doctor/preflight and inline glyph matching were also using separate path contracts.
+- Confirmed fact: bundled-font determinism only holds when runtime lookup, preflight reporting and PyInstaller datas all resolve the same `assets/fonts` bundle. Bare font names or implicit `C:/Windows/Fonts` fallbacks are not a stable production contract.
+- Practical guidance: keep one helper for repo/frozen bundle directories, prefer bundled font files before system fonts, ship the font license next to the TTF, and validate both `_check_font_bundle` and `_available_inline_glyph_fonts` plus a build smoke whenever packaging paths change.

@@ -986,6 +986,7 @@
       "behavior": "`document-converter doctor` reports OCR runtime, bundled font availability, schema availability and OpenRouter reachability through the same CLI envelope and returns `environment_invalid` when the runtime is not ready.",
       "owner_docs": [
         "src/doc_converter/cli.py",
+        "src/doc_converter/font_bundle.py",
         "src/doc_converter/ocr_runtime.py",
         "schemas/cli-result.v1.schema.json",
         "tests/test_cli_smoke.py"
@@ -998,11 +999,12 @@
       ],
       "evidence": [
         "src/doc_converter/cli.py",
+        "src/doc_converter/font_bundle.py",
         "src/doc_converter/ocr_runtime.py",
         "schemas/cli-result.v1.schema.json",
         "tests/test_cli_smoke.py"
       ],
-      "residual_risk": "Bundled font checks are expected to stay red until S4.3, and OpenRouter reachability is only probed when provider configuration is present."
+      "residual_risk": "Doctor now verifies a real bundled-font directory in repo/frozen layouts, but font availability alone is still not a full glyph-coverage proof; OpenRouter reachability is also only probed when provider configuration is present."
     },
     {
       "feature_id": "operator-dry-run",
@@ -1543,6 +1545,66 @@
         "memories/repo/backend-notes.md"
       ],
       "residual_risk": "Cache correctness is covered by unit-level hit/miss tests, but the full-corpus `<30s` timing target was not remeasured in this session after a local usage-limit rejection on the heavy benchmark command. Converter-semantic changes also still rely on a deliberate benchmark_version bump to invalidate previously cached cases."
+    },
+    {
+      "feature_id": "determinism-font-bundle",
+      "area": "runtime",
+      "title": "Bundled inline-glyph font set",
+      "status": "validated",
+      "behavior": "DOCX inline-glyph recognition and `document-converter doctor` now resolve the same bundled font directory from repo and frozen layouts before consulting system fonts. The repository ships a minimal DejaVuSans bundle with its license in `assets/fonts/`, and PyInstaller build paths include that bundle in packaged output.",
+      "owner_docs": [
+        "assets/fonts/README.md",
+        "src/doc_converter/font_bundle.py",
+        "src/doc_converter/converters/docx/inline_glyph.py",
+        "src/doc_converter/cli.py",
+        "scripts/build-windows.ps1",
+        "DocumentConverter.spec",
+        "DocumentConverter-next.spec",
+        "tests/test_docx_converter.py",
+        "tests/test_cli_smoke.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "memories/repo/backend-notes.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_docx_converter.DocxConverterTests.test_inline_glyph_fonts_prefer_bundled_assets tests.test_cli_smoke.CliSmokeTests.test_check_font_bundle_detects_repo_assets -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_docx_converter tests.test_cli_smoke -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m ruff check src\\doc_converter\\font_bundle.py src\\doc_converter\\cli.py src\\doc_converter\\converters\\docx\\inline_glyph.py tests\\test_docx_converter.py tests\\test_cli_smoke.py"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m pyright src\\doc_converter\\font_bundle.py src\\doc_converter\\cli.py src\\doc_converter\\converters\\docx\\inline_glyph.py"
+        },
+        {
+          "type": "command",
+          "target": "powershell -ExecutionPolicy Bypass -File scripts\\build-windows.ps1 -Name DocumentConverter-next"
+        }
+      ],
+      "evidence": [
+        "assets/fonts/README.md",
+        "src/doc_converter/font_bundle.py",
+        "src/doc_converter/converters/docx/inline_glyph.py",
+        "src/doc_converter/cli.py",
+        "scripts/build-windows.ps1",
+        "DocumentConverter.spec",
+        "DocumentConverter-next.spec",
+        "tests/test_docx_converter.py",
+        "tests/test_cli_smoke.py",
+        "docs/current-status.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "memories/repo/backend-notes.md"
+      ],
+      "residual_risk": "The bundle currently carries a minimal DejaVuSans set aimed at inline math-symbol matching. A clean-room glyph-coverage proof without any preinstalled fonts is still a stronger external check, and broader symbol vocabularies may require expanding the bundled font set later."
     },
     {
       "feature_id": "machine-readable-telemetry",

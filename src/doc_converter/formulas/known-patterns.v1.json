@@ -3,13 +3,17 @@
   "last_updated": "2026-05-31",
   "noisy_form_recovery": {
     "ТН100Т=_(вр)": "Н_(тп) = Т_(тп) × 100 / Т_(вр)",
+    "ЗЗt=_(м)": "З_(ч) = З_(срм) / t_(м)",
     "ККЧ=_(факт)": "К_(ср) = К_(уч) / Ч_(факт)",
     "ТКЧТКН=_(учiВрП)": "К_(уч) = ТК × Ч_(i) × Т_(1раб) / Н_(ВрП)",
+    "ТН=_(рабВрЭ1раб)^(1)": "Т_(1раб) = sum Н_(ВрЭ1раб)",
     "ККЧ=_(учКсрКобщ)": "К_(срК) = К_(учК) / Ч_(общ)",
     "ТКЧТКТ=_(КАМобщ)": "К_(учК) = ТК × Ч_(i) × Т_(КАМ1) / Т_(КАМобщ)",
     "ДЗН100С=": "Н_(ДЗ) = ДЗ × 100 / С_(р)",
     "ТКЧТКТ=_(Ообщ)": "К_(учО) = ТК_(о) × Ч_(Оi) × Т_(Оi) / Т_(Ообщ)",
     "ККЧ=_(Побщ)": "К_(срО) = К_(учО) / Ч_(Ообщ)",
+    "ССИ=_(ТСоТС)": "С_(ТСо) = СИ_(ТС)",
+    "С(ЦЭ)=_(МоММо)": "С_(Мо) = Ц_(М) × Э_(Мо)",
     "ЗТЧ100Н[100(НН)]60=-+_(ВрИпзро)": "Н_(ВрИ) = ЗТ_(Иср) × 100 / (Ч_(общ) × [100 - (Н_(пзр) + Н_(о))] × 60)",
     "ЗТЧ100Н[100(НН)]60=-+_(ВрЭлпзро)": "Н_(ВрЭл) = ЗТ_(эСРл) × 100 / (Ч_(общ) × [100 - (Н_(пзр) + Н_(о))] × 60)",
     "ЗТЗТn=_(Исрф)": "ЗТ_(Иср) = sum_(ф=1)^n_(ф) ЗТ_(1факт) / n_(ф)",
@@ -187,6 +191,19 @@
       "warnings": ["formula_native_wmf_pattern_recovered"]
     },
     {
+      "linear_text": "З_(ч) = З_(срм) / t_(м)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{З}_{\\text{ч}} = \\frac{\\mathrm{З}_{\\text{срм}}}{t_{\\text{м}}}",
+      "calc_expr": "Z_ch = Z_srm / t_m",
+      "variables": {
+        "З_ч": "Z_ch",
+        "З_срм": "Z_srm",
+        "t_м": "t_m"
+      },
+      "confidence": "medium",
+      "warnings": ["formula_native_wmf_pattern_recovered"]
+    },
+    {
       "linear_text": "К_(ср) = К_(уч) / Ч_(факт)",
       "source_format": "mathtype_wmf_text_records",
       "display_latex": "\\mathrm{К}_{\\text{ср}} = \\frac{\\mathrm{К}_{\\text{уч}}}{\\mathrm{Ч}_{\\text{факт}}}",
@@ -213,6 +230,21 @@
       },
       "confidence": "medium",
       "warnings": ["formula_native_wmf_pattern_recovered"]
+    },
+    {
+      "linear_text": "Т_(1раб) = sum Н_(ВрЭ1раб)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{Т}_{1\\text{раб}} = \\sum \\mathrm{Н}_{\\text{ВрЭ1раб}}",
+      "calc_expr": "T_1rab = sum(N_VrE1rab)",
+      "variables": {
+        "Т_1раб": "T_1rab",
+        "Н_ВрЭ1раб": "N_VrE1rab"
+      },
+      "confidence": "medium",
+      "warnings": [
+        "formula_native_wmf_pattern_recovered",
+        "calculation_expression_requires_domain_variable_binding"
+      ]
     },
     {
       "linear_text": "К_(срК) = К_(учК) / Ч_(общ)",
@@ -279,6 +311,31 @@
         "К_срО": "K_srO",
         "К_учО": "K_uchO",
         "Ч_Ообщ": "Ch_Oobsh"
+      },
+      "confidence": "medium",
+      "warnings": ["formula_native_wmf_pattern_recovered"]
+    },
+    {
+      "linear_text": "С_(ТСо) = СИ_(ТС)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{С}_{\\text{ТСо}} = \\mathrm{СИ}_{\\text{ТС}}",
+      "calc_expr": "S_TSo = SI_TS",
+      "variables": {
+        "С_ТСо": "S_TSo",
+        "СИ_ТС": "SI_TS"
+      },
+      "confidence": "medium",
+      "warnings": ["formula_native_wmf_pattern_recovered"]
+    },
+    {
+      "linear_text": "С_(Мо) = Ц_(М) × Э_(Мо)",
+      "source_format": "mathtype_wmf_text_records",
+      "display_latex": "\\mathrm{С}_{\\text{Мо}} = \\mathrm{Ц}_{\\text{М}} \\times \\mathrm{Э}_{\\text{Мо}}",
+      "calc_expr": "S_Mo = C_M * E_Mo",
+      "variables": {
+        "С_Мо": "S_Mo",
+        "Ц_М": "C_M",
+        "Э_Мо": "E_Mo"
       },
       "confidence": "medium",
       "warnings": ["formula_native_wmf_pattern_recovered"]

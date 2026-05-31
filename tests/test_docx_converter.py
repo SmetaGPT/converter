@@ -963,6 +963,32 @@ class DocxConverterTests(unittest.TestCase):
         self.assertEqual(tech_break_representation["calc_expr"], "N_tp = T_tp * 100 / T_vr")
         self.assertIn(r"\frac{\mathrm{Т}_{\text{тп}} \times 100}{\mathrm{Т}_{\text{вр}}}", tech_break_representation["display_latex"])
 
+    def test_formula_representation_recovers_noisy_1pr_wage_and_worker_time_formulas(self) -> None:
+        wage_representation = _formula_representation_from_text("ЗЗt=_(м) (10),")
+        worker_time_representation = _formula_representation_from_text("ТН=_(рабВрЭ1раб)^(1) (13),")
+
+        self.assertIsNotNone(wage_representation)
+        assert wage_representation is not None
+        self.assertEqual(wage_representation["linear_text"], "З_(ч) = З_(срм) / t_(м)")
+        self.assertEqual(wage_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(wage_representation["calc_expr"], "Z_ch = Z_srm / t_m")
+        self.assertIn(
+            r"\frac{\mathrm{З}_{\text{срм}}}{t_{\text{м}}}",
+            wage_representation["display_latex"],
+        )
+
+        self.assertIsNotNone(worker_time_representation)
+        assert worker_time_representation is not None
+        self.assertEqual(worker_time_representation["linear_text"], "Т_(1раб) = sum Н_(ВрЭ1раб)")
+        self.assertEqual(worker_time_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(worker_time_representation["calc_expr"], "T_1rab = sum(N_VrE1rab)")
+        self.assertIn(r"\sum", worker_time_representation["display_latex"])
+        self.assertIn("formula_native_wmf_pattern_recovered", worker_time_representation["warnings"])
+        self.assertIn(
+            "calculation_expression_requires_domain_variable_binding",
+            worker_time_representation["warnings"],
+        )
+
     def test_formula_representation_recovers_noisy_1pr_participation_average_formula(self) -> None:
         participation_average_representation = _formula_representation_from_text("ККЧ=_(факт) (11),")
 
@@ -1048,6 +1074,30 @@ class DocxConverterTests(unittest.TestCase):
         self.assertIn(
             r"\frac{\mathrm{К}_{\text{учО}}}{\mathrm{Ч}_{\text{Ообщ}}}",
             participation_average_representation["display_latex"],
+        )
+
+    def test_formula_representation_recovers_noisy_1pr_estimated_work_cost_family(self) -> None:
+        technical_means_representation = _formula_representation_from_text("ССИ=_(ТСоТС) (42),")
+        machine_representation = _formula_representation_from_text("С(ЦЭ)=_(МоММо) (43),")
+
+        self.assertIsNotNone(technical_means_representation)
+        assert technical_means_representation is not None
+        self.assertEqual(technical_means_representation["linear_text"], "С_(ТСо) = СИ_(ТС)")
+        self.assertEqual(technical_means_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(technical_means_representation["calc_expr"], "S_TSo = SI_TS")
+        self.assertIn(
+            r"\mathrm{С}_{\text{ТСо}} = \mathrm{СИ}_{\text{ТС}}",
+            technical_means_representation["display_latex"],
+        )
+
+        self.assertIsNotNone(machine_representation)
+        assert machine_representation is not None
+        self.assertEqual(machine_representation["linear_text"], "С_(Мо) = Ц_(М) × Э_(Мо)")
+        self.assertEqual(machine_representation["source_format"], "mathtype_wmf_text_records")
+        self.assertEqual(machine_representation["calc_expr"], "S_Mo = C_M * E_Mo")
+        self.assertIn(
+            r"\mathrm{С}_{\text{Мо}} = \mathrm{Ц}_{\text{М}} \times \mathrm{Э}_{\text{Мо}}",
+            machine_representation["display_latex"],
         )
 
     def test_formula_representation_recovers_noisy_1pr_technical_cost_family(self) -> None:

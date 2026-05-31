@@ -15,7 +15,7 @@ from doc_converter.runner import run_convert_folder
 class RunDeterminismTests(unittest.TestCase):
     def test_clean_reruns_produce_identical_manifest_with_different_iterator_order(self) -> None:
         with tempfile.TemporaryDirectory() as input_dir, tempfile.TemporaryDirectory() as output_root:
-            input_root = Path(input_dir)
+            input_root = Path(input_dir).resolve()
             first_output = Path(output_root) / "first"
             second_output = Path(output_root) / "second"
             first_output.mkdir()

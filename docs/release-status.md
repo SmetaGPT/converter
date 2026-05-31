@@ -2,7 +2,7 @@
 
 Последнее обновление: 2026-05-31
 Релизный контур: Windows Document Converter v0.3.0
-Статус: production-ready within declared scope; локальный roadmap temporarily blocked only by external GitHub/source-DOCX evidence after latest S5.1 closeout
+Статус: production-ready within declared scope; локальный critical path теперь blocked only by external GitHub-hosted nightly/tag evidence after full S5.1 `1/пр` closeout
 
 ## 1. Цель релиза
 
@@ -38,9 +38,9 @@ Critical-path operator surface S6.1 закрыт: CLI по умолчанию о
 
 Следом локально реализован и S4.3 font-bundling tranche: shared `src/doc_converter/font_bundle.py` выровнял path resolution между `document-converter doctor`, DOCX inline-glyph matcher и frozen layouts, `assets/fonts/` теперь несёт bundled `DejaVuSans.ttf` и `LICENSE_DEJAVU`, а `scripts/build-windows.ps1` и оба PyInstaller spec-файла включают `assets` в packaged output. Focused bundled-font proof, полный `tests.test_docx_converter` + `tests.test_cli_smoke` slice и build smoke `DocumentConverter-next` подтвердили, что runtime больше не зависит только от `C:/Windows/Fonts`.
 
-Локально продолжен и следующий formula follow-up из S5.1: canonical known-pattern contract в `samples/formulas/known-patterns.v1.json` и экспортируемая package copy теперь закрывают noisy `1/пр` average/resource-cost formulas `(24)` и `(25)`, technical-cost family `(15)`, `(17)`, `(19)`, `(20)` и `(22)`, work-time/participation formulas `(9)` и `(11)`, participation formula `(12)`, cameral participation formulas `(35)` и `(36)`, additional-cost formula `(37)`, а теперь и estimated-work participation formulas `(38)` и `(39)` как machine-readable `calc_expr` и display LaTeX без новых parser-side веток. Focused regressions на technical-cost family, `test_formula_representation_recovers_noisy_1pr_tech_break_formula`, `test_formula_representation_recovers_noisy_1pr_participation_average_formula`, `test_formula_representation_recovers_noisy_1pr_participation_formula`, `test_formula_representation_recovers_noisy_1pr_cameral_participation_family`, `test_formula_representation_recovers_noisy_1pr_additional_cost_formula`, `test_formula_representation_recovers_noisy_1pr_estimated_work_participation_family`, broader `tests.test_docx_converter` + `tests.test_known_formula_patterns` (`102/102`) и `scripts/validate_known_formulas.py` прошли зелёно при сохранённом canonical/package sync; validator now reports `17` noisy recovery mappings and `43` formula representations. Fresh `gate-metod-1-pr` benchmark rerun в этом workspace по-прежнему не воспроизводится только потому, что исходный внешний `D:\ФСНБ\...` DOCX сейчас не смонтирован локально, а оставшийся локальный `1/пр` residue теперь сводится в основном к evidence-blocked формулам `(10)` и `(13)`.
+Локально продолжен и следующий formula follow-up из S5.1: canonical known-pattern contract в `samples/formulas/known-patterns.v1.json` и экспортируемая package copy теперь дополнительно закрывают noisy work-time/wage formulas `(10)` и `(13)` и estimated-work cost formulas `(42)` и `(43)` вместе с уже ранее закрытыми `1/пр` slices `(9)`-`(12)`, `(15)`, `(17)`, `(19)`, `(20)`, `(22)`, `(24)`, `(25)`, `(35)`-`(39)` как machine-readable `calc_expr` и display LaTeX без новых parser-side веток. Focused regressions `test_formula_representation_recovers_noisy_1pr_wage_and_worker_time_formulas`, `test_formula_representation_recovers_noisy_1pr_estimated_work_participation_family`, `test_formula_representation_recovers_noisy_1pr_estimated_work_cost_family`, broader `tests.test_docx_converter` + `tests.test_known_formula_patterns` (`104/104`) и `scripts/validate_known_formulas.py` прошли зелёно при `21` noisy recovery mappings и `47` formula representations. Newly mounted source DOCX `D:\Документы\ФСНБ\Документы\для парсера\Российские\metod\Приказ Минстроя России от 09.01.2024 N 1_пр  Об утверждении.docx` enabled rendered WMF inspection for `(10)` and `(13)`, а cold rerun `runs\formula-debug-1pr-source-fresh\runs\20260531T072130Z` поднял `gate-metod-1-pr` до `49/49` calc_expr units и `26/49` native formulas; same-output-root rerun, который всё ещё показывал `47/49`, оказался benign `formula_benchmark` cache hit, а не parser regression.
 
-Текущий blocker для продолжения autonomous roadmap честно внешний, а не кодовый: критический путь всё ещё ждёт GitHub-hosted nightly/tag evidence для `S9.2/S9.3`, а локальный formula follow-up больше не имеет defensible next slice без внешнего `D:\ФСНБ\...` source DOCX или более сильного локального артефакта для formulas `(10)` и `(13)`. До появления одного из этих внешних входов дальнейшее “продолжение” означало бы либо ждать вне среды, либо домысливать formula data без достаточного evidence, что противоречит roadmap contract.
+Текущий blocker для продолжения autonomous roadmap теперь действительно только внешний GitHub-hosted: критический путь всё ещё ждёт nightly/tag evidence для `S9.2/S9.3`. Source DOCX для `gate-metod-1-pr` больше не missing, локальный `1/пр` residue закрыт, и дальнейший local follow-up должен выбирать уже другой независимый sprint вместо продолжения этого formula slice.
 
 Готово:
 
@@ -240,7 +240,7 @@ Formula/OCR/catalog provider abstractions и artifact redaction boundary бол�
 ## 14. Harness assets validation
 
 - Команда: `.\.venv\Scripts\python.exe scripts\validate_harness_assets.py`.
-- Результат: `status: ok`, `features: 51`, `validated: 50`, `active: 1`, `backlog: 0`, `telemetry_entries: 91`.
+- Результат: `status: ok`, `features: 51`, `validated: 50`, `active: 1`, `backlog: 0`, `telemetry_entries: 93`.
 - Назначение: ранний провал CI при потере feature spine, feature-traceability markers в шаблонах, machine-readable telemetry companion, generated scorecard companion, generated weekly eval companion, machine-readable weekly reviews source, markdown structured companion sync, qualitative weekly review evidence или core product-capabilities ссылок.
 
 ## 15. Latest Audit Remediation

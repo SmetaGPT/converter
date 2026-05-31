@@ -8,9 +8,9 @@
 
 ## 1. Snapshot
 
-- telemetry entries in window: `53`;
-- state updates in window: `53`;
-- feature-traceable entries in window: `53`;
+- telemetry entries in window: `55`;
+- state updates in window: `55`;
+- feature-traceable entries in window: `55`;
 - validated features in spine: `50`;
 - referenced features in telemetry: `51`.
 
@@ -18,9 +18,9 @@
 
 | Signal | Score | Basis |
 | --- | ---: | --- |
-| Validation discipline | 5/5 | 91/91 telemetry entries have pass-like validation results. |
-| State hygiene | 5/5 | 91/91 telemetry entries report state_update=true. |
-| Feature traceability | 5/5 | 91/91 telemetry entries reference at least one feature_id. |
+| Validation discipline | 5/5 | 93/93 telemetry entries have pass-like validation results. |
+| State hygiene | 5/5 | 93/93 telemetry entries report state_update=true. |
+| Feature traceability | 5/5 | 93/93 telemetry entries reference at least one feature_id. |
 | Feature coverage in telemetry | 5/5 | 51/50 validated features are referenced by structured telemetry. |
 
 ## 3. Findings

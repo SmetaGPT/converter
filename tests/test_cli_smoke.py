@@ -14,7 +14,7 @@ from unittest.mock import Mock, patch
 from docx import Document
 from openpyxl import Workbook, load_workbook
 
-from doc_converter.cli import build_parser, main
+from doc_converter.cli import _check_font_bundle, build_parser, main
 from doc_converter.config import AgentRunMetadata, ConverterConfig, ConverterOptions, FormulaRecognitionConfig
 from doc_converter.formula_recognition import FormulaRecognitionPostprocessResult
 from doc_converter.ocr_runtime import find_ocrmypdf_executable
@@ -85,6 +85,13 @@ class CliSmokeTests(unittest.TestCase):
         payload = _load_cli_result(buffer)
         self.assertEqual(payload["status"], "environment_invalid")
         self.assertEqual(payload["data"]["ocr_runtime"]["status"], "missing")
+
+    def test_check_font_bundle_detects_repo_assets(self) -> None:
+        payload = _check_font_bundle()
+
+        self.assertEqual(payload["status"], "ready")
+        self.assertIn("DejaVuSans.ttf", payload["fonts"])
+        self.assertTrue(payload["directory"].replace("\\", "/").endswith("assets/fonts"))
 
     def test_dry_run_reports_review_required_for_unsupported_inputs(self) -> None:
         with tempfile.TemporaryDirectory() as input_dir:
@@ -913,7 +920,7 @@ def _ready_font_bundle_payload() -> dict[str, Any]:
     return {
         "status": "ready",
         "directory": "D:/converter/assets/fonts",
-        "fonts": ["LiberationSerif-Regular.ttf"],
+        "fonts": ["DejaVuSans.ttf"],
         "warnings": [],
     }
 
