@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 CHUNKABLE_TYPES = {"section", "paragraph", "list_item", "caption", "header", "footer", "table_cell", "formula", "figure"}
 
 

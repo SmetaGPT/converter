@@ -1,0 +1,20 @@
+{
+  "sample_id": "negative_protected_pdf",
+  "route": "pdf_text",
+  "expected_units": {
+    "required_types": ["document"]
+  },
+  "required_references": {
+    "stable_document_id": true,
+    "stable_unit_ids": true,
+    "preserve_original_pdf": true
+  },
+  "quality_expectations": {
+    "review_required": true,
+    "encrypted_pdf": true
+  },
+  "processing_expectations": {
+    "status": "failed",
+    "warnings_include": ["PDF is encrypted or password protected."]
+  }
+}

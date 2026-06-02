@@ -11,6 +11,5 @@ if str(SRC) not in sys.path:
 
 from doc_converter.formula_benchmark import main
 
-
 if __name__ == "__main__":
     raise SystemExit(main())

@@ -23,3 +23,15 @@
 - Trigger: the first S4.3 validation proved the new bundled-font code path was correct, but both focused tests still failed because `assets/fonts` was empty; before the repair, doctor/preflight and inline glyph matching were also using separate path contracts.
 - Confirmed fact: bundled-font determinism only holds when runtime lookup, preflight reporting and PyInstaller datas all resolve the same `assets/fonts` bundle. Bare font names or implicit `C:/Windows/Fonts` fallbacks are not a stable production contract.
 - Practical guidance: keep one helper for repo/frozen bundle directories, prefer bundled font files before system fonts, ship the font license next to the TTF, and validate both `_check_font_bundle` and `_available_inline_glyph_fonts` plus a build smoke whenever packaging paths change.
+
+## 2026-05-31 - Formula review state must bubble above unit-level sidecars
+
+- Trigger: `S11.2b` added provider cache/budget/review semantics, but the existing `review-required.jsonl` path only looked at document-level `quality` and would have missed low-confidence or budget-skipped formula cases if they stayed only inside `formula-recognition.jsonl`.
+- Confirmed fact: formula-recognition sidecars are not the operator surface of record. Any provider outcome that changes human review load has to propagate into document-level `quality.flags` / `quality.warnings`, otherwise release telemetry and operator triage undercount real review work.
+- Practical guidance: when adding postprocess-originated review semantics, trace the signal through all consumer layers (`document.v1.json`, run summary, `review-required.jsonl`, telemetry), not only through the specialist sidecar that produced it.
+
+## 2026-05-31 - Strict typing only helps when legacy noise is declared explicitly
+
+- Trigger: switching `pyright` to `typeCheckingMode = "strict"` for `S11.1` surfaced hundreds of diagnostics, but the bulk was not fresh correctness debt; it was legacy private-helper access in tests/re-export modules and loose JSON payload typing in scripts/validators.
+- Confirmed fact: on this repository, strict mode is useful only if the high-volume historical noise is carved out explicitly. Otherwise real regressions disappear inside `reportPrivateUsage` / `reportUnknown*` floods and the gate stops being actionable.
+- Practical guidance: keep strict mode enabled, but document every temporary carve-out in config and treat it as tracked debt. The goal is not zero theoretical diagnostics overnight; the goal is a green gate that still catches new regressions while the carve-out set shrinks intentionally over time.

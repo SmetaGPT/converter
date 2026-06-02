@@ -25,7 +25,8 @@ from doc_converter.document_metadata import build_document_metadata
 from doc_converter.ocr.backends import OCRBackend, OcrBackendContext, build_ocr_backend
 from doc_converter.quality import quality_payload
 from doc_converter.schema_validation import validate_payload
-from doc_converter.tables import is_table_block as _is_table_block, parse_table_block as _parse_table_block
+from doc_converter.tables import is_table_block as _is_table_block
+from doc_converter.tables import parse_table_block as _parse_table_block
 
 
 @dataclass(frozen=True)

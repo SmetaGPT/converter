@@ -1,0 +1,3 @@
+{"sample_id":"negative_no_tables","route":"pdf_text","filename":"negative_no_tables.pdf","sha256":"1111111111111111111111111111111111111111111111111111111111111111"}
+{"sample_id":"negative_broken_wmf","route":"docx_native","filename":"negative_broken_wmf.docx","sha256":"2222222222222222222222222222222222222222222222222222222222222222"}
+{"sample_id":"negative_protected_pdf","route":"pdf_text","filename":"negative_protected_pdf.pdf","sha256":"3333333333333333333333333333333333333333333333333333333333333333"}

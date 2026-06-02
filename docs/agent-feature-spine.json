@@ -610,7 +610,7 @@
       "area": "product",
       "title": "Formula recognition provider and local backend env config",
       "status": "validated",
-      "behavior": "Converter runtime auto-loads formula recognition settings from `.env.local`/`.env` plus process environment overrides, supporting explicit `FORMULA_RECOGNITION_*` keys, shorthand aliases like `LLM_PROVIDER`, provider-specific model keys and `FORMULA_MODEL`, plus optional `FORMULA_RECOGNITION_LOCAL_BACKEND=tesseract`; when OpenRouter credentials are present and no dedicated formula override is set, the formula slice defaults to `openrouter` + `openai/gpt-4o`, while run metadata stores only configured `provider`/`model`/`local_backend` fields and never serializes the secret itself.",
+      "behavior": "Converter runtime auto-loads formula recognition settings from `.env.local`/`.env` plus process environment overrides, supporting explicit `FORMULA_RECOGNITION_*` keys, `FORMULA_RECOGNITION_MODE=fallback|llm_first|mathpix_first|off`, shorthand aliases like `LLM_PROVIDER`, provider-specific model keys, `FORMULA_MODEL`, optional `FORMULA_RECOGNITION_LOCAL_BACKEND=tesseract`, Mathpix credentials `MATHPIX_APP_ID` / `MATHPIX_APP_KEY`, and non-secret operational limits such as `FORMULA_RECOGNITION_PROMPT_VERSION`, `FORMULA_RECOGNITION_MAX_FORMULAS_PER_RUN`, `FORMULA_RECOGNITION_MAX_PROVIDER_CALLS` and `FORMULA_RECOGNITION_MAX_ESTIMATED_COST_USD`; when OpenRouter credentials are present and no dedicated formula override is set, the formula slice defaults to `openrouter` + `openai/gpt-4o`, while run metadata stores only safe configured fields and never serializes provider secrets.",
       "owner_docs": [
         "docs/build-and-run.md",
         ".env.example",
@@ -636,14 +636,14 @@
         "docs/build-and-run.md",
         ".env.example"
       ],
-      "residual_risk": "The env loader searches the current working directory and its ancestors; if the converter is launched from an unrelated directory, the operator must export the variables explicitly or start the command from the project tree. The default formula model is tuned for multimodal OCR-like extraction, while the current local backend depends on Windows Tesseract availability and should remain an opt-in fallback rather than a deterministic benchmark baseline."
+      "residual_risk": "The env loader searches the current working directory and its ancestors; if the converter is launched from an unrelated directory, the operator must export the variables explicitly or start the command from the project tree. Mathpix/OpenRouter live quality, cost and data-retention behavior depend on external services, so deterministic benchmark baselines must keep live providers opt-in and mocked in unit tests, with real pilot evidence collected separately from default CI."
     },
     {
       "feature_id": "formula-recognition-postprocess",
       "area": "product",
       "title": "Formula image recognition postprocess",
       "status": "validated",
-      "behavior": "When formula recognition is configured, runner reopens each canonical `document.v1.json`, scans `formula_image` units and residual `formula` units that still lack a machine-readable contract (currently: no usable `calc_expr`), first tries local WMF/MathType hint extraction, then an optional local OCR backend and only after that falls back to an OpenRouter multimodal call for unresolved assets, requesting strict `json_schema` output and writing successful results back into `unit.text`, `unit.formula`, `processing.formula_recognition` and a sidecar `formula-recognition.jsonl` artifact.",
+      "behavior": "When formula recognition is configured, runner reopens each canonical `document.v1.json`, scans `formula_image` units and residual `formula` units that still lack a machine-readable contract (currently: no usable `calc_expr`; in provider-first modes also low-confidence formulas), first tries local WMF/MathType hint extraction, then optional local OCR, then Mathpix formula OCR for display/LaTeX hints, and finally an OpenRouter strict-JSON LLM normalizer for machine-readable `calc_expr`; the run-level contour now tracks deterministic provider cache keys, cache hits, estimated provider cost, budget guardrails and explicit `review_required` propagation to document-level quality. Results are written back into `unit.text`, `unit.formula`, `processing.formula_recognition` and a sidecar `formula-recognition.jsonl` artifact.",
       "owner_docs": [
         "docs/build-and-run.md",
         "docs/document-converter-acceptance.md",
@@ -668,7 +668,7 @@
         "docs/build-and-run.md",
         "docs/document-converter-acceptance.md"
       ],
-      "residual_risk": "Automated validation uses mocked provider responses and does not spend real OpenRouter credits; live quality still depends on provider availability, model behavior, local Tesseract availability and successful rasterization of WMF/EMF assets on Windows."
+      "residual_risk": "Automated validation uses mocked provider responses and does not spend real Mathpix/OpenRouter credits; live quality still depends on provider availability, Mathpix data-retention settings, model behavior, local Tesseract availability and successful rasterization of WMF/EMF assets on Windows. Provider cache/budget/review semantics are now deterministic locally, but real pilot metrics still require opt-in credentials and a separate operator-triggered benchmark contour."
     },
     {
       "feature_id": "formula-known-patterns-data",
@@ -1585,6 +1585,81 @@
       "residual_risk": "Cache correctness is covered by unit-level hit/miss tests, but the full-corpus `<30s` timing target was not remeasured in this session after a local usage-limit rejection on the heavy benchmark command. Converter-semantic changes also still rely on a deliberate benchmark_version bump to invalidate previously cached cases."
     },
     {
+      "feature_id": "quality-lint-strict-align",
+      "area": "quality",
+      "title": "Ruff strict rule alignment",
+      "status": "validated",
+      "behavior": "Repository lint configuration now actually enables the declared strict Ruff rule set `E,F,W,I,UP,B,SIM` while keeping only explicit formatting-only residual ignores, so full `ruff check src tests scripts` remains a meaningful required gate rather than a softer local convention.",
+      "owner_docs": [
+        "pyproject.toml",
+        "docs/current-status.md",
+        "docs/current-sprint.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "memories/repo/backend-notes.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m ruff check src tests scripts"
+        }
+      ],
+      "evidence": [
+        "pyproject.toml",
+        "src/doc_converter/cli.py",
+        "src/doc_converter/converters/docx/inline_glyph.py",
+        "src/doc_converter/document_metadata.py",
+        "src/doc_converter/formula_benchmark.py",
+        "src/doc_converter/formula_recognition.py",
+        "src/doc_converter/human_readable.py",
+        "src/doc_converter/run/postprocess.py",
+        "src/doc_converter/sample_expectations.py",
+        "tests/test_cli_smoke.py",
+        "tests/test_contracts_stability.py",
+        "tests/test_docx_converter.py",
+        "tests/test_gui_import.py",
+        "tests/test_provider_secret_redaction.py",
+        "tests/test_run_determinism.py",
+        "docs/current-status.md",
+        "docs/current-sprint.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "memories/repo/backend-notes.md"
+      ],
+      "residual_risk": "Formatting-only debt is still intentionally carried through explicit `E501`/`W191`/`W292` ignores. Any further carve-out beyond that should be treated as tracked quality debt rather than silently weakening the required lint gate."
+    },
+    {
+      "feature_id": "quality-pyright-strict",
+      "area": "quality",
+      "title": "Pyright strict mode with declared carve-outs",
+      "status": "validated",
+      "behavior": "Pyright now runs with `typeCheckingMode = \"strict\"` on the repository, while a small explicit set of legacy carve-outs suppresses high-volume private-usage and unknown-JSON noise that would otherwise bury real regressions. Full `pyright` is green under that declared contract.",
+      "owner_docs": [
+        "pyrightconfig.json",
+        "docs/current-status.md",
+        "docs/current-sprint.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "memories/repo/backend-notes.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m pyright"
+        }
+      ],
+      "evidence": [
+        "pyrightconfig.json",
+        "src/doc_converter/converters/docx/inline_glyph.py",
+        "docs/current-status.md",
+        "docs/current-sprint.md",
+        "docs/production-roadmap.md",
+        "docs/release-status.md",
+        "memories/repo/backend-notes.md"
+      ],
+      "residual_risk": "The repo is not yet fully cleaned of legacy private-helper access and loose JSON payload typing; those are temporarily carved out so strict mode can still surface new regressions. Reducing that carve-out set remains future typing debt rather than a blocker for the current v1.0 path."
+    },
+    {
       "feature_id": "determinism-font-bundle",
       "area": "runtime",
       "title": "Bundled inline-glyph font set",
@@ -1639,6 +1714,105 @@
         "memories/repo/backend-notes.md"
       ],
       "residual_risk": "The bundle currently carries a minimal DejaVuSans set aimed at inline math-symbol matching. A clean-room glyph-coverage proof without any preinstalled fonts is still a stronger external check, and broader symbol vocabularies may require expanding the bundled font set later."
+    },
+    {
+      "feature_id": "tests-negative-samples",
+      "area": "quality",
+      "title": "Negative sample expectation fixtures",
+      "status": "validated",
+      "behavior": "The sample-expectation validator can validate a dedicated negative-sample fixture set that covers no-table false-positive control, broken WMF review routing and protected-PDF review routing without mixing those fixtures into the default representative sample manifest.",
+      "owner_docs": [
+        "docs/production-roadmap.md",
+        "samples/manifest.negative.jsonl",
+        "samples/expected/negative/negative_no_tables.expected-units.json",
+        "samples/expected/negative/negative_broken_wmf.expected-units.json",
+        "samples/expected/negative/negative_protected_pdf.expected-units.json",
+        "src/doc_converter/sample_expectations.py",
+        "tests/test_negative_sample_expectations.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": "$env:PYTHONPATH = 'src'; .\\.venv\\Scripts\\python.exe -m unittest tests.test_negative_sample_expectations -v"
+        },
+        {
+          "type": "command",
+          "target": "$env:PYTHONPATH = 'src'; .\\.venv\\Scripts\\python.exe -m unittest discover -v"
+        }
+      ],
+      "evidence": [
+        "samples/manifest.negative.jsonl",
+        "samples/expected/negative/negative_no_tables.expected-units.json",
+        "samples/expected/negative/negative_broken_wmf.expected-units.json",
+        "samples/expected/negative/negative_protected_pdf.expected-units.json",
+        "src/doc_converter/sample_expectations.py",
+        "tests/test_negative_sample_expectations.py",
+        "docs/production-roadmap.md"
+      ],
+      "residual_risk": "The negative fixtures are synthetic validator contours rather than real malformed source documents; future release hardening can add small git-tracked binary fixtures if legal and size constraints allow it."
+    },
+    {
+      "feature_id": "tests-property-based",
+      "area": "quality",
+      "title": "Property-based formula and table regression tests",
+      "status": "validated",
+      "behavior": "Hypothesis-backed tests exercise generated formula assignments through the DOCX formula calc-expression normalizer and generated table blocks through the shared dominant-width and continuation-line merger, adding randomized coverage without changing production conversion behavior.",
+      "owner_docs": [
+        "docs/production-roadmap.md",
+        "pyproject.toml",
+        "tests/test_property_based.py",
+        "tests/fixtures/docx_factories.py",
+        "src/doc_converter/converters/docx/formulas/text.py",
+        "src/doc_converter/tables/__init__.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": "$env:PYTHONPATH = 'src'; .\\.venv\\Scripts\\python.exe -m unittest tests.test_property_based -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m ruff check src tests scripts typings"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m pyright"
+        }
+      ],
+      "evidence": [
+        "pyproject.toml",
+        "tests/test_property_based.py",
+        "tests/fixtures/docx_factories.py",
+        "typings/hypothesis/__init__.pyi",
+        "typings/hypothesis/strategies.pyi",
+        "src/doc_converter/converters/docx/formulas/text.py",
+        "src/doc_converter/tables/__init__.py"
+      ],
+      "residual_risk": "Property examples are bounded for CI speed and currently target the arithmetic subset plus table row-merger invariants; they complement but do not replace corpus-level formula/table benchmarks."
+    },
+    {
+      "feature_id": "tests-docx-fixtures",
+      "area": "quality",
+      "title": "Reusable DOCX-like test data factories",
+      "status": "validated",
+      "behavior": "Shared test factories provide generated DOCX-like formula identifiers, formula assignments and rectangular table text cases for property-based regression tests, keeping generated inputs centralized instead of embedded ad hoc in each test method.",
+      "owner_docs": [
+        "docs/production-roadmap.md",
+        "tests/fixtures/docx_factories.py",
+        "tests/test_property_based.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": "$env:PYTHONPATH = 'src'; .\\.venv\\Scripts\\python.exe -m unittest tests.test_property_based -v"
+        }
+      ],
+      "evidence": [
+        "tests/fixtures/docx_factories.py",
+        "tests/fixtures/__init__.py",
+        "tests/test_property_based.py"
+      ],
+      "residual_risk": "The fixture vocabulary is intentionally small and focused on current formula/table invariants; future property suites should expand it only with falsifiable behavior checks."
     },
     {
       "feature_id": "machine-readable-telemetry",

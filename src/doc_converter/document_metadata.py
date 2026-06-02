@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 TITLE_LINE_LIMIT = 10
 SUMMARY_CHAR_LIMIT = 500
@@ -201,9 +202,7 @@ def _is_date_or_number_line(line: str) -> bool:
     normalized = line.lower()
     if re.search(r"\bот\s+\d{1,2}\b", normalized):
         return True
-    if re.search(r"\b(?:n|№)\s*[\w\-/]+", normalized):
-        return True
-    return False
+    return bool(re.search(r"\b(?:n|№)\s*[\w\-/]+", normalized))
 
 
 def _is_subject_stop_line(line: str) -> bool:

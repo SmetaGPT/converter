@@ -8,21 +8,36 @@ from pathlib import Path
 
 from build_agent_scorecard import (
     DEFAULT_MARKDOWN as SCORECARD_MARKDOWN,
+)
+from build_agent_scorecard import (
     DEFAULT_OUTPUT as SCORECARD_JSON,
+)
+from build_agent_scorecard import (
     _dump_json as dump_scorecard_json,
+)
+from build_agent_scorecard import (
     _extract_markdown_section as extract_scorecard_markdown_section,
+)
+from build_agent_scorecard import (
     _write_markdown_section as write_scorecard_markdown_section,
+)
+from build_agent_scorecard import (
     build_scorecard_markdown_section,
     build_scorecard_payload,
 )
 from build_agent_weekly_eval import (
     DEFAULT_MARKDOWN as WEEKLY_EVAL_MARKDOWN,
+)
+from build_agent_weekly_eval import (
     DEFAULT_OUTPUT as WEEKLY_EVAL_JSON,
+)
+from build_agent_weekly_eval import (
     _dump_json as dump_weekly_eval_json,
+)
+from build_agent_weekly_eval import (
     build_weekly_eval_markdown,
     build_weekly_eval_payload,
 )
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -52,9 +67,8 @@ def main(argv: list[str] | None = None) -> int:
         write_scorecard_markdown_section(SCORECARD_MARKDOWN, scorecard_markdown)
         status = "written"
 
-    if args.check_markdown:
-        if _assert_scorecard_markdown_matches(SCORECARD_MARKDOWN, scorecard_markdown) != 0:
-            return 1
+    if args.check_markdown and _assert_scorecard_markdown_matches(SCORECARD_MARKDOWN, scorecard_markdown) != 0:
+        return 1
 
     weekly_eval_payload = build_weekly_eval_payload(ROOT, days=days)
     weekly_eval_markdown = build_weekly_eval_markdown(weekly_eval_payload)
@@ -66,9 +80,8 @@ def main(argv: list[str] | None = None) -> int:
         WEEKLY_EVAL_JSON.write_text(dump_weekly_eval_json(weekly_eval_payload), encoding="utf-8", newline="\n")
         WEEKLY_EVAL_MARKDOWN.write_text(weekly_eval_markdown, encoding="utf-8", newline="\n")
 
-    if args.check_markdown:
-        if _assert_text_matches(WEEKLY_EVAL_MARKDOWN, weekly_eval_markdown, "weekly-eval-markdown") != 0:
-            return 1
+    if args.check_markdown and _assert_text_matches(WEEKLY_EVAL_MARKDOWN, weekly_eval_markdown, "weekly-eval-markdown") != 0:
+        return 1
 
     print(
         json.dumps(

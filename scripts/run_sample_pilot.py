@@ -6,12 +6,12 @@ import argparse
 import json
 import shutil
 from collections import Counter
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 from doc_converter.config import ConverterConfig, ConverterOptions
 from doc_converter.runner import run_convert_folder
-
 
 ROOT = Path(__file__).resolve().parents[1]
 

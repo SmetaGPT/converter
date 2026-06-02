@@ -39,14 +39,16 @@ class RunDeterminismTests(unittest.TestCase):
             first_order = [duplicate_path, unsupported_path, unique_path, primary_path]
             second_order = [primary_path, unique_path, unsupported_path, duplicate_path]
 
-            with patch("doc_converter.inventory._iter_input_files", side_effect=[first_order, second_order]):
-                with patch("doc_converter.run.orchestration._new_run_id", return_value="20260531T000000Z"):
-                    first_result = run_convert_folder(
-                        ConverterConfig(input_dir=input_root, output_dir=first_output, options=ConverterOptions())
-                    )
-                    second_result = run_convert_folder(
-                        ConverterConfig(input_dir=input_root, output_dir=second_output, options=ConverterOptions())
-                    )
+            with (
+                patch("doc_converter.inventory._iter_input_files", side_effect=[first_order, second_order]),
+                patch("doc_converter.run.orchestration._new_run_id", return_value="20260531T000000Z"),
+            ):
+                first_result = run_convert_folder(
+                    ConverterConfig(input_dir=input_root, output_dir=first_output, options=ConverterOptions())
+                )
+                second_result = run_convert_folder(
+                    ConverterConfig(input_dir=input_root, output_dir=second_output, options=ConverterOptions())
+                )
 
             first_manifest_lines = _manifest_lines(first_result.run_dir / "manifest.jsonl")
             second_manifest_lines = _manifest_lines(second_result.run_dir / "manifest.jsonl")

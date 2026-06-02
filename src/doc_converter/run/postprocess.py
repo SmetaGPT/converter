@@ -5,16 +5,21 @@ from pathlib import Path
 from typing import Any
 
 from ..config import ConverterConfig
-from ..formula_recognition import FormulaRecognitionPostprocessResult, run_formula_recognition_postprocess
+from ..formula_recognition import (
+    FormulaRecognitionPostprocessResult,
+    FormulaRecognitionRunState,
+    run_formula_recognition_postprocess,
+)
 from ..schema_validation import SchemaValidationError, validate_json_file
 
 
 def _run_formula_recognition_stage(
     document_dir: Path,
     config: ConverterConfig,
+    run_state: FormulaRecognitionRunState,
 ) -> FormulaRecognitionPostprocessResult:
     try:
-        return run_formula_recognition_postprocess(document_dir, config.options.formula_recognition)
+        return run_formula_recognition_postprocess(document_dir, config.options.formula_recognition, run_state=run_state)
     except Exception:  # noqa: BLE001 - best-effort network stage must not fail document conversion.
         return FormulaRecognitionPostprocessResult(warnings=("formula_recognition_postprocess_failed",))
 
@@ -27,14 +32,14 @@ def _merge_formula_recognition_manifest_data(
         manifest_record["formula_recognition_attempted"] = formula_result.attempted
         manifest_record["formula_recognition_recognized"] = formula_result.recognized
         manifest_record["formula_recognition_provider_calls"] = formula_result.provider_calls
+        manifest_record["formula_recognition_cache_hits"] = formula_result.cache_hits
+        manifest_record["formula_recognition_estimated_cost_usd"] = formula_result.estimated_cost_usd
+        manifest_record["formula_recognition_review_required_units"] = formula_result.review_required_units
     if formula_result.artifact_path is not None:
         manifest_record["formula_recognition_results_path"] = formula_result.artifact_path
     if formula_result.warnings:
         warnings = manifest_record.get("warnings")
-        if isinstance(warnings, list):
-            warning_list = [str(item) for item in warnings]
-        else:
-            warning_list = []
+        warning_list = [str(item) for item in warnings] if isinstance(warnings, list) else []
         for warning in formula_result.warnings:
             if warning not in warning_list:
                 warning_list.append(warning)

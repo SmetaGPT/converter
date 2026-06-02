@@ -9,7 +9,6 @@ from typing import Any
 from unittest.mock import patch
 
 import doc_converter.formula_benchmark as formula_benchmark_module
-
 from doc_converter.formula_benchmark import (
     build_formula_gold_payload,
     collect_formula_units,
@@ -320,16 +319,15 @@ class FormulaBenchmarkTests(unittest.TestCase):
 
             self.assertEqual(first_report["entries"][0]["cache_status"], "miss")
 
-            with patch("doc_converter.formula_benchmark._timestamp_slug", return_value="20260531T010102Z"):
-                with patch(
-                    "doc_converter.formula_benchmark._load_benchmark_payload",
-                    side_effect=AssertionError("Benchmark payload should be reused from cache."),
-                ):
-                    second_report = run_benchmark_manifest(
-                        manifest_path,
-                        output_root=output_root,
-                        thresholds_path=thresholds_path,
-                    )
+            with patch("doc_converter.formula_benchmark._timestamp_slug", return_value="20260531T010102Z"), patch(
+                "doc_converter.formula_benchmark._load_benchmark_payload",
+                side_effect=AssertionError("Benchmark payload should be reused from cache."),
+            ):
+                second_report = run_benchmark_manifest(
+                    manifest_path,
+                    output_root=output_root,
+                    thresholds_path=thresholds_path,
+                )
 
             self.assertEqual(second_report["status"], "ok")
             self.assertEqual(second_report["required_gate"]["status"], "passed")
@@ -399,12 +397,11 @@ class FormulaBenchmarkTests(unittest.TestCase):
                 ],
             )
 
-            with patch("doc_converter.formula_benchmark._timestamp_slug", return_value="20260531T020102Z"):
-                with patch(
-                    "doc_converter.formula_benchmark._load_benchmark_payload",
-                    wraps=formula_benchmark_module._load_benchmark_payload,
-                ) as mocked_load_payload:
-                    second_report = run_benchmark_manifest(manifest_path, output_root=output_root)
+            with patch("doc_converter.formula_benchmark._timestamp_slug", return_value="20260531T020102Z"), patch(
+                "doc_converter.formula_benchmark._load_benchmark_payload",
+                wraps=formula_benchmark_module._load_benchmark_payload,
+            ) as mocked_load_payload:
+                second_report = run_benchmark_manifest(manifest_path, output_root=output_root)
 
             mocked_load_payload.assert_called_once()
             self.assertEqual(second_report["entries"][0]["cache_status"], "miss")
@@ -456,12 +453,11 @@ class FormulaBenchmarkTests(unittest.TestCase):
             gold_payload["unit_expectations"][0]["calc_expr"] = "R = A - B"
             gold_path.write_text(json.dumps(gold_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-            with patch("doc_converter.formula_benchmark._timestamp_slug", return_value="20260531T030102Z"):
-                with patch(
-                    "doc_converter.formula_benchmark._load_benchmark_payload",
-                    wraps=formula_benchmark_module._load_benchmark_payload,
-                ) as mocked_load_payload:
-                    second_report = run_benchmark_manifest(manifest_path, output_root=output_root)
+            with patch("doc_converter.formula_benchmark._timestamp_slug", return_value="20260531T030102Z"), patch(
+                "doc_converter.formula_benchmark._load_benchmark_payload",
+                wraps=formula_benchmark_module._load_benchmark_payload,
+            ) as mocked_load_payload:
+                second_report = run_benchmark_manifest(manifest_path, output_root=output_root)
 
             mocked_load_payload.assert_called_once()
             self.assertEqual(second_report["status"], "failed")

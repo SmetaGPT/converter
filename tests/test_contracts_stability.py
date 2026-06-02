@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from typing import Any
 
-from doc_converter.schema_validation import validate_payload
+from doc_converter.schema_validation import SchemaValidationError, validate_payload
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMAS_DIR = ROOT / "schemas"
@@ -42,11 +42,26 @@ class ContractStabilityTests(unittest.TestCase):
                 "status": "unresolved_without_provider",
                 "candidate_kind": "formula_text",
                 "local_backend": None,
+                "review_required": True,
             },
             {
                 "unit_id": "u_000003",
                 "asset_ref": "assets/missing.wmf",
                 "status": "asset_missing",
+                "review_required": True,
+            },
+            {
+                "unit_id": "u_000004",
+                "asset_ref": "assets/formula.png",
+                "status": "recognized_mathpix_partial",
+                "candidate_kind": "formula_image",
+                "provider": "mathpix",
+                "confidence": "high",
+                "source_format": "heuristic_latex",
+                "cache_key": "0" * 64,
+                "cache_status": "miss",
+                "estimated_cost_usd": 0.002,
+                "review_required": True,
             },
         ]
 
@@ -55,7 +70,7 @@ class ContractStabilityTests(unittest.TestCase):
                 validate_payload(record, "formula-recognition.v1.schema.json")
 
     def test_formula_recognition_schema_rejects_extra_fields(self) -> None:
-        with self.assertRaises(Exception):
+        with self.assertRaises(SchemaValidationError):
             validate_payload(
                 {
                     "unit_id": "u_000001",

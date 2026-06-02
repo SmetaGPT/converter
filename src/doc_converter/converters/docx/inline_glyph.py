@@ -7,10 +7,11 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
-from PIL import Image, ImageChops, ImageDraw, ImageFont, UnidentifiedImageError
 from docx.text.paragraph import Paragraph
+from PIL import Image, ImageChops, ImageDraw, ImageFont, UnidentifiedImageError
+
 from doc_converter.font_bundle import bundled_font_paths
 
 from .formulas.wmf import _extract_formula_text_from_asset
@@ -80,7 +81,7 @@ INLINE_GLYPH_RENDER_TIMEOUT_SECONDS = 15
 INLINE_GLYPH_RASTER_SUFFIXES = {".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tif", ".tiff"}
 INLINE_GLYPH_METAFILE_SUFFIXES = {".wmf", ".emf"}
 INLINE_GLYPH_CACHE: dict[str, str | None] = {}
-LANCZOS_RESAMPLING = getattr(getattr(Image, "Resampling", Image), "LANCZOS")
+LANCZOS_RESAMPLING = Image.Resampling.LANCZOS if hasattr(Image, "Resampling") else cast(Any, Image).LANCZOS
 
 
 def _inline_drawing_placeholders(paragraph: Paragraph, drawing: Any) -> list[str]:

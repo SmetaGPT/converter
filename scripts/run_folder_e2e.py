@@ -15,7 +15,6 @@ from doc_converter.config import ConverterConfig, ConverterOptions
 from doc_converter.runner import run_convert_folder
 from doc_converter.schema_validation import validate_json_file, validate_payload
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 

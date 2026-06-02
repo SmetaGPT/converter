@@ -6,15 +6,15 @@ import json
 import shutil
 import sys
 from collections import Counter
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Mapping, cast
+from typing import Any, cast
 
 from doc_converter.canonical import sha256_file
 from doc_converter.config import ConverterConfig, ConverterOptions, FormulaRecognitionConfig, load_formula_recognition_config
 from doc_converter.runner import run_convert_folder
 from doc_converter.schema_validation import validate_json_file
-
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -907,7 +907,7 @@ def _build_case_cache_key(entry: Mapping[str, Any], *, input_path: Path, gold_pa
         _canonical_json(_cache_manifest_entry(entry, gold_path=gold_path)).encode("utf-8")
     ).hexdigest()
     return hashlib.sha256(
-        f"{asset_sha256}:{manifest_entry_sha256}:{_BENCHMARK_CACHE_VERSION}".encode("utf-8")
+        f"{asset_sha256}:{manifest_entry_sha256}:{_BENCHMARK_CACHE_VERSION}".encode()
     ).hexdigest()
 
 
@@ -981,10 +981,7 @@ def _load_cached_case_report(cache_dir: Path, *, case_dir: Path, cache_key: str)
 
 def _resolve_path(raw_path: str, *, base_dir: Path) -> Path:
     candidate = Path(raw_path).expanduser()
-    if not candidate.is_absolute():
-        candidate = (base_dir / candidate).resolve()
-    else:
-        candidate = candidate.resolve()
+    candidate = (base_dir / candidate).resolve() if not candidate.is_absolute() else candidate.resolve()
     return candidate
 
 

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 from ..inventory import InventoryRecord, UnsupportedInventoryRecord
 from ..redaction import redact_secrets

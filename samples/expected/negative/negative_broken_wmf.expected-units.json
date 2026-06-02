@@ -1,0 +1,19 @@
+{
+  "sample_id": "negative_broken_wmf",
+  "route": "docx_native",
+  "expected_units": {
+    "required_types": ["document", "section", "formula"]
+  },
+  "required_references": {
+    "stable_document_id": true,
+    "stable_unit_ids": true,
+    "preserve_reading_order": true
+  },
+  "quality_expectations": {
+    "review_required": true
+  },
+  "processing_expectations": {
+    "status": "partial_success",
+    "warnings_include": ["WMF formula parsing failed."]
+  }
+}

@@ -12,7 +12,6 @@ from doc_converter.human_readable import (
     export_run_human_readable_html,
 )
 
-
 DOCUMENT_ID = "sha256:" + ("a" * 64)
 SOURCE_SHA = "a" * 64
 

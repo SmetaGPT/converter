@@ -12,8 +12,8 @@ from doc_converter.canonical import SourceRef, StructuralUnit, document_id_from_
 from doc_converter.document_metadata import build_document_metadata
 from doc_converter.quality import quality_payload, text_quality_flags
 from doc_converter.schema_validation import validate_payload
-from doc_converter.tables import is_table_block as _is_table_block, parse_table_block as _parse_table_block
-
+from doc_converter.tables import is_table_block as _is_table_block
+from doc_converter.tables import parse_table_block as _parse_table_block
 
 FORMULA_RE = re.compile(r"(^|\s)[A-Za-zА-Яа-я][\wА-Яа-я]*\s*=|[=∑√≤≥±×÷≈]|\b(sum|sqrt|frac)\b", re.IGNORECASE)
 FIGURE_CAPTION_RE = re.compile(r"^(рис\.?|рисунок|figure)\s*\d*", re.IGNORECASE)
@@ -102,7 +102,7 @@ def convert_pdf_text(
                 )
                 order += 1
                 table_text_rows: list[str] = []
-                for row_index, row_cells in enumerate(parsed_table.rows, start=1):
+                for _row_index, row_cells in enumerate(parsed_table.rows, start=1):
                     row_id = unit_id(order)
                     units.append(
                         StructuralUnit(
@@ -121,7 +121,7 @@ def convert_pdf_text(
                     )
                     order += 1
                     table_text_rows.append(" | ".join(row_cells))
-                    for cell_index, cell_text in enumerate(row_cells, start=1):
+                    for _cell_index, cell_text in enumerate(row_cells, start=1):
                         units.append(
                             StructuralUnit(
                                 unit_id=unit_id(order),

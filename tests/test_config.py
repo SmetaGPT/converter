@@ -46,6 +46,37 @@ class FormulaRecognitionConfigTests(unittest.TestCase):
             self.assertEqual(config.api_key, "router-secret")
             self.assertTrue(config.is_configured())
 
+    def test_load_formula_recognition_from_mathpix_and_openrouter(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / ".env.local").write_text(
+                "FORMULA_RECOGNITION_MODE=mathpix_first\n"
+                "FORMULA_RECOGNITION_PROMPT_VERSION=mathpix-v2\n"
+                "FORMULA_RECOGNITION_MAX_FORMULAS_PER_RUN=12\n"
+                "FORMULA_RECOGNITION_MAX_PROVIDER_CALLS=8\n"
+                "FORMULA_RECOGNITION_MAX_ESTIMATED_COST_USD=0.5\n"
+                "MATHPIX_APP_ID=mathpix-id\n"
+                "MATHPIX_APP_KEY=mathpix-key\n"
+                "OPENROUTER_API_KEY=router-secret\n",
+                encoding="utf-8",
+            )
+
+            with patch("doc_converter.config.Path.cwd", return_value=root):
+                config = load_formula_recognition_config()
+
+            self.assertEqual(config.mode, "mathpix_first")
+            self.assertEqual(config.prompt_version, "mathpix-v2")
+            self.assertEqual(config.mathpix_app_id, "mathpix-id")
+            self.assertEqual(config.mathpix_app_key, "mathpix-key")
+            self.assertEqual(config.provider, "openrouter")
+            self.assertEqual(config.model, "openai/gpt-4o")
+            self.assertEqual(config.api_key, "router-secret")
+            self.assertEqual(config.max_formulas_per_run, 12)
+            self.assertEqual(config.max_provider_calls, 8)
+            self.assertEqual(config.max_estimated_cost_usd, 0.5)
+            self.assertTrue(config.mathpix_is_configured())
+            self.assertTrue(config.is_configured())
+
     def test_load_formula_recognition_defaults_to_formula_model_when_openrouter_key_present(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -137,6 +168,23 @@ class FormulaRecognitionConfigTests(unittest.TestCase):
             self.assertEqual(options.formula_recognition.model, "openai/gpt-4o")
             self.assertIsNone(options.formula_recognition.api_key)
             self.assertFalse(options.formula_recognition.is_configured())
+
+    def test_load_formula_recognition_ignores_invalid_limits(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / ".env.local").write_text(
+                "FORMULA_RECOGNITION_MAX_FORMULAS_PER_RUN=-1\n"
+                "FORMULA_RECOGNITION_MAX_PROVIDER_CALLS=oops\n"
+                "FORMULA_RECOGNITION_MAX_ESTIMATED_COST_USD=-0.1\n",
+                encoding="utf-8",
+            )
+
+            with patch("doc_converter.config.Path.cwd", return_value=root):
+                config = load_formula_recognition_config()
+
+            self.assertIsNone(config.max_formulas_per_run)
+            self.assertIsNone(config.max_provider_calls)
+            self.assertIsNone(config.max_estimated_cost_usd)
 
     def test_converter_options_default_to_ocrmypdf_and_both_catalog_writers(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

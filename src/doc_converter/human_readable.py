@@ -424,9 +424,7 @@ def _should_render_formula_as_math(formula: dict[str, Any], display_latex: str) 
     warnings = formula.get("warnings")
     if source_format in {"docx_text_linearized", "heuristic_latex"} and confidence != "high":
         return False
-    if isinstance(warnings, list) and any("heuristic" in _string_value(item) for item in warnings):
-        return False
-    return True
+    return not (isinstance(warnings, list) and any("heuristic" in _string_value(item) for item in warnings))
 
 
 def _render_table_markdown(

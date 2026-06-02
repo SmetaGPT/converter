@@ -22,6 +22,7 @@ from doc_converter.converters.docx import (
 )
 
 OPENROUTER_CHAT_COMPLETIONS_URL = "https://openrouter.ai/api/v1/chat/completions"
+MATHPIX_TEXT_URL = "https://api.mathpix.com/v3/text"
 FORMULA_RECOGNITION_TIMEOUT_SECONDS = 90
 FORMULA_LOCAL_BACKEND_TIMEOUT_SECONDS = 30
 FORMULA_RESPONSE_SCHEMA: dict[str, Any] = {
@@ -65,6 +66,9 @@ class FormulaProviderContext:
     asset_name: str | None
     local_hint_text: str | None
     source_text: str | None
+    mathpix_text: str | None = None
+    mathpix_latex: str | None = None
+    mathpix_asciimath: str | None = None
 
 
 @dataclass(frozen=True)
@@ -148,6 +152,9 @@ class OpenRouterProvider:
             asset_name=context.asset_name,
             local_hint_text=context.local_hint_text,
             source_text=context.source_text,
+            mathpix_text=context.mathpix_text,
+            mathpix_latex=context.mathpix_latex,
+            mathpix_asciimath=context.mathpix_asciimath,
         )
         response_payload = _request_openrouter_completion(
             api_key=self.api_key,
@@ -161,10 +168,36 @@ class OpenRouterProvider:
         )
 
 
+@dataclass(frozen=True)
+class MathpixProvider:
+    app_id: str
+    app_key: str
+    provider_id: str = "mathpix"
+    stage: str = "provider"
+
+    def predict(
+        self,
+        asset: FormulaRecognitionAsset,
+        context: FormulaProviderContext,
+    ) -> FormulaPrediction | None:
+        if asset.path is None or asset.blob is None:
+            return None
+        image_url = _build_image_data_url(asset.path, asset.blob)
+        response_payload = _request_mathpix_text(app_id=self.app_id, app_key=self.app_key, image_url=image_url)
+        return FormulaPrediction(
+            formula=_normalize_mathpix_formula_response(response_payload),
+            origin="mathpix",
+        )
+
+
 def build_formula_provider_chain(config: FormulaRecognitionConfig) -> tuple[FormulaProvider, ...]:
     providers: list[FormulaProvider] = []
+    if config.mode == "off":
+        return (NullProvider(),)
     if config.local_backend_is_configured():
         providers.append(LocalTesseractProvider(backend=str(config.local_backend)))
+    if config.mathpix_is_configured():
+        providers.append(MathpixProvider(app_id=str(config.mathpix_app_id), app_key=str(config.mathpix_app_key)))
     if config.provider_is_configured():
         providers.append(
             OpenRouterProvider(
@@ -277,7 +310,14 @@ def _normalize_local_backend_formula_text(value: str) -> str:
     return normalized.strip()
 
 
-def _formula_recognition_prompt(asset_name: str | None, local_hint_text: str | None, source_text: str | None) -> str:
+def _formula_recognition_prompt(
+    asset_name: str | None,
+    local_hint_text: str | None,
+    source_text: str | None,
+    mathpix_text: str | None = None,
+    mathpix_latex: str | None = None,
+    mathpix_asciimath: str | None = None,
+) -> str:
     lines = [
         "Распознай формулу на изображении и верни только JSON-объект.",
         "Сохраняй кириллические обозначения и индексы, если они есть на изображении.",
@@ -291,6 +331,12 @@ def _formula_recognition_prompt(asset_name: str | None, local_hint_text: str | N
         lines.append(f"asset_name: {asset_name}")
     if local_hint_text:
         lines.append(f"partial_local_hint: {local_hint_text}")
+    if mathpix_text:
+        lines.append(f"mathpix_text: {mathpix_text}")
+    if mathpix_latex:
+        lines.append(f"mathpix_latex: {mathpix_latex}")
+    if mathpix_asciimath:
+        lines.append(f"mathpix_asciimath: {mathpix_asciimath}")
     if source_text:
         lines.append(f"raw_extracted_text: {source_text}")
     return "\n".join(lines)
@@ -344,6 +390,40 @@ def _request_openrouter_completion(*, api_key: str, model: str, image_url: str |
         raise RuntimeError(f"OpenRouter request failed: {exc.reason}") from exc
 
 
+def _request_mathpix_text(*, app_id: str, app_key: str, image_url: str) -> dict[str, Any]:
+    body = {
+        "src": image_url,
+        "formats": ["text", "data", "html"],
+        "data_options": {
+            "include_asciimath": True,
+            "include_latex": True,
+        },
+        "math_inline_delimiters": ["$", "$"],
+        "rm_spaces": True,
+        "metadata": {
+            "improve_mathpix": False,
+        },
+    }
+    request = urllib.request.Request(
+        MATHPIX_TEXT_URL,
+        data=json.dumps(body).encode("utf-8"),
+        headers={
+            "app_id": app_id,
+            "app_key": app_key,
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=FORMULA_RECOGNITION_TIMEOUT_SECONDS) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        details = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Mathpix request failed: {exc.code} {details}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"Mathpix request failed: {exc.reason}") from exc
+
+
 def _normalize_openrouter_formula_response(response_payload: dict[str, Any]) -> dict[str, Any]:
     content = _extract_openrouter_message_content(response_payload)
     model_payload = _parse_json_object(content)
@@ -376,6 +456,67 @@ def _normalize_openrouter_formula_response(response_payload: dict[str, Any]) -> 
         "confidence": confidence,
         "warnings": warnings,
     }
+
+
+def _normalize_mathpix_formula_response(response_payload: dict[str, Any]) -> dict[str, Any]:
+    text = _normalized_optional_string(response_payload.get("text"))
+    latex = _mathpix_data_value(response_payload, "latex") or _normalized_optional_string(response_payload.get("latex_styled"))
+    asciimath = _mathpix_data_value(response_payload, "asciimath")
+
+    linear_text = text or asciimath or latex
+    display_latex = latex or text or asciimath
+    if linear_text is None and display_latex is None:
+        raise RuntimeError("Mathpix formula response did not contain text, latex or asciimath")
+    if linear_text is None:
+        linear_text = display_latex
+    if display_latex is None:
+        display_latex = linear_text
+
+    confidence = _mathpix_confidence(response_payload.get("confidence"))
+    warnings = ["formula_mathpix_ocr", "formula_mathpix_display_only"]
+    if asciimath:
+        warnings.append("formula_mathpix_asciimath_available")
+
+    return {
+        "source_format": "heuristic_latex",
+        "linear_text": _strip_mathpix_delimiters(str(linear_text)),
+        "display_latex": _strip_mathpix_delimiters(str(display_latex)),
+        "calc_expr": None,
+        "confidence": confidence,
+        "warnings": warnings,
+    }
+
+
+def _mathpix_data_value(response_payload: dict[str, Any], value_type: str) -> str | None:
+    data = response_payload.get("data")
+    if not isinstance(data, list):
+        return None
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        if item.get("type") == value_type:
+            return _normalized_optional_string(item.get("value"))
+    return None
+
+
+def _mathpix_confidence(value: object) -> str:
+    if isinstance(value, int | float):
+        if value >= 0.95:
+            return "high"
+        if value >= 0.80:
+            return "medium"
+    return "low"
+
+
+def _strip_mathpix_delimiters(value: str) -> str:
+    stripped = value.strip()
+    if stripped.startswith("\\(") and stripped.endswith("\\)"):
+        return stripped[2:-2].strip()
+    if stripped.startswith("\\[") and stripped.endswith("\\]"):
+        return stripped[2:-2].strip()
+    if stripped.startswith("$") and stripped.endswith("$") and len(stripped) > 1:
+        return stripped[1:-1].strip()
+    return stripped
 
 
 def _extract_openrouter_message_content(response_payload: dict[str, Any]) -> str:

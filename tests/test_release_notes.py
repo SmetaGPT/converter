@@ -4,7 +4,6 @@ import unittest
 
 from doc_converter.release_notes import render_release_notes, resolve_release_section
 
-
 CHANGELOG_TEXT = """# Changelog
 
 ## [Unreleased]

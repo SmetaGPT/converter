@@ -24,6 +24,8 @@ build = [
 dev = [
 	"ruff>=0.12.0",
 	"pyright>=1.1.400",
+	"hypothesis>=6.135",
+	"coverage[toml]>=7.8",
 	"types-jsonschema>=4.26",
 	"types-openpyxl>=3.1",
 ]
@@ -49,9 +51,9 @@ target-version = "py312"
 line-length = 140
 
 [tool.ruff.lint]
-select = ["E", "F", "W"]
-# quality.lint-strict: legacy formatting debt is tracked for later formatting-only cleanup;
-# S0.1 keeps semantic E/F failures blocking while avoiding broad unrelated reflow.
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+# TODO(quality-lint-strict-align): keep formatting-only debt isolated from S11.1 semantic strictness.
+# feature_id: quality-lint-strict-align
 ignore = ["E501", "W191", "W292"]
 
 [tool.ruff.lint.per-file-ignores]
@@ -67,3 +69,11 @@ include = ["src", "scripts", "tests"]
 executionEnvironments = [
 	{ root = ".", extraPaths = ["src"] },
 ]
+
+[tool.coverage.run]
+branch = true
+source = ["doc_converter"]
+
+[tool.coverage.report]
+skip_covered = true
+show_missing = true

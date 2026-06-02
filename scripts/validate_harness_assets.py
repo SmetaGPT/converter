@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-import json
 import importlib
+import json
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence, cast
+from typing import Any, cast
 
 from build_agent_scorecard import build_scorecard_markdown_section, build_scorecard_payload
 from build_agent_weekly_eval import build_weekly_eval_markdown, build_weekly_eval_payload
-
 
 ROOT = Path(__file__).resolve().parents[1]
 FEATURE_SPINE = ROOT / "docs" / "agent-feature-spine.json"

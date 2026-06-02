@@ -4,8 +4,7 @@ import json
 import shutil
 import zipfile
 from dataclasses import dataclass, replace
-from pathlib import Path
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from typing import Any, cast
 from xml.etree import ElementTree
 

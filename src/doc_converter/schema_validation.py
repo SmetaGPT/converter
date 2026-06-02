@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import sys
-from functools import lru_cache
+from collections.abc import Mapping
+from functools import cache, lru_cache
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 from jsonschema import Draft202012Validator
 
@@ -50,7 +51,7 @@ def _schemas_dir() -> Path:
     raise SchemaValidationError(f"Schema directory not found. Tried: {checked_paths}")
 
 
-@lru_cache(maxsize=None)
+@cache
 def _load_validator(schema_filename: str) -> Draft202012Validator:
     schema_path = _schemas_dir() / schema_filename
     if not schema_path.exists():

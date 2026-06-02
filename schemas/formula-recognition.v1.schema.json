@@ -19,6 +19,8 @@
         "recognized_local",
         "local_backend_failed",
         "recognized_local_backend",
+        "recognized_mathpix_partial",
+        "budget_skipped",
         "unresolved_without_provider",
         "recognized_provider",
         "provider_failed"
@@ -51,6 +53,21 @@
     },
     "message": {
       "type": "string"
+    },
+    "cache_key": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "cache_status": {
+      "type": "string",
+      "enum": ["hit", "miss"]
+    },
+    "estimated_cost_usd": {
+      "type": "number",
+      "minimum": 0
+    },
+    "review_required": {
+      "type": "boolean"
     }
   },
   "additionalProperties": false

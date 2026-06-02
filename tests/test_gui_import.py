@@ -182,9 +182,11 @@ class GuiImportTests(unittest.TestCase):
                 index_path = run_dir / "human-readable-index.html"
                 app.last_run_dir = run_dir
 
-                with patch.object(gui, "export_run_human_readable_html", return_value=index_path) as exporter:
-                    with patch.object(gui.webbrowser, "open") as browser_open:
-                        app._open_html_qc()
+                with (
+                    patch.object(gui, "export_run_human_readable_html", return_value=index_path) as exporter,
+                    patch.object(gui.webbrowser, "open") as browser_open,
+                ):
+                    app._open_html_qc()
 
                 exporter.assert_called_once_with(run_dir)
                 browser_open.assert_called_once_with(index_path.resolve().as_uri())

@@ -8,7 +8,6 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, cast
 
-
 ROOT = Path(__file__).resolve().parents[1]
 FEATURE_SPINE = ROOT / "docs" / "agent-feature-spine.json"
 TELEMETRY_JSONL = ROOT / "docs" / "agent-telemetry.v1.jsonl"

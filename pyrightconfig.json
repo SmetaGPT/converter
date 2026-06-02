@@ -1,4 +1,15 @@
 {
+  "typeCheckingMode": "strict",
+  "reportPrivateUsage": "none",
+  "reportUnknownVariableType": "none",
+  "reportUnknownMemberType": "none",
+  "reportUnknownArgumentType": "none",
+  "reportUnknownParameterType": "none",
+  "reportUnknownLambdaType": "none",
+  "reportMissingParameterType": "none",
+  "reportUnnecessaryCast": "none",
+  "reportUnnecessaryIsInstance": "none",
+  "reportUnusedFunction": "none",
   "include": [
     "src",
     "scripts",

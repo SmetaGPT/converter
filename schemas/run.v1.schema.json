@@ -33,9 +33,28 @@
           "type": "object",
           "required": ["configured"],
           "properties": {
+            "mode": { "type": "string", "enum": ["off", "fallback", "llm_first", "mathpix_first"] },
+            "prompt_version": { "type": "string", "minLength": 1 },
             "provider": { "type": "string", "minLength": 1 },
             "model": { "type": "string", "minLength": 1 },
             "local_backend": { "type": "string", "minLength": 1 },
+            "limits": {
+              "type": "object",
+              "properties": {
+                "max_formulas_per_run": { "type": "integer", "minimum": 0 },
+                "max_provider_calls": { "type": "integer", "minimum": 0 },
+                "max_estimated_cost_usd": { "type": "number", "minimum": 0 }
+              },
+              "additionalProperties": false
+            },
+            "mathpix": {
+              "type": "object",
+              "required": ["configured"],
+              "properties": {
+                "configured": { "type": "boolean" }
+              },
+              "additionalProperties": false
+            },
             "configured": { "type": "boolean" }
           },
           "additionalProperties": false

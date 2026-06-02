@@ -1,0 +1,24 @@
+{
+  "sample_id": "negative_no_tables",
+  "route": "pdf_text",
+  "expected_units": {
+    "required_types": ["document", "page", "paragraph"],
+    "forbidden_regression": {
+      "table_count_must_not_be_fabricated": true,
+      "figure_count_must_not_be_fabricated": true
+    }
+  },
+  "required_references": {
+    "stable_document_id": true,
+    "stable_unit_ids": true,
+    "preserve_reading_order": true,
+    "page_refs": true
+  },
+  "quality_expectations": {
+    "review_required": false
+  },
+  "table_expectations": {
+    "table_units": {"equals": 0},
+    "warning_tables": {"equals": 0}
+  }
+}

@@ -8,10 +8,10 @@ import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
-from PIL import Image, ImageDraw
-from PIL import ImageFont
 from docx import Document
+from PIL import Image, ImageDraw, ImageFont
 
+from doc_converter.config import ConverterConfig, ConverterOptions, FormulaRecognitionConfig
 from doc_converter.converters.docx import (
     INLINE_GLYPH_CACHE,
     WmfTextChunk,
@@ -19,9 +19,8 @@ from doc_converter.converters.docx import (
     _build_wmf_formula_ir,
     _formula_representation_from_text,
 )
-from doc_converter.converters.docx.inline_glyph import _available_inline_glyph_fonts
 from doc_converter.converters.docx.formulas.wmf import WmfParseLimitError, _extract_wmf_text_chunks
-from doc_converter.config import ConverterConfig, ConverterOptions, FormulaRecognitionConfig
+from doc_converter.converters.docx.inline_glyph import _available_inline_glyph_fonts
 from doc_converter.font_bundle import bundled_font_paths
 from doc_converter.runner import run_convert_folder
 from doc_converter.schema_validation import validate_payload
@@ -412,14 +411,18 @@ class DocxConverterTests(unittest.TestCase):
         self.assertEqual(_assemble_mathtype_wmf_formula(chunks), "n = 1 ÷ N")
 
     def test_extract_wmf_text_chunks_rejects_oversized_blob(self) -> None:
-        with patch("doc_converter.converters.docx.formulas.wmf.MAX_WMF_BYTES", 8):
-            with self.assertRaisesRegex(WmfParseLimitError, "maximum allowed size"):
-                _extract_wmf_text_chunks(b"123456789")
+        with (
+            patch("doc_converter.converters.docx.formulas.wmf.MAX_WMF_BYTES", 8),
+            self.assertRaisesRegex(WmfParseLimitError, "maximum allowed size"),
+        ):
+            _extract_wmf_text_chunks(b"123456789")
 
     def test_extract_wmf_text_chunks_rejects_excessive_record_count(self) -> None:
-        with patch("doc_converter.converters.docx.formulas.wmf.MAX_WMF_RECORDS", 3):
-            with self.assertRaisesRegex(WmfParseLimitError, "record count exceeds"):
-                _extract_wmf_text_chunks(_build_test_wmf_blob())
+        with (
+            patch("doc_converter.converters.docx.formulas.wmf.MAX_WMF_RECORDS", 3),
+            self.assertRaisesRegex(WmfParseLimitError, "record count exceeds"),
+        ):
+            _extract_wmf_text_chunks(_build_test_wmf_blob())
 
     def test_mathtype_wmf_formula_assembly_restores_scripts(self) -> None:
         chunks = [

@@ -1,7 +1,7 @@
 # Current Status
 
 Последнее обновление: 2026-05-31
-Статус контура: W9 completed with hosted nightly/release proof; S10.1 v1.0 gate active but blocked on external time-based GA evidence and formula threshold uplift
+Статус контура: W9 completed with hosted nightly/release proof; S10.1 v1.0 gate active but blocked on external time-based GA evidence and provider-assisted formula GA evidence; S11.1/S11.2a/S11.2b/S11.4 local hardening slices completed, а S11.3 now waits for external opt-in provider credentials plus the time-based GA window
 
 ## 1. Краткий снимок состояния
 
@@ -18,6 +18,10 @@
 - critical-path sprint S9.2 завершён hosted proof;
 - critical-path sprint S9.3 завершён hosted tag proof;
 - critical-path sprint S10.1 активирован как GA gate assessment, blocked by time-based acceptance criteria;
+- provider-first formula tranche доведён до локально воспроизводимого operational code path: `MathpixProvider` добавлен как formula OCR layer before OpenRouter strict-JSON normalizer, а postprocess теперь имеет run-level cache, budget/cost guardrails и explicit `review_required` propagation;
+- `docs/production-roadmap.md` синхронизирован с post-audit Mathpix + LLM delta: S11.2 разделён на completed plumbing + operational hardening slices, а live provider pilot/evidence перенесён в S11.3 provider-assisted formula GA gate с native-only monitor debt;
+- S11.1 strict lint/type alignment закрыт локально: `pyproject.toml` теперь реально включает `E,F,W,I,UP,B,SIM`, `pyrightconfig.json` переведён в `typeCheckingMode = "strict"` с явными временными carve-outs под legacy private/unknown-noise, а full `ruff`/`pyright` снова зелёные;
+- S11.4 coverage expansion closeout закрыт локально: добавлены Hypothesis property tests для formula normalizer/table merger, dedicated negative-sample fixtures для no-table/broken-WMF/protected-PDF contours, dev dependency `coverage[toml]` и non-threshold coverage signal в Windows CI;
 - независимый sprint S3.1 реализован локально поверх активного S9.2 wait-state;
 - независимый sprint S3.2 реализован локально поверх активного S9.2 wait-state;
 - независимый sprint S3.3 реализован локально поверх активного S9.2 wait-state;
@@ -307,26 +311,26 @@
 
 Новый formula-benchmark-incremental-learning по S4.2: cache key для benchmark case нельзя строить только из input asset и path-string в manifest. Чтобы rerun честно инвалидировался на gold drift, manifest fingerprint должен включать содержимое связанных quality artifacts, а required gate обязан пересчитываться на каждом запуске даже если сами case payloads пришли из cache.
 
+Новый formula-review-surface-learning по S11.2b: provider-side low-confidence, unresolved и budget-skipped formulas недостаточно пометить только на unit-level sidecar. Если `review_required` не поднимается до document-level quality flags/warnings, операторский `review-required.jsonl` и release telemetry теряют главный operational signal.
+
+Новый coverage-expansion-learning по S11.4: negative/control fixtures нельзя смешивать с representative `samples/expected`, иначе default sample validator начнёт требовать synthetic cases от обычного pilot-run. Для таких контуров нужен отдельный manifest/expected-dir, а loader должен принимать semantic sample ids, не только `sample_*`.
+
 В работе:
 
-- смержить `agent/s9-2-nightly-table-source-guard`, повторить `nightly-full-e2e` на `main` и зафиксировать artifact bundle с table-source preflight или новый diagnostic issue;
-- снять первый `v*` tag proof для `.github/workflows/release.yml`, чтобы S9.3 получил не только локальную, но и hosted GitHub Release evidence;
-- после локальной реализации S4.3 вернуться к следующему independent hardening sprint вне critical-path wait-state; следующий на очереди теперь W5 formula corpus expansion и measured DOCX/table backlog;
-- держать contract required-status contexts и label `agent:autonomous` синхронными с `.github/workflows/windows-ci.yml` и `.github/workflows/autonomous-pr-auto-merge.yml`;
-- удерживать `.gitleaks.toml` allowlist узким и не расширять его за пределы test/example surfaces без нового evidence;
+- дождаться opt-in provider credentials для S11.3 и затем снять live pilot на 10-20 документах вместе с provider-assisted benchmark/report;
+- продолжать time-based S10.1 evidence: 4-week telemetry window и 30 подряд portable package/EXE smoke runs;
 - держать `src/doc_converter/formula_benchmark.py` как отдельный non-critical architecture follow-up по file-size debt;
-- удержать measured table backlog на `sample_009/018/020` и negative/control contour как parallel quality loop, не подменяя им critical path;
+- удержать measured table backlog на `sample_009/018/020`; S11.4 synthetic negative/control contour уже закрыт, но real malformed-source fixtures остаются optional future hardening;
 - держать state docs, feature spine, telemetry и generated eval companions синхронными после каждого следующего sprint tranche.
 
 ## 4. Что идёт дальше
 
-Следующая последовательность после локальной реализации S4.3 при продолжающемся ожидании hosted proof по S9.x:
+Следующая последовательность после локального закрытия S11.1/S11.4 local hardening:
 
-1. Смержить `agent/s9-2-nightly-table-source-guard`, затем повторить `workflow_dispatch` для `nightly-full-e2e` на `main` и зафиксировать artifact bundle либо новую диагностическую issue.
-2. Зафиксировать hosted evidence для `S9.3`: первый `v*` tag release с опубликованными zip/checksum и notes из `CHANGELOG.md`.
-3. Затем возвращаться к ближайшему независимому product-hardening sprint из W5/W8, не конфликтующему с ожиданием S9.2 burn-in; после полного локального closeout `1/пр` следующий на очереди — S5.2/S5.3 или measured table backlog.
+1. При появлении opt-in provider credentials собрать S11.3 provider-assisted evidence: live pilot 10-20 документов, provider-assisted benchmark tier и review-load report.
+2. Параллельно продолжать time-based S10.1 acceptance window: 4 недели telemetry и 30 подряд package/smoke runs.
 4. Держать `src/doc_converter/formula_benchmark.py` как отдельный follow-up по repo-wide file-size debt вне critical path.
-5. Продолжать measured table backlog по `sample_020`, warning density на `sample_009/018` и negative/control false-positive contour уже поверх shared `tables/` package.
+5. Продолжать measured table backlog по `sample_020` и warning density на `sample_009/018`; negative/control false-positive contour уже имеет S11.4 synthetic fixture baseline.
 6. Затем вернуться к richer DOCX table semantics и generalized WMF parser backlog для formula-rich DOCX.
 7. Держать product-aware feature spine, sprint contract, checkpoint template, telemetry JSONL и evaluator rubric обязательными на новых cross-module задачах.
 
@@ -414,4 +418,4 @@ Windows Document Converter теперь имеет рабочий MVP-конту
 - primary project environment: `.venv\Scripts\python.exe`;
 - downstream handoff описан в `docs/downstream-handoff.md`.
 
-Последняя проверка: `.\.venv\Scripts\python.exe -m unittest discover -v` прошёл, 36 tests OK; `.\.venv\Scripts\python.exe scripts\run_folder_e2e.py "D:\ФСНБ\Документы\Загрузка НПА\SP" --output runs\sp-e2e --clean` создал `runs\sp-e2e\runs\20260522T205641Z` с 344 processed, 0 partial, 0 failed, 0 review_required и schema-valid package; routes `pdf_text: 343`, `docx_native: 1`; metadata заполнены во всех 344 canonical packages. Предыдущий metod run `runs\metod-e2e\runs\20260522T204542Z` остаётся зелёным: 52 processed, 0 partial, 0 failed, 6010 chunks; `.\.venv\Scripts\python.exe scripts\run_sample_pilot.py --clean` ранее обработал 21 sample и дал 21 success без partial/failed; `.\.venv\Scripts\python.exe -m doc_converter.cli check-ocr` вернул `status: ready`; реальный OCR smoke на `PPRF_680.pdf` дал `processing.status: success` и `ocr_applied: true`; `scripts\build-windows.ps1` успешно собрал EXE из `.venv`.
+Последняя проверка: focused S11.4 `tests.test_property_based tests.test_negative_sample_expectations` прошёл `4` tests `OK`; coverage smoke на том же slice сработал; full `$env:PYTHONPATH='src'; .\.venv\Scripts\python.exe -m unittest discover -v` дал `206` tests, `4` skipped, `OK`; full `.\.venv\Scripts\python.exe -m ruff check src tests scripts typings` зелёный; full `.\.venv\Scripts\python.exe -m pyright` вернул `0` errors; `.\.venv\Scripts\python.exe -m pip check` вернул `No broken requirements found`. Hosted proofs W9 остаются зелёными: nightly `26707811922` completed `success`, release `26707894247` published `v0.3.0`.

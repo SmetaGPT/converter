@@ -7,8 +7,8 @@ import re
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Any, Mapping, Sequence
-
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 GITHUB_API = "https://api.github.com"
 NIGHTLY_MARKER = "<!-- nightly-full-e2e -->"

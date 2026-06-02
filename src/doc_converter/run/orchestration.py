@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import json
 import shutil
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from .. import __version__
 from ..config import AgentRunMetadata, ConverterConfig, serialize_converter_options
 from ..converters import get_converter
+from ..formula_recognition import FormulaRecognitionRunState
 from ..inventory import build_inventory
 from ..redaction import redact_secrets
 from ..schema_validation import validate_payload
@@ -99,6 +101,7 @@ def run_convert_folder(
     failed: list[str] = []
     final_manifest_records: list[dict[str, object]] = []
     manifest_by_relative_path: dict[str, dict[str, object]] = {}
+    formula_run_state = FormulaRecognitionRunState()
     cancelled = False
 
     for record in inventory_records:
@@ -209,7 +212,7 @@ def run_convert_folder(
             manifest_record["status"] = result.status
             manifest_record["output_dir"] = document_dir.relative_to(run_dir).as_posix()
             manifest_record["units_count"] = result.units_count
-            formula_result = _run_formula_recognition_stage(document_dir, config)
+            formula_result = _run_formula_recognition_stage(document_dir, config, formula_run_state)
             _merge_formula_recognition_manifest_data(manifest_record, formula_result)
             if config.options.include_originals:
                 manifest_record["original_copy_path"] = _copy_original_file(

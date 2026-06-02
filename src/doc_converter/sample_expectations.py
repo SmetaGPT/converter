@@ -7,7 +7,6 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-
 UNIT_ID_RE = re.compile(r"^u_[0-9]{6}$")
 WINDOWS_ABSOLUTE_PATH_RE = re.compile(r"^(?:[A-Za-z]:[\\/]|\\\\)")
 
@@ -145,11 +144,12 @@ def _validate_sample(
         )
 
     processing_payload = document_payload.get("processing") or {}
-    if processing_expectations.get("ocr_applied") is not None:
-        if bool(processing_payload.get("ocr_applied")) != bool(processing_expectations.get("ocr_applied")):
-            issues.append(
-                f"ocr_applied mismatch for {sample_id}: expected {processing_expectations.get('ocr_applied')}, got {processing_payload.get('ocr_applied')}"
-            )
+    if processing_expectations.get("ocr_applied") is not None and bool(processing_payload.get("ocr_applied")) != bool(
+        processing_expectations.get("ocr_applied")
+    ):
+        issues.append(
+            f"ocr_applied mismatch for {sample_id}: expected {processing_expectations.get('ocr_applied')}, got {processing_payload.get('ocr_applied')}"
+        )
 
     expected_warnings = processing_expectations.get("warnings_include") or []
     actual_warnings = {str(warning) for warning in processing_payload.get("warnings", [])}
@@ -258,9 +258,7 @@ def _table_metric_matches(actual: float, comparator: Any) -> bool:
         return False
     if minimum is not None and actual < float(minimum):
         return False
-    if maximum is not None and actual > float(maximum):
-        return False
-    return True
+    return not (maximum is not None and actual > float(maximum))
 
 
 def _compute_table_metrics(document_payload: dict[str, Any]) -> dict[str, Any]:
@@ -324,7 +322,7 @@ def _quality_flags(payload: dict[str, Any]) -> list[str]:
 
 def _load_expected_specs(expected_dir: Path) -> dict[str, dict[str, Any]]:
     specs: dict[str, dict[str, Any]] = {}
-    for path in sorted(expected_dir.glob("sample_*.expected-units.json")):
+    for path in sorted(expected_dir.glob("*.expected-units.json")):
         payload = _read_json(path)
         sample_id = str(payload["sample_id"])
         specs[sample_id] = payload

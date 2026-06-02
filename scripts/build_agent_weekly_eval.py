@@ -9,7 +9,6 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, cast
 
-
 ROOT = Path(__file__).resolve().parents[1]
 FEATURE_SPINE = ROOT / "docs" / "agent-feature-spine.json"
 SCORECARD_JSON = ROOT / "docs" / "agent-quality-scorecard.v1.json"

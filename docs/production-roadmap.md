@@ -28,21 +28,37 @@
 
 ---
 
+## Статус выполнения (аудит 2026-05-31)
+
+Независимый аудит зафиксировал фактическую готовность. Полный отчёт: [docs/production-readiness-audit-2026-05-31.md](production-readiness-audit-2026-05-31.md).
+
+- **Общий % выполнения roadmap:** ≈ 77% (≈20.9 из 27 спринтов с учётом частичных).
+- **PRS:** 7.3 / 10 → 🟡 почти готов (production-ready в declared scope v0.3.0, v1.0 GA не достигнут).
+- **Зелёные локально:** `unittest discover` (194 теста, OK), `ruff`, `pyright`.
+- **Главный блокер v1.0 на момент аудита:** формулы ниже GA-порогов (`calc_expr=0.6776` при цели 0.80; `native=0.1858` при цели 0.70) + переобучение known-patterns под корпус ФСНБ.
+- **Не выполнены:** S5.2, S5.3, S8.1, S8.2, S10.1. **Частично:** S0.1, S4.2, S4.3, S5.1.
+- **Доводка до продакшена:** новые спринты в [Wave 11](#wave-11--production-hardening-доводка-до-v10-аудит-2026-05-31).
+
+### Post-audit delta 2026-05-31
+
+После аудита выполнены обе локально исполнимые части формульного pivot-а: `MathpixProvider`, `FORMULA_RECOGNITION_MODE=fallback|llm_first|mathpix_first|off`, Mathpix display/LaTeX hint extraction, OpenRouter strict-JSON normalizer, redacted `formula-recognition.jsonl`, а также run-level provider cache, budget/cost guardrails и explicit `review_required` propagation уже реализованы и покрыты focused tests. Поэтому S11.2 разделён на закрытый plumbing-срез и закрытый local operational hardening slice, а live pilot/report перенесён в S11.3 как часть provider-assisted GA evidence. V1.0 по-прежнему заблокирован: нет live provider pilot на 10-20 реальных документах, нет provider-assisted GA report, а time-based gates S10.1 всё ещё требуют 4 недели telemetry и 30 подряд зелёных package/smoke runs.
+
 ## Обзор волн
 
-| Wave | Тема | Спринты | Критический путь |
-| --- | --- | --- | --- |
-| W0 | Stabilize baseline | S0.1 | ✅ обязателен первым |
-| W1 | Machine-readable contracts | S1.1, S1.2, S1.3 | ✅ |
-| W2 | Demonolize | S2.1, S2.2, S2.3, S2.4 | ✅ |
-| W3 | Plug-in providers | S3.1, S3.2, S3.3 | |
-| W4 | Determinism | S4.1, S4.2, S4.3 | |
-| W5 | Coverage expansion | S5.1, S5.2, S5.3 | |
-| W6 | Operator surface (JSON CLI) | S6.1, S6.2 | ✅ |
-| W7 | Security baseline | S7.1, S7.2 | ✅ |
-| W8 | Harness consolidation | S8.1, S8.2 | |
-| W9 | CI/CD automation | S9.1, S9.2, S9.3 | ✅ |
-| W10 | v1.0 acceptance | S10.1 | финал |
+| Wave | Тема | Спринты | Критический путь | Статус (аудит 2026-05-31) |
+| --- | --- | --- | --- | --- |
+| W0 | Stabilize baseline | S0.1 | ✅ обязателен первым | 🟡 частично (линт/тип слабее заявленного) |
+| W1 | Machine-readable contracts | S1.1, S1.2, S1.3 | ✅ | 🟢 завершена |
+| W2 | Demonolize | S2.1, S2.2, S2.3, S2.4 | ✅ | 🟢 завершена |
+| W3 | Plug-in providers | S3.1, S3.2, S3.3 | | 🟢 завершена |
+| W4 | Determinism | S4.1, S4.2, S4.3 | | 🟡 частично (timing/clean-VM proof) |
+| W5 | Coverage expansion | S5.1, S5.2, S5.3 | | 🔴 частично (S5.2/S5.3 не выполнены) |
+| W6 | Operator surface (JSON CLI) | S6.1, S6.2 | ✅ | 🟢 завершена |
+| W7 | Security baseline | S7.1, S7.2 | ✅ | 🟢 завершена |
+| W8 | Harness consolidation | S8.1, S8.2 | | 🔴 не выполнена |
+| W9 | CI/CD automation | S9.1, S9.2, S9.3 | ✅ | 🟢 завершена |
+| W10 | v1.0 acceptance | S10.1 | финал | 🔴 заблокирована |
+| W11 | Production hardening (доводка) | S11.1–S11.6 | ✅ путь к v1.0 | 🟡 частично: S11.1/S11.2a/S11.2b/S11.4 code hardening закрыты, evidence gates остаются |
 
 ```mermaid
 graph LR
@@ -53,7 +69,8 @@ graph LR
   W1 --> W8 --> W9
   W3 --> W9
   W5 --> W9
-  W9 --> W10
+  W8 --> W11
+  W9 --> W11 --> W10
 ```
 
 ---
@@ -61,6 +78,8 @@ graph LR
 ## Wave 0 — Stabilize baseline
 
 ### Sprint S0.1 — Зелёный baseline и строгий линт
+
+**Audit 2026-05-31:** 🟡 частично (80%). Тесты/ruff/pyright зелёные локально, но фактический `ruff` использует `select=["E","F","W"]` с `ignore=["E501","W191","W292"]` вместо заявленных `E,F,W,I,UP,B,SIM`, а `pyrightconfig.json` не включает `strict=true`. Расхождение exit-критериев с кодом закрывается в S11.1.
 
 **Status:** completed 2026-05-28. Evidence: 5 подряд `\.venv\Scripts\python.exe -m unittest discover` (130 tests, OK), `\.venv\Scripts\python.exe -m ruff check src tests scripts`, `\.venv\Scripts\python.exe -m pyright`, `runTests tests/test_docx_converter.py`.
 
@@ -225,6 +244,8 @@ graph LR
 
 ### Sprint S4.2 — Incremental formula benchmark
 
+**Audit 2026-05-31:** 🟡 частично (80%). Кеш реализован и покрыт тестами, но обязательный timing-smoke `<30s` так и не прогнан. Закрывается в S11.6.
+
 **Status:** implemented locally 2026-05-31. Evidence: [src/doc_converter/formula_benchmark.py](../src/doc_converter/formula_benchmark.py) now caches per-entry benchmark cases under a versioned key derived from `sha256(asset)`, a manifest-entry fingerprint and `benchmark_version`; unchanged reruns reuse cached case reports, while manifest-entry and gold changes invalidate the cache; [tests/test_formula_benchmark.py](../tests/test_formula_benchmark.py) proves cache hit on unchanged rerun, miss on manifest/gold drift and `required_gate` recomputation from cached reports. Full-corpus timing smoke was not rerun in this session because the heavy local command hit a usage-limit rejection before execution.
 
 - **Goal:** benchmark выполняется инкрементально.
@@ -234,6 +255,8 @@ graph LR
 - **feature_ids:** `formula-benchmark-incremental`.
 
 ### Sprint S4.3 — Font bundling
+
+**Audit 2026-05-31:** 🟡 частично (90%). Bundle resolver и assets на месте, но clean-VM real-renderer proof остаётся открытым follow-up. Закрывается в S11.6.
 
 **Status:** implemented locally 2026-05-31. Evidence: shared resolver [src/doc_converter/font_bundle.py](../src/doc_converter/font_bundle.py), bundled font assets in [assets/fonts/](../assets/fonts/), bundled-font-first matcher in [src/doc_converter/converters/docx/inline_glyph.py](../src/doc_converter/converters/docx/inline_glyph.py), doctor coverage in [src/doc_converter/cli.py](../src/doc_converter/cli.py), focused/broader regressions in [tests/test_docx_converter.py](../tests/test_docx_converter.py) and [tests/test_cli_smoke.py](../tests/test_cli_smoke.py), and PyInstaller smoke via [scripts/build-windows.ps1](../scripts/build-windows.ps1).
 
@@ -249,6 +272,8 @@ graph LR
 
 ### Sprint S5.1 — Formula corpus expansion
 
+**Audit 2026-05-31:** 🟡 частично (50%). GA-пороги не достигнуты (`calc_expr=0.6776` при цели 0.80; `native=0.1858` при цели 0.70). Ключевой риск — переобучение known-patterns под корпус ФСНБ без обобщённого WMF-парсера (P1-02). Продолжается в S11.2/S11.3.
+
 **Status:** in progress locally 2026-05-31. Latest evidence: noisy `1/пр` work-time/wage/participation formulas `(9)`-`(13)`, average/resource-cost formulas `(24)` and `(25)`, technical-cost formulas `(15)`, `(17)`, `(19)`, `(20)` and `(22)`, cameral participation formulas `(35)` and `(36)`, additional-cost formula `(37)`, estimated-work participation formulas `(38)` and `(39)`, and estimated-work cost formulas `(42)` and `(43)` are recovered through the canonical known-pattern layer in [samples/formulas/known-patterns.v1.json](../samples/formulas/known-patterns.v1.json) and its exported package copy in [src/doc_converter/formulas/known-patterns.v1.json](../src/doc_converter/formulas/known-patterns.v1.json); focused tests `test_formula_representation_recovers_noisy_1pr_tech_break_formula`, `test_formula_representation_recovers_noisy_1pr_wage_and_worker_time_formulas`, `test_formula_representation_recovers_noisy_1pr_participation_average_formula`, `test_formula_representation_recovers_noisy_1pr_participation_formula`, `test_formula_representation_recovers_noisy_1pr_cameral_participation_family`, `test_formula_representation_recovers_noisy_1pr_additional_cost_formula`, `test_formula_representation_recovers_noisy_1pr_estimated_work_participation_family` and `test_formula_representation_recovers_noisy_1pr_estimated_work_cost_family`, the broader regression slice [tests/test_docx_converter.py](../tests/test_docx_converter.py) + [tests/test_known_formula_patterns.py](../tests/test_known_formula_patterns.py) (`104/104`) and `scripts/validate_known_formulas.py` all passed with canonical/package data in sync (`21` noisy mappings, `47` formula representations). With the source DOCX now available under `D:\Документы\ФСНБ\Документы\для парсера\Российские\metod`, rendered WMF evidence confirmed formulas `(10)` and `(13)`, and a cold one-doc rerun [runs/formula-debug-1pr-source-fresh/runs/20260531T072130Z](../runs/formula-debug-1pr-source-fresh/runs/20260531T072130Z) reached `49/49` `calc_expr` units and `26/49` native formulas for `gate-metod-1-pr`; same-output-root reruns can still report stale `47/49` via `cache_status: hit`, so targeted proof should use a fresh benchmark output root or inspect cache status.
 
 - **Goal:** benchmark coverage ≥ 80 % calc_expr и ≥ 70 % native.
@@ -259,6 +284,8 @@ graph LR
 
 ### Sprint S5.2 — Negative samples
 
+**Audit 2026-05-31:** 🔴 не выполнен (0%). Подтверждённых negative-samples (битый WMF, защищённый PDF, без таблиц) с ожидаемым `review_required` не найдено. Переносится в S11.4.
+
 - **Goal:** покрыть «несчастливые пути».
 - **Scope:** добавить в `samples/manifest.table-anchors.jsonl` сэмплы: без таблиц, с битой WMF, защищённый PDF; ожидаемый `review_required` reason.
 - **Exit:** `python scripts/validate_sample_expectations.py` зелёный.
@@ -266,6 +293,8 @@ graph LR
 - **feature_ids:** `tests.negative-samples`.
 
 ### Sprint S5.3 — Property-based tests + test-cost reduction
+
+**Audit 2026-05-31:** 🔴 не выполнен (0%). `hypothesis` отсутствует в зависимостях `pyproject.toml`, `tests/fixtures/docx_factories.py` нет. Переносится в S11.4.
 
 - **Goal:** дешёвые регрессионные тесты + быстрое CI.
 - **Scope:**
@@ -337,12 +366,16 @@ Status: completed (2026-05-30). Evidence: added `docs/security.md`, hardened `sr
 
 ### Sprint S8.1 — State layer slim-down
 
+**Audit 2026-05-31:** 🔴 не выполнен (0%). Каталог `docs/archive/` отсутствует, исторические `agent-*` файлы по-прежнему активны. Закрывается в S11.5.
+
 - **Goal:** новый агент-онбординг — ≤ 5 текстовых и ≤ 3 JSON.
 - **Scope:** переместить исторические agent-* файлы в `docs/archive/`; оставить активными: `AGENTS.md`, `current-status.md`, `current-sprint.md`, `release-status.md`, `production-roadmap.md` + JSON `agent-feature-spine.json`, `agent-quality-scorecard.v1.json`, `agent-weekly-eval.v1.json`.
 - **Exit:** `docs/agent-bootstrap-contract.md` обновлён и сокращён; `scripts/validate_harness_assets.py` зелёный.
 - **feature_ids:** `harness.slim-state`.
 
 ### Sprint S8.2 — Machine-readable guardrails и exit checklist
+
+**Audit 2026-05-31:** 🔴 не выполнен (0%). `schemas/agent-guardrails.v1.json`, `schemas/agent-stop-budgets.v1.json` и `scripts/validate_session_exit.py` отсутствуют. Закрывается в S11.5.
 
 - **Goal:** оркестратор инфорсит guardrails и exit-checklist программно.
 - **Scope:**
@@ -395,11 +428,13 @@ Status: completed (2026-05-30). Evidence: added `docs/security.md`, hardened `sr
 
 ### Sprint S10.1 — v1.0 gate
 
-**Status:** blocked 2026-05-31. Evidence: W0-W9 are now closed through hosted S9.2/S9.3 proof, but S10.1 requires acceptance evidence that cannot be produced in a single session: 4 weeks telemetry without unresolved regressions, 30 consecutive green portable EXE/package runs and formula benchmark GA thresholds `>=80%` calc / `>=70%` native. Current checked state is below GA floor (`gate.calc_expr_coverage=0.6776`, `gate.native_coverage=0.1858`, telemetry span 10 days from `2026-05-22` to `2026-05-31`).
+**Audit 2026-05-31:** 🔴 заблокирован (0%). Зависит от закрытия Wave 11: формульный provider-assisted GA contour (S11.2/S11.3), negative/property tests (S11.4), guardrails (S11.5) и 4 недели telemetry. Допускать к v1.0 только после выполнения S11.1–S11.6.
+
+**Status:** blocked 2026-05-31. Evidence: W0-W9 are now closed through hosted S9.2/S9.3 proof, and the first Mathpix + LLM provider plumbing slice is implemented, but S10.1 requires acceptance evidence that cannot be produced in a single session: 4 weeks telemetry without unresolved regressions, 30 consecutive green portable EXE/package runs and provider-assisted formula GA evidence. Current checked baseline remains below the old native-only GA floor (`gate.calc_expr_coverage=0.6776`, `gate.native_coverage=0.1858`, telemetry span 10 days from `2026-05-22` to `2026-05-31`).
 
 - **Goal:** релиз v1.0.
 - **Exit criteria (все одновременно):**
-  - Все 4 route стабильны; formula benchmark coverage ≥ 80 % calc / ≥ 70 % native (`samples/formula-benchmark.thresholds.json`).
+  - Все 4 route стабильны; provider-assisted formula gate показывает `calc_expr_coverage >= 0.80`, `display_latex_coverage >= 0.90`, `review_required_rate <= 0.10`, provider failures не валят conversion, а native-only monitor не регрессирует относительно baseline.
   - `docs/security.md` ревьюнут, S7.x закрыты.
   - Все Protocol-абстракции (`Converter`, `Formula`, `OCR`, `Catalog`) имеют ≥ 2 реализации каждая.
   - Контракты `v1` финализированы; `v2`-эволюция — только через explicit deprecation.
@@ -408,6 +443,93 @@ Status: completed (2026-05-30). Evidence: added `docs/security.md`, hardened `sr
 - **Artifacts:** tag `v1.0.0`, release notes, обновлённый `release-status.md` с verdict «v1.0 GA».
 - **depends_on:** W0–W9 завершены.
 - **feature_ids:** `release-v1`.
+
+---
+
+## Wave 11 — Production hardening (доводка до v1.0, аудит 2026-05-31)
+
+Волна введена по результатам независимого аудита ([docs/production-readiness-audit-2026-05-31.md](production-readiness-audit-2026-05-31.md)). Цель — закрыть все выявленные пробелы и честно дойти до v1.0 GA. После уточнения product scope (< 100 документов с формулами) основной formula path меняется с бесконечного расширения known-patterns на managed provider cascade `Mathpix → LLM normalizer → deterministic validator`. Первый plumbing-срез этого pivot-а уже выполнен после аудита; оставшийся S11 scope должен доказать operational quality, cost control, cache behavior and live corpus metrics. Спринты S11.1–S11.6 блокируют S10.1.
+
+### Sprint S11.1 — Привести строгость линта/типизации к заявленной
+
+**Status:** completed locally 2026-05-31. Evidence: `pyproject.toml` now enables Ruff `select = ["E","F","W","I","UP","B","SIM"]` with explicit residual formatting-only ignores; `pyrightconfig.json` now runs with `typeCheckingMode = "strict"` plus declared temporary carve-outs for legacy private/unknown-noise; full `.\.venv\Scripts\python.exe -m ruff check src tests scripts` and full `.\.venv\Scripts\python.exe -m pyright` are green after targeted cleanup in touched runtime/tests files.
+
+- **Goal:** устранить расхождение между exit-критериями S0.1 и фактическим конфигом.
+- **Scope:**
+  - В [pyproject.toml](../pyproject.toml) расширить `[tool.ruff.lint]` до `select = ["E","F","W","I","UP","B","SIM"]`; снимаемые `ignore` (`E501`/`W191`/`W292`) оставить только с явным TODO + feature_id или починить.
+  - В [pyrightconfig.json](../pyrightconfig.json) включить `"typeCheckingMode": "strict"` (или `strict: true`) с явным `exclude` legacy-модулей списком.
+  - Починить новые предупреждения или заглушить точечно с TODO+feature_id.
+- **Exit:** `ruff check src tests scripts` — 0; `pyright` — 0 errors при strict; конфиг буквально соответствует тексту S0.1.
+- **feature_ids:** `quality-lint-strict-align`, `quality-pyright-strict`.
+
+### Sprint S11.2a — Mathpix + LLM cascade plumbing
+
+**Status:** completed locally 2026-05-31. Evidence: `src/doc_converter/config.py` supports `MATHPIX_APP_ID`, `MATHPIX_APP_KEY` and `FORMULA_RECOGNITION_MODE=fallback|llm_first|mathpix_first|off`; `src/doc_converter/formulas/providers.py` contains `MathpixProvider` and the provider chain now runs local backend → Mathpix → OpenRouter; `src/doc_converter/formula_recognition.py` feeds Mathpix display/LaTeX hints into the existing OpenRouter strict-JSON normalizer and writes redacted `formula-recognition.jsonl`; `tests/test_config.py` and `tests/test_formula_recognition.py` cover the mocked no-credit path.
+
+- **Goal:** заменить production-стратегию бесконечного роста known-patterns на provider-first plumbing: Mathpix читает формулу в LaTeX/AsciiMath, LLM нормализует в `calc_expr`/`variables`, deterministic validator принимает или оставляет case как review candidate.
+- **Scope completed:**
+  - `MathpixProvider` с конфигом `MATHPIX_APP_ID` / `MATHPIX_APP_KEY`.
+  - `FORMULA_RECOGNITION_MODE=fallback|llm_first|mathpix_first|off`.
+  - Provider cascade: local high-confidence native path остаётся fast-path; unresolved/low-confidence formulas могут идти в `MathpixProvider`, затем в `OpenRouterProvider`/LLM-normalizer со strict JSON schema.
+  - Redaction boundary сохраняет provider artifacts без секретов.
+- **Exit:** mocked provider tests зелёные; provider failures не валят conversion.
+- **depends_on:** S3.1, S5.1.
+- **feature_ids:** `formula-recognition-env-config`, `formula-recognition-postprocess`.
+
+### Sprint S11.2b — Provider operational hardening
+
+**Status:** completed locally 2026-05-31. Evidence: `src/doc_converter/config.py` serializes non-secret `prompt_version` and provider limits into `run.json`; `src/doc_converter/formula_recognition.py`, `src/doc_converter/run/postprocess.py` and `src/doc_converter/run/orchestration.py` add run-level provider cache, estimated-cost accounting, budget guardrails and document-level `review_required` propagation; `schemas/run.v1.schema.json`, `schemas/formula-recognition.v1.schema.json` and `schemas/__snapshot__/stable-contracts.v1.json` are updated; focused `tests.test_config`, `tests.test_formula_recognition`, `tests.test_contracts_stability` and targeted `tests.test_cli_smoke` are green together with focused `ruff` and `pyright`.
+
+- **Goal:** сделать provider-assisted contour пригодным для controlled operator use: контролируемые live calls, прогнозируемая стоимость, воспроизводимый cache и честный review load.
+- **Scope completed:**
+  - Cache по deterministic hash до live provider calls.
+  - Provider budget guardrails: max formulas per run, max provider calls, estimated cost в `formula-recognition.jsonl`/summary.
+  - Explicit `review_required` semantics для low-confidence, unresolved, display-only и budget-skipped provider cases с bubble-up на document-level quality.
+  - Mathpix/OpenRouter pricing baseline зафиксирован в roadmap как planning input; live calls остаются opt-in и не входят в default CI.
+- **Exit:** hit/miss cache path покрыт tests, provider budget breach даёт graceful stop/review, low-confidence/unresolved cases маркируются `review_required`, focused contract/schema validation зелёная.
+- **depends_on:** S11.2a.
+- **feature_ids:** `formula-recognition-env-config`, `formula-recognition-postprocess`.
+
+### Sprint S11.3 — Provider-assisted formula GA gate
+
+- **Goal:** `calc_expr_coverage >= 0.80` на полном корпусе и честный provider-assisted coverage contour; native-only `0.70` сохраняется как parser-quality monitor, но v1.0 production gate оценивает calculable coverage, display coverage, provider failure handling и review load.
+- **Scope:** поднять пороги в [samples/formula-benchmark.thresholds.json](../samples/formula-benchmark.thresholds.json) до GA-floor; добавить provider-assisted tier с включённым `mathpix_first`; сохранить native-only monitor tier для контроля локального parser debt; report должен различать deterministic/native, provider-assisted и review-required outcomes; зафиксировать live pilot на 10-20 реальных документах с opt-in credentials без включения live provider calls в default CI.
+- **Exit:** `python scripts/run_formula_benchmark.py` зелёный при `gate.calc_expr_coverage >= 0.80`, provider-assisted pilot даёт `display_latex_coverage >= 0.90` и `review_required_rate <= 0.10`, native-only monitor не регрессирует относительно baseline.
+- **depends_on:** S11.2b.
+- **feature_ids:** `formula-benchmark-incremental`, `formula-recognition-postprocess`.
+
+### Sprint S11.4 — Coverage expansion closeout (S5.2 + S5.3)
+
+**Status:** completed locally 2026-05-31. Evidence: `tests/test_negative_sample_expectations.py` validates a dedicated `samples/manifest.negative.jsonl` + `samples/expected/negative/` fixture set for no-table false-positive, broken-WMF review and protected-PDF review contours; `tests/test_property_based.py` adds Hypothesis coverage for DOCX formula calc normalization and shared table row/continuation merging; `pyproject.toml` now includes `hypothesis` and `coverage[toml]` in dev extras, and `windows-ci` runs unit tests through coverage report/xml as a non-threshold signal. Focused S11.4 tests, full `unittest discover` (`206` tests, `4` skipped), full `ruff`, full `pyright` (`0` errors) and `pip check` are green locally.
+
+- **Goal:** закрыть незавершённые negative-samples и property-based тесты.
+- **Scope:**
+  - S5.2: добавить negative-samples (без таблиц, битый WMF, защищённый PDF) с ожидаемым `review_required`; `scripts/validate_sample_expectations.py` зелёный.
+  - S5.3: добавить `hypothesis` в `[project.optional-dependencies].dev`, strategies для formula normalizer и table row merger, `tests/fixtures/docx_factories.py`.
+  - Добавить `coverage` measurement как CI-сигнал (не обязательный gate на старте).
+- **Exit:** `python -m unittest discover` < 60 сек; negative-samples и property-тесты зелёные; CI test stage < 4 мин.
+- **depends_on:** S2.3, S3.1.
+- **feature_ids:** `tests-negative-samples`, `tests-property-based`, `tests-docx-fixtures`.
+
+### Sprint S11.5 — Wave 8 closeout (harness consolidation)
+
+- **Goal:** закрыть невыполненную W8: slim state + machine-readable guardrails.
+- **Scope:**
+  - S8.1: перенести исторические `agent-*` файлы в `docs/archive/`; обновить `docs/agent-bootstrap-contract.md`.
+  - S8.2: перенести `agent-guardrails.md`/`agent-stop-budgets.md` в `schemas/agent-guardrails.v1.json` / `schemas/agent-stop-budgets.v1.json`; добавить `scripts/validate_session_exit.py`.
+- **Exit:** `python scripts/validate_harness_assets.py` зелёный; `python scripts/validate_session_exit.py <exit.json>` зелёный на текущем main.
+- **feature_ids:** `harness.slim-state`, `harness.machine-guardrails`.
+
+### Sprint S11.6 — Determinism/perf proof + oversize cleanup
+
+- **Goal:** снять «частично»-маркеры W4 и устранить файл-переросток.
+- **Scope:**
+  - S4.2: прогнать и зафиксировать timing-smoke benchmark rerun `< 30s` локально (evidence в `current-status.md`).
+  - S4.3: clean-VM (или чистый профиль без системных шрифтов) real-renderer proof для bundled font path.
+  - Вынести [src/doc_converter/formula_benchmark.py](../src/doc_converter/formula_benchmark.py) (1059 строк) из oversize-состояния без ломки CLI/report contracts.
+- **Exit:** `Get-ChildItem src\doc_converter -Recurse -File -Include *.py | Where-Object { (Get-Content $_.FullName).Length -gt 800 }` пусто; benchmark rerun `<30s` зафиксирован; full suite/ruff/pyright зелёные.
+- **depends_on:** S4.2, S4.3.
+- **feature_ids:** `determinism-timing-proof`, `determinism-font-proof`, `arch-benchmark-split`.
 
 ---
 
@@ -449,3 +571,7 @@ notes: []
 ## История изменений документа
 
 - 2026-05-28 — первичная версия, согласована со статусом v0.3.0.
+- 2026-05-31 — добавлены статусы выполнения по аудиту, секция «Статус выполнения (аудит 2026-05-31)» и Wave 11 (S11.1–S11.6) для доводки до v1.0; отчёт: [docs/production-readiness-audit-2026-05-31.md](production-readiness-audit-2026-05-31.md).
+- 2026-05-31 — синхронизирован post-audit Mathpix + LLM delta: S11.2 разделён на completed plumbing slice и remaining operational gate; S10.1/S11.3 переведены на provider-assisted formula GA gate с native-only monitor.
+- 2026-05-31 — локально закрыт code-scope S11.2b: provider cache, budget/cost guardrails и explicit review propagation реализованы; live pilot/report перемещён в S11.3 как evidence gate.
+- 2026-05-31 — локально закрыт S11.1: declared Ruff/Pyright strict alignment приведён к фактическому конфигу, full `ruff`/`pyright` снова зелёные; следующие blockers смещены на S11.3 live evidence и time-based S10.1 gates.

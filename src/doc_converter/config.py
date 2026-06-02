@@ -2,20 +2,26 @@ from __future__ import annotations
 
 import os
 import sys
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Mapping
-
 
 _FORMULA_RECOGNITION_ENV_KEYS = {
     "provider": "FORMULA_RECOGNITION_PROVIDER",
     "model": "FORMULA_RECOGNITION_MODEL",
     "api_key": "FORMULA_RECOGNITION_API_KEY",
     "local_backend": "FORMULA_RECOGNITION_LOCAL_BACKEND",
+    "mode": "FORMULA_RECOGNITION_MODE",
+    "prompt_version": "FORMULA_RECOGNITION_PROMPT_VERSION",
+    "max_formulas_per_run": "FORMULA_RECOGNITION_MAX_FORMULAS_PER_RUN",
+    "max_provider_calls": "FORMULA_RECOGNITION_MAX_PROVIDER_CALLS",
+    "max_estimated_cost_usd": "FORMULA_RECOGNITION_MAX_ESTIMATED_COST_USD",
 }
 _GENERAL_PROVIDER_ENV_KEY = "LLM_PROVIDER"
 _GENERAL_API_KEY_ENV_KEY = "LLM_API_KEY"
 _FORMULA_MODEL_ALIAS_ENV_KEY = "FORMULA_MODEL"
+_MATHPIX_APP_ID_ENV_KEY = "MATHPIX_APP_ID"
+_MATHPIX_APP_KEY_ENV_KEY = "MATHPIX_APP_KEY"
 _PROVIDER_MODEL_ENV_KEYS = {
     "openrouter": "OPENROUTER_MODEL",
     "openai": "OPENAI_MODEL",
@@ -34,6 +40,7 @@ _DEFAULT_FORMULA_PROVIDER = "openrouter"
 _DEFAULT_FORMULA_MODEL_BY_PROVIDER = {
     "openrouter": "openai/gpt-4o",
 }
+_DEFAULT_FORMULA_PROMPT_VERSION = "v1"
 
 
 @dataclass(frozen=True)
@@ -42,6 +49,13 @@ class FormulaRecognitionConfig:
     model: str | None = None
     api_key: str | None = None
     local_backend: str | None = None
+    mode: str = "fallback"
+    prompt_version: str = _DEFAULT_FORMULA_PROMPT_VERSION
+    mathpix_app_id: str | None = None
+    mathpix_app_key: str | None = None
+    max_formulas_per_run: int | None = None
+    max_provider_calls: int | None = None
+    max_estimated_cost_usd: float | None = None
 
     def provider_is_configured(self) -> bool:
         return bool(self.provider and self.model and self.api_key)
@@ -49,17 +63,35 @@ class FormulaRecognitionConfig:
     def local_backend_is_configured(self) -> bool:
         return bool(self.local_backend)
 
+    def mathpix_is_configured(self) -> bool:
+        return bool(self.mathpix_app_id and self.mathpix_app_key)
+
     def is_configured(self) -> bool:
-        return self.provider_is_configured() or self.local_backend_is_configured()
+        return self.mode != "off" and (
+            self.provider_is_configured() or self.local_backend_is_configured() or self.mathpix_is_configured()
+        )
 
     def public_payload(self) -> dict[str, object]:
-        payload: dict[str, object] = {"configured": self.is_configured()}
+        payload: dict[str, object] = {"configured": self.is_configured(), "mode": self.mode}
+        if self.prompt_version:
+            payload["prompt_version"] = self.prompt_version
         if self.provider is not None:
             payload["provider"] = self.provider
         if self.model is not None:
             payload["model"] = self.model
         if self.local_backend is not None:
             payload["local_backend"] = self.local_backend
+        if self.mathpix_is_configured():
+            payload["mathpix"] = {"configured": True}
+        limits: dict[str, object] = {}
+        if self.max_formulas_per_run is not None:
+            limits["max_formulas_per_run"] = self.max_formulas_per_run
+        if self.max_provider_calls is not None:
+            limits["max_provider_calls"] = self.max_provider_calls
+        if self.max_estimated_cost_usd is not None:
+            limits["max_estimated_cost_usd"] = self.max_estimated_cost_usd
+        if limits:
+            payload["limits"] = limits
         return payload
 
 
@@ -111,16 +143,40 @@ def load_formula_recognition_config(
         )
     )
     local_backend = _normalize_env_value(_first_resolved_value(resolved, _FORMULA_RECOGNITION_ENV_KEYS["local_backend"]))
+    mode = _normalize_formula_recognition_mode(
+        _normalize_env_value(_first_resolved_value(resolved, _FORMULA_RECOGNITION_ENV_KEYS["mode"]))
+    )
+    prompt_version = _normalize_formula_recognition_prompt_version(
+        _normalize_env_value(_first_resolved_value(resolved, _FORMULA_RECOGNITION_ENV_KEYS["prompt_version"]))
+    )
+    mathpix_app_id = _normalize_env_value(_first_resolved_value(resolved, _MATHPIX_APP_ID_ENV_KEY))
+    mathpix_app_key = _normalize_env_value(_first_resolved_value(resolved, _MATHPIX_APP_KEY_ENV_KEY))
+    max_formulas_per_run = _normalize_nonnegative_int(
+        _normalize_env_value(_first_resolved_value(resolved, _FORMULA_RECOGNITION_ENV_KEYS["max_formulas_per_run"]))
+    )
+    max_provider_calls = _normalize_nonnegative_int(
+        _normalize_env_value(_first_resolved_value(resolved, _FORMULA_RECOGNITION_ENV_KEYS["max_provider_calls"]))
+    )
+    max_estimated_cost_usd = _normalize_nonnegative_float(
+        _normalize_env_value(_first_resolved_value(resolved, _FORMULA_RECOGNITION_ENV_KEYS["max_estimated_cost_usd"]))
+    )
 
     return FormulaRecognitionConfig(
         provider=provider,
         model=model,
         api_key=api_key,
         local_backend=local_backend,
+        mode=mode,
+        prompt_version=prompt_version,
+        mathpix_app_id=mathpix_app_id,
+        mathpix_app_key=mathpix_app_key,
+        max_formulas_per_run=max_formulas_per_run,
+        max_provider_calls=max_provider_calls,
+        max_estimated_cost_usd=max_estimated_cost_usd,
     )
 
 
-def serialize_converter_options(options: "ConverterOptions") -> dict[str, object]:
+def serialize_converter_options(options: ConverterOptions) -> dict[str, object]:
     payload: dict[str, object] = {
         "ocr_languages": list(options.ocr_languages),
         "include_originals": options.include_originals,
@@ -162,6 +218,8 @@ def _relevant_env_keys() -> tuple[str, ...]:
         _GENERAL_PROVIDER_ENV_KEY,
         _GENERAL_API_KEY_ENV_KEY,
         _FORMULA_MODEL_ALIAS_ENV_KEY,
+        _MATHPIX_APP_ID_ENV_KEY,
+        _MATHPIX_APP_KEY_ENV_KEY,
         *_PROVIDER_MODEL_ENV_KEYS.values(),
         *_PROVIDER_API_KEY_ENV_KEYS.values(),
     )
@@ -233,6 +291,46 @@ def _normalize_env_value(value: str | None) -> str | None:
     if normalized.lower() in _PLACEHOLDER_VALUES:
         return None
     return normalized
+
+
+def _normalize_formula_recognition_mode(value: str | None) -> str:
+    if value is None:
+        return "fallback"
+    normalized = value.strip().lower().replace("-", "_")
+    if normalized in {"off", "fallback", "llm_first", "mathpix_first"}:
+        return normalized
+    return "fallback"
+
+
+def _normalize_formula_recognition_prompt_version(value: str | None) -> str:
+    if value is None:
+        return _DEFAULT_FORMULA_PROMPT_VERSION
+    normalized = value.strip()
+    return normalized or _DEFAULT_FORMULA_PROMPT_VERSION
+
+
+def _normalize_nonnegative_int(value: str | None) -> int | None:
+    if value is None:
+        return None
+    try:
+        parsed = int(value)
+    except ValueError:
+        return None
+    if parsed < 0:
+        return None
+    return parsed
+
+
+def _normalize_nonnegative_float(value: str | None) -> float | None:
+    if value is None:
+        return None
+    try:
+        parsed = float(value)
+    except ValueError:
+        return None
+    if parsed < 0:
+        return None
+    return parsed
 
 
 @dataclass(frozen=True)

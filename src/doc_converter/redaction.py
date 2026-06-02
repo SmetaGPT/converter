@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Mapping
+from collections.abc import Mapping
 
 _SECRET_ENV_MARKERS = ("API_KEY", "TOKEN", "SECRET")
 _PLACEHOLDER_VALUES = {

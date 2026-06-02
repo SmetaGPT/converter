@@ -200,10 +200,7 @@ def _handle_doctor(args: argparse.Namespace) -> int:
         failing_checks.append("openrouter")
 
     status = "ok" if not failing_checks else "environment_invalid"
-    if not failing_checks:
-        message = "Environment checks passed."
-    else:
-        message = f"Environment checks failed: {', '.join(failing_checks)}."
+    message = "Environment checks passed." if not failing_checks else f"Environment checks failed: {', '.join(failing_checks)}."
     return _emit_cli_result(args, command="doctor", status=status, message=message, data=payload)
 
 

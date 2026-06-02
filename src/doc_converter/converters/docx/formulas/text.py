@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from doc_converter.formulas import get_known_formula_representation, get_noisy_form_recovery
 

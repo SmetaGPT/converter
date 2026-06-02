@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import ast
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
-
+from typing import Any
 
 FORMULA_TARGET_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 

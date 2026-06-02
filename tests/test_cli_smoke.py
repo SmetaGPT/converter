@@ -8,18 +8,18 @@ from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 from typing import Any, cast
-from urllib.parse import unquote, urlparse
 from unittest.mock import Mock, patch
+from urllib.parse import unquote, urlparse
 
 from docx import Document
 from openpyxl import Workbook, load_workbook
 
+from doc_converter import schema_validation
 from doc_converter.cli import _check_font_bundle, build_parser, main
 from doc_converter.config import AgentRunMetadata, ConverterConfig, ConverterOptions, FormulaRecognitionConfig
 from doc_converter.formula_recognition import FormulaRecognitionPostprocessResult
 from doc_converter.ocr_runtime import find_ocrmypdf_executable
 from doc_converter.runner import ConverterError, run_convert_folder
-from doc_converter import schema_validation
 from doc_converter.schema_validation import validate_payload
 
 
@@ -51,15 +51,17 @@ class CliSmokeTests(unittest.TestCase):
 
     def test_doctor_outputs_machine_readable_status(self) -> None:
         buffer = StringIO()
-        with patch("doc_converter.cli.detect_ocr_runtime", return_value=_ready_ocr_payload()):
-            with patch("doc_converter.cli._check_font_bundle", return_value=_ready_font_bundle_payload()):
-                with patch("doc_converter.cli._check_schema_contracts", return_value=_ready_schema_checks_payload()):
-                    with patch(
-                        "doc_converter.cli._check_openrouter_reachability",
-                        return_value={"provider": None, "model": None, "status": "not_configured", "warnings": []},
-                    ):
-                        with redirect_stdout(buffer):
-                            exit_code = main(["doctor", "--output-format=json"])
+        with (
+            patch("doc_converter.cli.detect_ocr_runtime", return_value=_ready_ocr_payload()),
+            patch("doc_converter.cli._check_font_bundle", return_value=_ready_font_bundle_payload()),
+            patch("doc_converter.cli._check_schema_contracts", return_value=_ready_schema_checks_payload()),
+            patch(
+                "doc_converter.cli._check_openrouter_reachability",
+                return_value={"provider": None, "model": None, "status": "not_configured", "warnings": []},
+            ),
+            redirect_stdout(buffer),
+        ):
+            exit_code = main(["doctor", "--output-format=json"])
 
         self.assertEqual(exit_code, 0)
         payload = _load_cli_result(buffer)
@@ -71,15 +73,17 @@ class CliSmokeTests(unittest.TestCase):
 
     def test_doctor_reports_environment_invalid(self) -> None:
         buffer = StringIO()
-        with patch("doc_converter.cli.detect_ocr_runtime", return_value=_missing_ocr_payload()):
-            with patch("doc_converter.cli._check_font_bundle", return_value=_ready_font_bundle_payload()):
-                with patch("doc_converter.cli._check_schema_contracts", return_value=_ready_schema_checks_payload()):
-                    with patch(
-                        "doc_converter.cli._check_openrouter_reachability",
-                        return_value={"provider": None, "model": None, "status": "not_configured", "warnings": []},
-                    ):
-                        with redirect_stdout(buffer):
-                            exit_code = main(["doctor", "--output-format=json"])
+        with (
+            patch("doc_converter.cli.detect_ocr_runtime", return_value=_missing_ocr_payload()),
+            patch("doc_converter.cli._check_font_bundle", return_value=_ready_font_bundle_payload()),
+            patch("doc_converter.cli._check_schema_contracts", return_value=_ready_schema_checks_payload()),
+            patch(
+                "doc_converter.cli._check_openrouter_reachability",
+                return_value={"provider": None, "model": None, "status": "not_configured", "warnings": []},
+            ),
+            redirect_stdout(buffer),
+        ):
+            exit_code = main(["doctor", "--output-format=json"])
 
         self.assertEqual(exit_code, 40)
         payload = _load_cli_result(buffer)
@@ -270,9 +274,11 @@ class CliSmokeTests(unittest.TestCase):
             ocrmypdf_path = scripts_dir / executable_name
             ocrmypdf_path.write_text("", encoding="utf-8")
 
-            with patch("doc_converter.ocr_runtime.sys.executable", str(scripts_dir / python_name)):
-                with patch("doc_converter.ocr_runtime.shutil.which", return_value=None):
-                    self.assertEqual(find_ocrmypdf_executable(), str(ocrmypdf_path.resolve()))
+            with (
+                patch("doc_converter.ocr_runtime.sys.executable", str(scripts_dir / python_name)),
+                patch("doc_converter.ocr_runtime.shutil.which", return_value=None),
+            ):
+                self.assertEqual(find_ocrmypdf_executable(), str(ocrmypdf_path.resolve()))
 
     def test_schema_lookup_prefers_frozen_bundle_layout(self) -> None:
         source_schema = Path(__file__).resolve().parents[1] / "schemas" / "run.v1.schema.json"
@@ -289,13 +295,12 @@ class CliSmokeTests(unittest.TestCase):
             schema_validation._schemas_dir.cache_clear()
             schema_validation._load_validator.cache_clear()
             try:
-                with patch("doc_converter.schema_validation.sys.frozen", True, create=True):
-                    with patch(
-                        "doc_converter.schema_validation.sys.executable",
-                        str(bundle_dir / "DocumentConverter.exe"),
-                    ):
-                        self.assertEqual(schema_validation._schemas_dir(), bundled_schemas_dir.resolve())
-                        schema_validation._load_validator("run.v1.schema.json")
+                with patch("doc_converter.schema_validation.sys.frozen", True, create=True), patch(
+                    "doc_converter.schema_validation.sys.executable",
+                    str(bundle_dir / "DocumentConverter.exe"),
+                ):
+                    self.assertEqual(schema_validation._schemas_dir(), bundled_schemas_dir.resolve())
+                    schema_validation._load_validator("run.v1.schema.json")
             finally:
                 schema_validation._schemas_dir.cache_clear()
                 schema_validation._load_validator.cache_clear()
@@ -410,9 +415,8 @@ class CliSmokeTests(unittest.TestCase):
     def test_dry_run_internal_error_maps_to_exit_code_50(self) -> None:
         with tempfile.TemporaryDirectory() as input_dir:
             buffer = StringIO()
-            with patch("doc_converter.cli.build_inventory", side_effect=RuntimeError("boom")):
-                with redirect_stdout(buffer):
-                    exit_code = main(["dry-run", input_dir, "--output-format=json"])
+            with patch("doc_converter.cli.build_inventory", side_effect=RuntimeError("boom")), redirect_stdout(buffer):
+                exit_code = main(["dry-run", input_dir, "--output-format=json"])
 
         self.assertEqual(exit_code, 50)
         payload = _load_cli_result(buffer)
@@ -445,6 +449,8 @@ class CliSmokeTests(unittest.TestCase):
                 {
                     "provider": "openrouter",
                     "model": "openai/gpt-4o",
+                    "mode": "fallback",
+                    "prompt_version": "v1",
                     "configured": True,
                 },
             )
@@ -471,6 +477,9 @@ class CliSmokeTests(unittest.TestCase):
                     attempted=2,
                     recognized=1,
                     provider_calls=1,
+                    cache_hits=1,
+                    estimated_cost_usd=0.0025,
+                    review_required_units=1,
                     warnings=("formula_recognition_provider_failed",),
                     artifact_path="formula-recognition.jsonl",
                 ),
@@ -488,6 +497,9 @@ class CliSmokeTests(unittest.TestCase):
             self.assertEqual(manifest_record["formula_recognition_attempted"], 2)
             self.assertEqual(manifest_record["formula_recognition_recognized"], 1)
             self.assertEqual(manifest_record["formula_recognition_provider_calls"], 1)
+            self.assertEqual(manifest_record["formula_recognition_cache_hits"], 1)
+            self.assertEqual(manifest_record["formula_recognition_estimated_cost_usd"], 0.0025)
+            self.assertEqual(manifest_record["formula_recognition_review_required_units"], 1)
             self.assertEqual(manifest_record["formula_recognition_results_path"], "formula-recognition.jsonl")
             self.assertIn("formula_recognition_provider_failed", manifest_record["warnings"])
 
@@ -514,6 +526,8 @@ class CliSmokeTests(unittest.TestCase):
                 run_payload["options"].get("formula_recognition"),
                 {
                     "local_backend": "tesseract",
+                    "mode": "fallback",
+                    "prompt_version": "v1",
                     "configured": True,
                 },
             )
@@ -565,11 +579,13 @@ class CliSmokeTests(unittest.TestCase):
 
             options = ConverterOptions(ocr_backend="null", catalog_writers=("json",))
             fake_reader = Mock(pages=[Mock(extract_text=Mock(return_value=""))])
-            with patch("doc_converter.converters._classify_pdf_route", return_value=("pdf_scan", ("ocr_required",))):
-                with patch("doc_converter.converters.pdf_scan.PdfReader", return_value=fake_reader):
-                    result = run_convert_folder(
-                        ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir), options=options)
-                    )
+            with (
+                patch("doc_converter.converters._classify_pdf_route", return_value=("pdf_scan", ("ocr_required",))),
+                patch("doc_converter.converters.pdf_scan.PdfReader", return_value=fake_reader),
+            ):
+                result = run_convert_folder(
+                    ConverterConfig(input_dir=Path(input_dir), output_dir=Path(output_dir), options=options)
+                )
 
             manifest_records = [
                 json.loads(line)

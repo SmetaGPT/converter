@@ -4,7 +4,6 @@ import re
 from dataclasses import dataclass
 from functools import lru_cache
 
-
 TABLE_SEPARATOR_RE = re.compile(r"\s{2,}|\t+|\s*\|\s*")
 
 

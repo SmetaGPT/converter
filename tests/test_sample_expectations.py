@@ -7,7 +7,6 @@ from pathlib import Path
 
 from doc_converter.sample_expectations import validate_sample_expectations
 
-
 DOCUMENT_ID = "sha256:" + ("a" * 64)
 
 

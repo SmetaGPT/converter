@@ -1,10 +1,3 @@
-from .inline_glyph import (
-    INLINE_GLYPH_CACHE,
-    INLINE_GLYPH_METAFILE_SUFFIXES,
-    INLINE_GLYPH_RASTER_SUFFIXES,
-    _recognize_inline_glyph,
-    _render_windows_metafile,
-)
 from .formulas import (
     WmfFormulaIR,
     WmfFormulaToken,
@@ -13,6 +6,13 @@ from .formulas import (
     _build_wmf_formula_ir,
     _extract_formula_text_from_asset,
     _formula_representation_from_text,
+)
+from .inline_glyph import (
+    INLINE_GLYPH_CACHE,
+    INLINE_GLYPH_METAFILE_SUFFIXES,
+    INLINE_GLYPH_RASTER_SUFFIXES,
+    _recognize_inline_glyph,
+    _render_windows_metafile,
 )
 from .pipeline import ConversionResult, convert_docx
 
