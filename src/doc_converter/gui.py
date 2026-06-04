@@ -7,12 +7,19 @@ import subprocess
 import threading
 import tkinter as tk
 import webbrowser
+from dataclasses import replace
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
-from .config import ConverterConfig, ConverterOptions
+from .config import ConverterConfig, ConverterOptions, FormulaRecognitionConfig, load_formula_recognition_config
 from .human_readable import export_run_human_readable_html
 from .runner import ConverterError, run_convert_folder, validate_run_directories
+
+
+_FORMULA_OCR_MODEL_LABELS = {
+    "paddleocr": "Локальная модель распознавания формул (PaddleOCR)",
+    "mathpix": "Облачная модель распознавания формул (Mathpix)",
+}
 
 
 class ConverterApp(tk.Tk):
@@ -30,6 +37,7 @@ class ConverterApp(tk.Tk):
         self.input_var = tk.StringVar()
         self.output_var = tk.StringVar()
         self.ocr_var = tk.StringVar(value="rus,eng")
+        self.formula_ocr_model_var = tk.StringVar(value="paddleocr")
         self.include_originals_var = tk.BooleanVar(value=False)
         self.status_var = tk.StringVar(value="Готово")
         self.current_file_var = tk.StringVar(value="")
@@ -74,7 +82,7 @@ class ConverterApp(tk.Tk):
         root = ttk.Frame(self, padding=16)
         root.pack(fill=tk.BOTH, expand=True)
         root.columnconfigure(1, weight=1)
-        root.rowconfigure(7, weight=1)
+        root.rowconfigure(9, weight=1)
 
         ttk.Label(root, text="Входная папка").grid(row=0, column=0, sticky="w", pady=4)
         ttk.Entry(root, textvariable=self.input_var).grid(row=0, column=1, sticky="ew", padx=8, pady=4)
@@ -87,21 +95,37 @@ class ConverterApp(tk.Tk):
         ttk.Label(root, text="OCR языки").grid(row=2, column=0, sticky="w", pady=4)
         ttk.Entry(root, textvariable=self.ocr_var, width=24).grid(row=2, column=1, sticky="w", padx=8, pady=4)
 
+        ttk.Label(root, text="OCR модель формул").grid(row=3, column=0, sticky="nw", pady=4)
+        formula_model_frame = ttk.Frame(root)
+        formula_model_frame.grid(row=3, column=1, columnspan=2, sticky="ew", padx=8, pady=4)
+        ttk.Radiobutton(
+            formula_model_frame,
+            text=_FORMULA_OCR_MODEL_LABELS["paddleocr"],
+            variable=self.formula_ocr_model_var,
+            value="paddleocr",
+        ).pack(anchor="w")
+        ttk.Radiobutton(
+            formula_model_frame,
+            text=_FORMULA_OCR_MODEL_LABELS["mathpix"],
+            variable=self.formula_ocr_model_var,
+            value="mathpix",
+        ).pack(anchor="w", pady=(2, 0))
+
         ttk.Checkbutton(root, text="Сохранять оригиналы в output package", variable=self.include_originals_var).grid(
-            row=3, column=1, sticky="w", padx=8, pady=4
+            row=4, column=1, sticky="w", padx=8, pady=4
         )
 
-        ttk.Label(root, text="Текущий файл").grid(row=4, column=0, sticky="w", pady=4)
-        ttk.Label(root, textvariable=self.current_file_var).grid(row=4, column=1, columnspan=2, sticky="ew", padx=8, pady=4)
+        ttk.Label(root, text="Текущий файл").grid(row=5, column=0, sticky="w", pady=4)
+        ttk.Label(root, textvariable=self.current_file_var).grid(row=5, column=1, columnspan=2, sticky="ew", padx=8, pady=4)
 
-        ttk.Label(root, text="Прогресс").grid(row=5, column=0, sticky="w", pady=4)
+        ttk.Label(root, text="Прогресс").grid(row=6, column=0, sticky="w", pady=4)
         self.progress_bar = ttk.Progressbar(root, maximum=100.0, variable=self.progress_var)
-        self.progress_bar.grid(row=5, column=1, sticky="ew", padx=8, pady=4)
-        ttk.Label(root, textvariable=self.progress_label_var).grid(row=5, column=2, sticky="e", pady=4)
-        ttk.Label(root, textvariable=self.summary_var).grid(row=6, column=0, columnspan=3, sticky="w", pady=4)
+        self.progress_bar.grid(row=6, column=1, sticky="ew", padx=8, pady=4)
+        ttk.Label(root, textvariable=self.progress_label_var).grid(row=6, column=2, sticky="e", pady=4)
+        ttk.Label(root, textvariable=self.summary_var).grid(row=7, column=0, columnspan=3, sticky="w", pady=4)
 
         buttons = ttk.Frame(root)
-        buttons.grid(row=7, column=0, columnspan=3, sticky="ew", pady=(12, 8))
+        buttons.grid(row=8, column=0, columnspan=3, sticky="ew", pady=(12, 8))
         self.start_button = ttk.Button(buttons, text="Запустить обработку", command=self._start)
         self.start_button.pack(side=tk.LEFT)
         self.cancel_button = ttk.Button(buttons, text="Отменить", command=self._cancel, state=tk.DISABLED)
@@ -113,7 +137,7 @@ class ConverterApp(tk.Tk):
         ttk.Label(buttons, textvariable=self.status_var).pack(side=tk.LEFT, padx=12)
 
         self.log = tk.Text(root, height=16, wrap="word")
-        self.log.grid(row=8, column=0, columnspan=3, sticky="nsew")
+        self.log.grid(row=9, column=0, columnspan=3, sticky="nsew")
 
     def _choose_input(self) -> None:
         value = filedialog.askdirectory(title="Выберите папку с DOCX/PDF/XLSX")
@@ -139,6 +163,8 @@ class ConverterApp(tk.Tk):
             messagebox.showerror("Ошибка", self._format_startup_error(exc, input_dir, output_dir))
             return
 
+        options = self._build_converter_options(input_dir)
+
         self.start_button.configure(state=tk.DISABLED)
         self.cancel_button.configure(state=tk.NORMAL)
         self.open_output_button.configure(state=tk.DISABLED)
@@ -150,9 +176,32 @@ class ConverterApp(tk.Tk):
         self.summary_var.set("")
         self.last_run_dir = None
         self.cancel_requested.clear()
-        self._append_log("Запуск обработки")
-        self.worker = threading.Thread(target=self._run_worker, args=(input_dir, output_dir), daemon=True)
+        self._append_log(f"Запуск обработки; OCR формул: {self._selected_formula_ocr_model_label()}")
+        self.worker = threading.Thread(target=self._run_worker, args=(input_dir, output_dir, options), daemon=True)
         self.worker.start()
+
+    def _build_converter_options(self, input_dir: Path) -> ConverterOptions:
+        return ConverterOptions(
+            ocr_languages=tuple(item.strip() for item in self.ocr_var.get().split(",") if item.strip()),
+            include_originals=self.include_originals_var.get(),
+            formula_recognition=self._build_formula_recognition_config(input_dir),
+        )
+
+    def _build_formula_recognition_config(self, input_dir: Path) -> FormulaRecognitionConfig:
+        base_config = load_formula_recognition_config(start_dir=input_dir)
+        selected_model = self._selected_formula_ocr_model()
+        if selected_model == "mathpix":
+            return replace(base_config, mode="fallback", local_backend=None)
+        return replace(base_config, mode="fallback", local_backend="paddleocr", mathpix_app_id=None, mathpix_app_key=None)
+
+    def _selected_formula_ocr_model(self) -> str:
+        selected_model = self.formula_ocr_model_var.get().strip().lower()
+        if selected_model == "mathpix":
+            return "mathpix"
+        return "paddleocr"
+
+    def _selected_formula_ocr_model_label(self) -> str:
+        return _FORMULA_OCR_MODEL_LABELS[self._selected_formula_ocr_model()]
 
     def _format_startup_error(self, exc: ConverterError, input_dir: Path, output_dir: Path) -> str:
         message = str(exc)
@@ -174,12 +223,8 @@ class ConverterApp(tk.Tk):
             self.status_var.set("Отмена после текущего файла...")
             self._append_log("Запрошена отмена обработки")
 
-    def _run_worker(self, input_dir: Path, output_dir: Path) -> None:
+    def _run_worker(self, input_dir: Path, output_dir: Path, options: ConverterOptions) -> None:
         try:
-            options = ConverterOptions(
-                ocr_languages=tuple(item.strip() for item in self.ocr_var.get().split(",") if item.strip()),
-                include_originals=self.include_originals_var.get(),
-            )
             result = run_convert_folder(
                 ConverterConfig(input_dir=input_dir, output_dir=output_dir, options=options),
                 progress_callback=lambda payload: self.events.put({"type": "progress", **payload}),

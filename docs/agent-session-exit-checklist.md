@@ -19,13 +19,14 @@ Checklist нужен, чтобы нетривиальная задача не з
 
 После нетривиальной задачи нужно обновить:
 
-1. `docs/current-status.md`.
-2. `docs/current-sprint.md`.
-3. `docs/agent-telemetry-log.md`.
-4. `docs/agent-telemetry.v1.jsonl`.
-5. `docs/release-status.md`, если изменился release contour или declared scope.
-6. `docs/agent-feature-spine.json`, если изменился capability status, coverage или evidence.
-7. repo-memory, если появился новый validated learning.
+1. `docs/state-snapshot.md`.
+2. `docs/current-status.md`, если изменился operational status, blocker или done-state.
+3. `docs/current-sprint.md`, если изменился active plan, validation target или blocker.
+4. `docs/agent-telemetry-log.md`.
+5. `docs/agent-telemetry.v1.jsonl`.
+6. `docs/release-status.md`, если изменился release contour или declared scope.
+7. `docs/agent-feature-spine.json`, если изменился capability status, coverage или evidence.
+8. repo-memory, если появился новый validated learning.
 
 ## 4. Resume breadcrumbs
 

@@ -25,6 +25,7 @@ OPENROUTER_CHAT_COMPLETIONS_URL = "https://openrouter.ai/api/v1/chat/completions
 MATHPIX_TEXT_URL = "https://api.mathpix.com/v3/text"
 FORMULA_RECOGNITION_TIMEOUT_SECONDS = 90
 FORMULA_LOCAL_BACKEND_TIMEOUT_SECONDS = 30
+_PADDLEOCR_FORMULA_MODEL: Any | None = None
 FORMULA_RESPONSE_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -132,6 +133,33 @@ class LocalTesseractProvider:
 
 
 @dataclass(frozen=True)
+class LocalPaddleOCRProvider:
+    backend: str
+    provider_id: str = "paddleocr"
+    stage: str = "local_backend"
+
+    def predict(
+        self,
+        asset: FormulaRecognitionAsset,
+        context: FormulaProviderContext,
+    ) -> FormulaPrediction | None:
+        backend = self.backend.strip().lower()
+        if backend != "paddleocr":
+            raise RuntimeError(f"Unsupported local formula backend: {self.backend}")
+        if asset.path is None or asset.blob is None:
+            return None
+        formula = _recognize_formula_with_paddleocr(
+            asset_path=asset.path,
+            blob=asset.blob,
+            local_hint_text=context.local_hint_text,
+            source_text=context.source_text,
+        )
+        if formula is None:
+            return None
+        return FormulaPrediction(formula=formula, origin="local_backend")
+
+
+@dataclass(frozen=True)
 class OpenRouterProvider:
     provider: str
     model: str
@@ -195,7 +223,11 @@ def build_formula_provider_chain(config: FormulaRecognitionConfig) -> tuple[Form
     if config.mode == "off":
         return (NullProvider(),)
     if config.local_backend_is_configured():
-        providers.append(LocalTesseractProvider(backend=str(config.local_backend)))
+        local_backend = str(config.local_backend).strip().lower()
+        if local_backend == "paddleocr":
+            providers.append(LocalPaddleOCRProvider(backend=str(config.local_backend)))
+        else:
+            providers.append(LocalTesseractProvider(backend=str(config.local_backend)))
     if config.mathpix_is_configured():
         providers.append(MathpixProvider(app_id=str(config.mathpix_app_id), app_key=str(config.mathpix_app_key)))
     if config.provider_is_configured():
@@ -259,6 +291,146 @@ def _recognize_formula_with_tesseract(
     if not recognized_text:
         return None
 
+    return _formula_from_local_backend_text(
+        recognized_text,
+        local_hint_text=local_hint_text,
+        source_text=source_text,
+        backend_warning="formula_local_backend_tesseract",
+        fallback_confidence="low",
+    )
+
+
+def _recognize_formula_with_paddleocr(
+    *,
+    asset_path: Path,
+    blob: bytes,
+    local_hint_text: str | None,
+    source_text: str | None,
+) -> dict[str, Any] | None:
+    model = _get_paddleocr_formula_model()
+
+    raster_bytes, media_type = _prepare_formula_asset_payload(asset_path, blob)
+    suffix = mimetypes.guess_extension(media_type) or ".png"
+    with tempfile.TemporaryDirectory(prefix="formula-local-backend-") as temp_dir:
+        input_path = Path(temp_dir) / f"formula{suffix}"
+        input_path.write_bytes(raster_bytes)
+        try:
+            predictions = model.predict(input=str(input_path), batch_size=1)
+        except TypeError:
+            predictions = model.predict(str(input_path), batch_size=1)
+
+    recognized_text, raw_confidence = _extract_paddleocr_formula_prediction(predictions)
+    if not recognized_text:
+        return None
+
+    return _formula_from_local_backend_text(
+        recognized_text,
+        local_hint_text=local_hint_text,
+        source_text=source_text,
+        backend_warning="formula_local_backend_paddleocr",
+        fallback_confidence=_paddleocr_confidence(raw_confidence),
+    )
+
+
+def _get_paddleocr_formula_model() -> Any:
+    global _PADDLEOCR_FORMULA_MODEL
+    if _PADDLEOCR_FORMULA_MODEL is None:
+        try:
+            from paddleocr import FormulaRecognition
+        except ImportError as exc:
+            raise RuntimeError(
+                "PaddleOCR formula backend requires paddleocr and paddlepaddle to be installed"
+            ) from exc
+        _PADDLEOCR_FORMULA_MODEL = FormulaRecognition(model_name="PP-FormulaNet_plus-M")
+    return _PADDLEOCR_FORMULA_MODEL
+
+
+def _extract_paddleocr_formula_prediction(predictions: object) -> tuple[str | None, float | None]:
+    for candidate in _iter_paddleocr_prediction_candidates(predictions):
+        recognized_text = _paddleocr_prediction_text(candidate)
+        if recognized_text:
+            return recognized_text, _paddleocr_prediction_score(candidate)
+    return None, None
+
+
+def _iter_paddleocr_prediction_candidates(predictions: object) -> list[object]:
+    if predictions is None:
+        return []
+    if isinstance(predictions, list | tuple):
+        items = list(predictions)
+    else:
+        try:
+            items = list(predictions)
+        except TypeError:
+            items = [predictions]
+
+    candidates: list[object] = []
+    pending = list(items)
+    while pending:
+        item = pending.pop(0)
+        if item is None:
+            continue
+        candidates.append(item)
+        if isinstance(item, list | tuple):
+            pending[:0] = list(item)
+            continue
+        if isinstance(item, dict):
+            nested_res = item.get("res")
+            if nested_res is not None:
+                pending.append(nested_res)
+            nested_result = item.get("result")
+            if nested_result is not None:
+                pending.append(nested_result)
+            continue
+        nested = getattr(item, "res", None)
+        if nested is not None:
+            pending.append(nested)
+    return candidates
+
+
+def _paddleocr_prediction_text(candidate: object) -> str | None:
+    if isinstance(candidate, str):
+        stripped = candidate.strip()
+        return stripped or None
+    if isinstance(candidate, dict):
+        for key in ("formula", "prunedResult", "rec_text", "text", "latex"):
+            value = candidate.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        return None
+    for attr in ("formula", "prunedResult", "rec_text", "text", "latex"):
+        value = getattr(candidate, attr, None)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
+
+
+def _paddleocr_prediction_score(candidate: object) -> float | None:
+    if isinstance(candidate, dict):
+        return _normalized_optional_float(candidate.get("confidence") or candidate.get("score") or candidate.get("rec_score"))
+    return _normalized_optional_float(
+        getattr(candidate, "confidence", None) or getattr(candidate, "score", None) or getattr(candidate, "rec_score", None)
+    )
+
+
+def _paddleocr_confidence(value: float | None) -> str:
+    if value is None:
+        return "low"
+    if value >= 0.95:
+        return "high"
+    if value >= 0.80:
+        return "medium"
+    return "low"
+
+
+def _formula_from_local_backend_text(
+    recognized_text: str,
+    *,
+    local_hint_text: str | None,
+    source_text: str | None,
+    backend_warning: str,
+    fallback_confidence: str,
+) -> dict[str, Any]:
     from doc_converter.converters.docx import _formula_representation_from_text
 
     formula = _formula_representation_from_text(recognized_text)
@@ -268,8 +440,8 @@ def _recognize_formula_with_tesseract(
             "linear_text": recognized_text,
             "display_latex": recognized_text,
             "calc_expr": None,
-            "confidence": "low",
-            "warnings": ["formula_local_backend_tesseract", "formula_local_backend_unparsed"],
+            "confidence": fallback_confidence,
+            "warnings": [backend_warning, "formula_local_backend_unparsed"],
         }
 
     patched_formula = dict(formula)
@@ -278,7 +450,7 @@ def _recognize_formula_with_tesseract(
         _append_unique(warnings, "formula_local_backend_used_local_hint")
     if source_text:
         _append_unique(warnings, "formula_local_backend_used_source_text")
-    _append_unique(warnings, "formula_local_backend_tesseract")
+    _append_unique(warnings, backend_warning)
     patched_formula["warnings"] = warnings
     return patched_formula
 
@@ -557,6 +729,20 @@ def _normalized_nonempty_string(value: object) -> str | None:
         return None
     stripped = value.strip()
     return stripped or None
+
+
+def _normalized_optional_float(value: object) -> float | None:
+    if isinstance(value, int | float):
+        return float(value)
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            return None
+        try:
+            return float(stripped)
+        except ValueError:
+            return None
+    return None
 
 
 def _normalized_optional_string(value: object) -> str | None:

@@ -1,15 +1,20 @@
 {
   "schema_version": "agent-feature-spine.v1",
-  "last_updated": "2026-05-31",
+  "last_updated": "2026-06-04",
   "features": [
     {
       "feature_id": "state-layer",
       "area": "state",
       "title": "State layer as startup anchor",
       "status": "validated",
-      "behavior": "Cold-start for cross-module and resume tasks begins with current-status, current-sprint and release-status before local search.",
+      "behavior": "Cold-start now begins with docs/state-snapshot.md; full current-status/current-sprint/release-status are read only for release, resume or truly cross-module tasks before local search.",
       "owner_docs": [
         "AGENTS.md",
+        "docs/state-snapshot.md",
+        "scripts/build_state_snapshot.py",
+        "scripts/classify_agent_scope.py",
+        "scripts/validate_harness_assets.py",
+        ".vscode/tasks.json",
         "docs/current-status.md",
         "docs/current-sprint.md",
         "docs/release-status.md"
@@ -17,16 +22,21 @@
       "verification": [
         {
           "type": "procedure",
-          "target": "Read docs/current-status.md, docs/current-sprint.md and docs/release-status.md before local search."
+          "target": "Read docs/state-snapshot.md first; escalate to docs/current-status.md, docs/current-sprint.md and docs/release-status.md only for release, resume or truly cross-module tasks before local search."
         }
       ],
       "evidence": [
         "AGENTS.md",
+        "docs/state-snapshot.md",
+        "scripts/build_state_snapshot.py",
+        "scripts/classify_agent_scope.py",
+        "scripts/validate_harness_assets.py",
+        ".vscode/tasks.json",
         "docs/current-status.md",
         "docs/current-sprint.md",
         "docs/release-status.md"
       ],
-      "residual_risk": "State docs still need manual updates after each non-trivial task."
+      "residual_risk": "docs/state-snapshot.md теперь генерируется и validator ловит drift, но current-status/current-sprint/release-status всё ещё требуют аккуратного manual sync after each non-trivial task."
     },
     {
       "feature_id": "lifecycle-validation",
@@ -136,6 +146,11 @@
       "owner_docs": [
         "docs/agent-bootstrap-contract.md",
         "docs/build-and-run.md",
+        "docs/state-snapshot.md",
+        "scripts/build_state_snapshot.py",
+        "scripts/classify_agent_scope.py",
+        "scripts/validate_harness_assets.py",
+        ".vscode/tasks.json",
         "docs/current-status.md"
       ],
       "verification": [
@@ -147,6 +162,11 @@
       "evidence": [
         "docs/agent-bootstrap-contract.md",
         "docs/build-and-run.md",
+        "docs/state-snapshot.md",
+        "scripts/build_state_snapshot.py",
+        "scripts/classify_agent_scope.py",
+        "scripts/validate_harness_assets.py",
+        ".vscode/tasks.json",
         "docs/current-status.md"
       ],
       "residual_risk": "Bootstrap still depends on a healthy local .venv and Windows OCR prerequisites."
@@ -240,6 +260,145 @@
         ".github/workflows/windows-ci.yml"
       ],
       "residual_risk": "The validator checks structure and file presence, not the semantic quality of every document."
+    },
+    {
+      "feature_id": "context-token-estimator",
+      "area": "observability",
+      "title": "Rough context token estimator",
+      "status": "validated",
+      "behavior": "The repo can estimate rough prompt-token cost for startup docs, explicit files and inline text, including excerpt-mode over the first N lines, so scope/process changes can be evaluated against a bounded context budget without claiming exact backend usage numbers.",
+      "owner_docs": [
+        "scripts/estimate_context_tokens.py",
+        "tests/test_estimate_context_tokens.py",
+        "docs/current-status.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_estimate_context_tokens -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\estimate_context_tokens.py --json"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\estimate_context_tokens.py --excerpt-lines 80 --json"
+        }
+      ],
+      "evidence": [
+        "scripts/estimate_context_tokens.py",
+        "tests/test_estimate_context_tokens.py",
+        "docs/current-status.md"
+      ],
+      "residual_risk": "The estimator is intentionally heuristic and reports rough local prompt-budget signals, including excerpt-based read budgets, not exact Copilot backend input/output token usage."
+    },
+    {
+      "feature_id": "agent-preflight",
+      "area": "observability",
+      "title": "One-command startup preflight",
+      "status": "validated",
+      "behavior": "The repo can combine task scope classification, recommended first reads, first validation target, rough startup budget and latest handoff-summary in one local preflight command instead of making the operator mentally join classifier, token-estimator and resume signals.",
+      "owner_docs": [
+        "scripts/agent_preflight.py",
+        "tests/test_agent_preflight.py",
+        "scripts/build_agent_handoff.py",
+        "tests/test_build_agent_handoff.py",
+        "docs/current-status.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_agent_preflight -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\agent_preflight.py --task \"Обнови startup contract и bootstrap behavior.\" --anchor AGENTS.md --anchor docs/agent-bootstrap-contract.md --json"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_build_agent_handoff -v"
+        }
+      ],
+      "evidence": [
+        "scripts/agent_preflight.py",
+        "tests/test_agent_preflight.py",
+        "scripts/build_agent_handoff.py",
+        "tests/test_build_agent_handoff.py",
+        "docs/current-status.md"
+      ],
+      "residual_risk": "Preflight now emits a handoff summary when state snapshot and telemetry are present, but the handoff remains heuristic: it infers the current anchor from changed files or touched areas and does not yet prune unrelated dirty-worktree paths."
+    },
+    {
+      "feature_id": "agent-handoff-summary",
+      "area": "observability",
+      "title": "Compact agent handoff summary",
+      "status": "validated",
+      "behavior": "The repo can build a compact handoff payload from state snapshot, latest telemetry and current git status so the next chat can resume from a concrete anchor, checked items, residual risks, next step and files-to-read list instead of reconstructing that state manually.",
+      "owner_docs": [
+        "scripts/build_agent_handoff.py",
+        "tests/test_build_agent_handoff.py",
+        "scripts/agent_preflight.py",
+        "docs/current-status.md"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_build_agent_handoff -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\agent_preflight.py --task \"Продолжи unified wrapper для state/process layer\" --anchor scripts/agent_preflight.py --json"
+        }
+      ],
+      "evidence": [
+        "scripts/build_agent_handoff.py",
+        "tests/test_build_agent_handoff.py",
+        "scripts/agent_preflight.py",
+        "tests/test_agent_preflight.py",
+        "docs/current-status.md"
+      ],
+      "residual_risk": "The handoff builder currently trusts the repo worktree at read time; in a very dirty checkout, the selected anchor can still be pulled toward unrelated modified files unless the operator narrows the changed surface or passes a more specific task/anchor context."
+    },
+    {
+      "feature_id": "compact-working-state",
+      "area": "state",
+      "title": "Compact generated working-state memory layer",
+      "status": "validated",
+      "behavior": "The harness generates docs/agent-working-state.v1.json as a compact hot-path memory layer for current goal, latest done item, blockers, next checks, active feature IDs and token-budget policy, while raw state docs, telemetry and feature spine remain lookup-only sources unless scope widens.",
+      "owner_docs": [
+        "docs/agent-working-state.v1.json",
+        "schemas/agent-working-state.v1.schema.json",
+        "scripts/build_agent_working_state.py",
+        "tests/test_build_agent_working_state.py",
+        "scripts/agent_preflight.py",
+        "scripts/estimate_context_tokens.py",
+        "scripts/validate_harness_assets.py"
+      ],
+      "verification": [
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe -m unittest tests.test_build_agent_working_state tests.test_agent_preflight tests.test_classify_agent_scope tests.test_estimate_context_tokens -v"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\build_agent_working_state.py --check"
+        },
+        {
+          "type": "command",
+          "target": ".\\.venv\\Scripts\\python.exe scripts\\validate_harness_assets.py"
+        }
+      ],
+      "evidence": [
+        "docs/agent-working-state.v1.json",
+        "schemas/agent-working-state.v1.schema.json",
+        "scripts/build_agent_working_state.py",
+        "tests/test_build_agent_working_state.py",
+        "scripts/agent_preflight.py",
+        "scripts/estimate_context_tokens.py",
+        "scripts/validate_harness_assets.py"
+      ],
+      "residual_risk": "The compact layer intentionally truncates long status and telemetry text; agents must grep the raw source docs or telemetry by feature_id/task anchor when a decision needs full evidence."
     },
     {
       "feature_id": "canonical-document-package",
@@ -610,7 +769,7 @@
       "area": "product",
       "title": "Formula recognition provider and local backend env config",
       "status": "validated",
-      "behavior": "Converter runtime auto-loads formula recognition settings from `.env.local`/`.env` plus process environment overrides, supporting explicit `FORMULA_RECOGNITION_*` keys, `FORMULA_RECOGNITION_MODE=fallback|llm_first|mathpix_first|off`, shorthand aliases like `LLM_PROVIDER`, provider-specific model keys, `FORMULA_MODEL`, optional `FORMULA_RECOGNITION_LOCAL_BACKEND=tesseract`, Mathpix credentials `MATHPIX_APP_ID` / `MATHPIX_APP_KEY`, and non-secret operational limits such as `FORMULA_RECOGNITION_PROMPT_VERSION`, `FORMULA_RECOGNITION_MAX_FORMULAS_PER_RUN`, `FORMULA_RECOGNITION_MAX_PROVIDER_CALLS` and `FORMULA_RECOGNITION_MAX_ESTIMATED_COST_USD`; when OpenRouter credentials are present and no dedicated formula override is set, the formula slice defaults to `openrouter` + `openai/gpt-4o`, while run metadata stores only safe configured fields and never serializes provider secrets.",
+      "behavior": "Converter runtime auto-loads formula recognition settings from `.env.local`/`.env` plus process environment overrides, supporting explicit `FORMULA_RECOGNITION_*` keys, `FORMULA_RECOGNITION_MODE=fallback|llm_first|mathpix_first|off`, shorthand aliases like `LLM_PROVIDER`, provider-specific model keys, `FORMULA_MODEL`, optional `FORMULA_RECOGNITION_LOCAL_BACKEND=tesseract|paddleocr`, Mathpix credentials `MATHPIX_APP_ID` / `MATHPIX_APP_KEY`, and non-secret operational limits such as `FORMULA_RECOGNITION_PROMPT_VERSION`, `FORMULA_RECOGNITION_MAX_FORMULAS_PER_RUN`, `FORMULA_RECOGNITION_MAX_PROVIDER_CALLS` and `FORMULA_RECOGNITION_MAX_ESTIMATED_COST_USD`; when OpenRouter credentials are present and no dedicated formula override is set, the formula slice defaults to `openrouter` + `openai/gpt-4o`, while run metadata stores only safe configured fields and never serializes provider secrets.",
       "owner_docs": [
         "docs/build-and-run.md",
         ".env.example",
@@ -668,7 +827,7 @@
         "docs/build-and-run.md",
         "docs/document-converter-acceptance.md"
       ],
-      "residual_risk": "Automated validation uses mocked provider responses and does not spend real Mathpix/OpenRouter credits; live quality still depends on provider availability, Mathpix data-retention settings, model behavior, local Tesseract availability and successful rasterization of WMF/EMF assets on Windows. Provider cache/budget/review semantics are now deterministic locally, but real pilot metrics still require opt-in credentials and a separate operator-triggered benchmark contour."
+      "residual_risk": "Automated validation uses mocked provider responses and does not spend real Mathpix/OpenRouter credits; live quality still depends on provider availability, Mathpix data-retention settings, model behavior, local Tesseract/PaddleOCR availability and successful rasterization of WMF/EMF assets on Windows. Provider cache/budget/review semantics are now deterministic locally, but real pilot metrics still require opt-in credentials and a separate operator-triggered benchmark contour."
     },
     {
       "feature_id": "formula-known-patterns-data",
@@ -919,7 +1078,7 @@
       "area": "product",
       "title": "Operator GUI and Windows release packaging",
       "status": "validated",
-      "behavior": "Operators can run the converter through a GUI with progress, current file, cancel, open output, HTML QC and summary counts, while Windows packaging produces a portable EXE and release zip.",
+      "behavior": "Operators can run the converter through a GUI with progress, current file, cancel, open output, HTML QC, summary counts and a formula OCR model selector that defaults to local PaddleOCR and can switch to cloud Mathpix, while Windows packaging produces a portable EXE and release zip.",
       "owner_docs": [
         "docs/build-and-run.md",
         "src/doc_converter/gui.py",
@@ -948,7 +1107,7 @@
         "scripts/build-windows.ps1",
         "scripts/package-release.ps1"
       ],
-      "residual_risk": "Pause and resume are intentionally not exposed as GUI controls; the product relies on safe rerun semantics instead."
+      "residual_risk": "Pause and resume are intentionally not exposed as GUI controls; the product relies on safe rerun semantics instead. The GUI selector only switches the formula OCR stage: local PaddleOCR still depends on an installed `paddleocr`/`paddlepaddle` runtime, while cloud Mathpix still depends on configured `MATHPIX_APP_ID` / `MATHPIX_APP_KEY`."
     },
     {
       "feature_id": "operator-cli-json",

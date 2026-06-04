@@ -250,12 +250,16 @@ class DocxConverterTests(unittest.TestCase):
             payload = json.loads((document_dir / "document.v1.json").read_text(encoding="utf-8"))
 
             formula_units = [unit for unit in payload["units"] if unit["type"] == "formula"]
+            formula_image_units = [unit for unit in payload["units"] if unit["type"] == "formula_image"]
             paragraph_units = [unit for unit in payload["units"] if unit["type"] == "paragraph"]
 
             self.assertIn("С_(НГ) = НГ x К_(в) x L (6),", [unit["text"] for unit in formula_units])
             self.assertIn("P^(j) - описание ресурса", [unit["text"] for unit in paragraph_units])
 
             self.assertIn("j = 1 ÷ J, где:", [unit["text"] for unit in formula_units])
+            inline_formula_unit = next(unit for unit in formula_units if unit["text"] == "j = 1 ÷ J, где:")
+            self.assertIsNotNone(inline_formula_unit["asset_ref"])
+            self.assertIn(inline_formula_unit["asset_ref"], [unit["asset_ref"] for unit in formula_image_units])
 
             search_text = (document_dir / "search_text.txt").read_text(encoding="utf-8")
             self.assertIn("С_(НГ) = НГ x К_(в) x L (6),", search_text)

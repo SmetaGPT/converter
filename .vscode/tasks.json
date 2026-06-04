@@ -1,0 +1,38 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Agent: classify scope",
+      "type": "shell",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": [
+        "scripts\\classify_agent_scope.py",
+        "--task",
+        "${input:agentTaskSummary}",
+        "--anchor",
+        "${input:agentAnchor}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "agentTaskSummary",
+      "type": "promptString",
+      "description": "Коротко опиши задачу для классификатора scope"
+    },
+    {
+      "id": "agentAnchor",
+      "type": "promptString",
+      "description": "Файл, тест или символ-якорь; можно оставить пустым"
+    }
+  ]
+}

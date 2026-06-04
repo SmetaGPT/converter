@@ -9,6 +9,8 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, cast
 
+from build_state_snapshot import build_state_snapshot_markdown, build_state_snapshot_payload
+from build_agent_working_state import build_working_state_payload, dump_working_state_json
 from build_agent_scorecard import build_scorecard_markdown_section, build_scorecard_payload
 from build_agent_weekly_eval import build_weekly_eval_markdown, build_weekly_eval_payload
 
@@ -22,11 +24,16 @@ WEEKLY_REVIEWS_SCHEMA = ROOT / "schemas" / "agent-weekly-reviews.v1.schema.json"
 SCORECARD_JSON = ROOT / "docs" / "agent-quality-scorecard.v1.json"
 SCORECARD_MARKDOWN = ROOT / "docs" / "agent-quality-scorecard.md"
 SCORECARD_SCHEMA = ROOT / "schemas" / "agent-quality-scorecard.v1.schema.json"
+STATE_SNAPSHOT = ROOT / "docs" / "state-snapshot.md"
+WORKING_STATE_JSON = ROOT / "docs" / "agent-working-state.v1.json"
+WORKING_STATE_SCHEMA = ROOT / "schemas" / "agent-working-state.v1.schema.json"
 WEEKLY_EVAL_JSON = ROOT / "docs" / "agent-weekly-eval.v1.json"
 WEEKLY_EVAL_MARKDOWN = ROOT / "docs" / "agent-weekly-eval.md"
 WEEKLY_EVAL_SCHEMA = ROOT / "schemas" / "agent-weekly-eval.v1.schema.json"
 VALIDATE_COMMAND = ".\\.venv\\Scripts\\python.exe scripts\\validate_harness_assets.py"
 SCORECARD_SYNC_COMMAND = ".\\.venv\\Scripts\\python.exe scripts\\build_agent_scorecard.py --sync-markdown"
+STATE_SNAPSHOT_SYNC_COMMAND = ".\\.venv\\Scripts\\python.exe scripts\\build_state_snapshot.py"
+WORKING_STATE_SYNC_COMMAND = ".\\.venv\\Scripts\\python.exe scripts\\build_agent_working_state.py"
 WEEKLY_REFRESH_COMMAND = ".\\.venv\\Scripts\\python.exe scripts\\refresh_agent_eval.py"
 RUBRIC_SCORE_KEYS = (
     "scope_control",
@@ -107,6 +114,7 @@ def main() -> int:
     telemetry_schema = _load_json(TELEMETRY_SCHEMA)
     weekly_reviews_schema = _load_json(WEEKLY_REVIEWS_SCHEMA)
     scorecard_schema = _load_json(SCORECARD_SCHEMA)
+    working_state_schema = _load_json(WORKING_STATE_SCHEMA)
     weekly_eval_schema = _load_json(WEEKLY_EVAL_SCHEMA)
     features = _feature_list(payload)
 
@@ -114,6 +122,7 @@ def main() -> int:
     telemetry_validator = JSONSCHEMA.Draft202012Validator(telemetry_schema)
     weekly_reviews_validator = JSONSCHEMA.Draft202012Validator(weekly_reviews_schema)
     scorecard_validator = JSONSCHEMA.Draft202012Validator(scorecard_schema)
+    working_state_validator = JSONSCHEMA.Draft202012Validator(working_state_schema)
     weekly_eval_validator = JSONSCHEMA.Draft202012Validator(weekly_eval_schema)
     errors = sorted(validator.iter_errors(payload), key=lambda error: list(error.absolute_path))
     if errors:
@@ -172,6 +181,9 @@ def main() -> int:
     _validate_scorecard_json(SCORECARD_JSON, scorecard_validator)
     _assert_scorecard_synced(SCORECARD_JSON, build_scorecard_payload(ROOT))
     _assert_scorecard_markdown_synced(SCORECARD_MARKDOWN, build_scorecard_markdown_section(build_scorecard_payload(ROOT)))
+    _assert_state_snapshot_synced(STATE_SNAPSHOT, build_state_snapshot_markdown(build_state_snapshot_payload(ROOT)))
+    _validate_working_state_json(WORKING_STATE_JSON, working_state_validator)
+    _assert_working_state_synced(WORKING_STATE_JSON, dump_working_state_json(build_working_state_payload(ROOT)))
     _validate_weekly_eval_json(WEEKLY_EVAL_JSON, weekly_eval_validator)
     _assert_weekly_eval_synced(WEEKLY_EVAL_JSON, build_weekly_eval_payload(ROOT, days=7))
     _assert_weekly_eval_markdown_synced(WEEKLY_EVAL_MARKDOWN, build_weekly_eval_markdown(build_weekly_eval_payload(ROOT, days=7)))
@@ -373,6 +385,55 @@ def _assert_scorecard_markdown_synced(path: Path, expected_section: str) -> None
             f"scorecard markdown drift detected: {path.relative_to(ROOT)}",
             "The human-readable structured companion section no longer matches the generated scorecard payload.",
             f"Run `{SCORECARD_SYNC_COMMAND}` to refresh markdown, then rerun `{VALIDATE_COMMAND}`.",
+        )
+
+
+def _assert_state_snapshot_synced(path: Path, expected_markdown: str) -> None:
+    if not path.exists():
+        _fail(
+            f"missing state snapshot: {path.relative_to(ROOT)}",
+            "The lightweight startup entry point must exist so release/resume/cross-module cold-start stays bounded.",
+            f"Generate it with `{STATE_SNAPSHOT_SYNC_COMMAND}`, then rerun `{VALIDATE_COMMAND}`.",
+        )
+
+    current_markdown = path.read_text(encoding="utf-8")
+    if current_markdown != expected_markdown:
+        _fail(
+            f"state snapshot drift detected: {path.relative_to(ROOT)}",
+            "The startup snapshot no longer matches current-status/current-sprint/release-status and feature spine sources.",
+            f"Run `{STATE_SNAPSHOT_SYNC_COMMAND}` to refresh the snapshot, then rerun `{VALIDATE_COMMAND}`.",
+        )
+
+
+def _validate_working_state_json(path: Path, validator: Any) -> None:
+    if not path.exists():
+        _fail(
+            f"missing working-state file: {path.relative_to(ROOT)}",
+            "The compact working-state companion is the hot-path memory layer for current goal, blockers and next validation.",
+            f"Generate it with `{WORKING_STATE_SYNC_COMMAND}`, then rerun `{VALIDATE_COMMAND}`.",
+        )
+
+    payload = _load_json(path)
+    errors = sorted(validator.iter_errors(payload), key=lambda error: list(error.absolute_path))
+    if errors:
+        details = []
+        for error in errors:
+            error_path = ".".join(str(part) for part in error.absolute_path) or "<root>"
+            details.append(f"{error_path}: {error.message}")
+        _fail(
+            "working-state schema validation failed: " + "; ".join(details),
+            "The hot-path state must stay schema-valid before preflight can use it as a compact memory layer.",
+            f"Regenerate with `{WORKING_STATE_SYNC_COMMAND}` or edit docs/agent-working-state.v1.json to satisfy schemas/agent-working-state.v1.schema.json, then rerun `{VALIDATE_COMMAND}`.",
+        )
+
+
+def _assert_working_state_synced(path: Path, expected_json: str) -> None:
+    current_json = path.read_text(encoding="utf-8")
+    if current_json != expected_json:
+        _fail(
+            f"working-state drift detected: {path.relative_to(ROOT)}",
+            "The compact working-state companion no longer matches state snapshot, telemetry and feature spine sources.",
+            f"Run `{WORKING_STATE_SYNC_COMMAND}` to refresh the hot-path state, then rerun `{VALIDATE_COMMAND}`.",
         )
 
 

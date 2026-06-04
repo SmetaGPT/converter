@@ -33,7 +33,7 @@ from .formulas.text import (
     _merge_formula_text,
     _trailing_formula_operator,
 )
-from .inline_glyph import _inline_drawing_placeholders
+from .inline_glyph import REL_NS, _inline_drawing_placeholders, _resolve_inline_drawing_asset
 
 WORD_NS = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 MAX_DOCX_ARCHIVE_ENTRIES = 4096
@@ -51,6 +51,12 @@ class ConversionResult:
     assets_count: int
     search_text_chars: int
     warnings: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ExtractedDocxMedia:
+    source_name: str
+    extracted_path: Path
 
 
 def convert_docx(
@@ -79,6 +85,7 @@ def convert_docx(
     assets: list[dict[str, Any]] = []
     search_parts: list[str] = []
     order = 1
+    formula_media_names_by_unit_id: dict[str, tuple[str, ...]] = {}
 
     for block_kind, block, block_index in _iter_body_blocks(document):
         if block_kind == "paragraph":
@@ -99,6 +106,10 @@ def convert_docx(
                 source_ref=SourceRef(document_id=doc_id, docx_path=f"/word/document.xml/body/p[{block_index}]"),
                 quality=quality_payload(_quality_flags_for_docx_unit(paragraph_type)),
             )
+            if paragraph_type == "formula":
+                media_names = _paragraph_drawing_asset_names(paragraph)
+                if media_names:
+                    formula_media_names_by_unit_id[paragraph_unit.unit_id] = media_names
             units.append(paragraph_unit)
             search_parts.append(text)
             order += 1
@@ -188,10 +199,21 @@ def convert_docx(
         order += 1
 
     extracted_assets = _extract_docx_media(source_path, assets_dir)
-    for asset_index, asset_path in enumerate(extracted_assets, start=1):
+    formula_media_names = {
+        media_name
+        for media_names in formula_media_names_by_unit_id.values()
+        for media_name in media_names
+    }
+    media_asset_refs: dict[str, str] = {}
+    for asset_index, extracted_media in enumerate(extracted_assets, start=1):
         figure_unit_id = unit_id(order)
-        rel_asset_path = asset_path.relative_to(output_dir).as_posix()
-        asset_type = _classify_docx_media_asset(asset_path)
+        rel_asset_path = extracted_media.extracted_path.relative_to(output_dir).as_posix()
+        media_asset_refs[extracted_media.source_name] = rel_asset_path
+        asset_type = _classify_docx_media_asset(
+            extracted_media.extracted_path,
+            source_name=extracted_media.source_name,
+            formula_asset_names=formula_media_names,
+        )
         units.append(
             StructuralUnit(
                 unit_id=figure_unit_id,
@@ -199,19 +221,28 @@ def convert_docx(
                 type="formula_image" if asset_type == "formula_image" else "figure",
                 order=order,
                 asset_ref=rel_asset_path,
-                source_ref=SourceRef(document_id=doc_id, docx_path=f"/word/media/{asset_path.name}"),
+                source_ref=SourceRef(document_id=doc_id, docx_path=f"/word/media/{extracted_media.source_name}"),
             )
         )
         assets.append(
             build_asset_record(
                 asset_id=f"asset_{asset_index:06d}",
                 asset_type=asset_type,
-                asset_path=asset_path,
+                asset_path=extracted_media.extracted_path,
                 output_dir=output_dir,
                 unit_id=figure_unit_id,
             )
         )
         order += 1
+
+    units = [
+        _attach_formula_asset_ref(
+            unit,
+            media_names=formula_media_names_by_unit_id.get(unit.unit_id, ()),
+            media_asset_refs=media_asset_refs,
+        )
+        for unit in units
+    ]
 
     search_text = "\n\n".join(search_parts)
     payload = minimal_document(
@@ -249,8 +280,8 @@ def convert_docx(
     )
 
 
-def _extract_docx_media(source_path: Path, assets_dir: Path) -> list[Path]:
-    extracted: list[Path] = []
+def _extract_docx_media(source_path: Path, assets_dir: Path) -> list[ExtractedDocxMedia]:
+    extracted: list[ExtractedDocxMedia] = []
     try:
         with _open_validated_docx_archive(source_path) as archive:
             media_names = sorted(name for name in archive.namelist() if name.startswith("word/media/"))
@@ -259,7 +290,7 @@ def _extract_docx_media(source_path: Path, assets_dir: Path) -> list[Path]:
                 target = assets_dir / f"figure_{index:06d}{suffix}"
                 with archive.open(media_name) as source, target.open("wb") as destination:
                     shutil.copyfileobj(source, destination)
-                extracted.append(target)
+                extracted.append(ExtractedDocxMedia(source_name=Path(media_name).name, extracted_path=target))
     except DocxSecurityError:
         raise
     except zipfile.BadZipFile:
@@ -267,11 +298,64 @@ def _extract_docx_media(source_path: Path, assets_dir: Path) -> list[Path]:
     return extracted
 
 
-def _classify_docx_media_asset(asset_path: Path) -> str:
+def _classify_docx_media_asset(
+    asset_path: Path,
+    *,
+    source_name: str | None = None,
+    formula_asset_names: set[str] | None = None,
+) -> str:
+    if source_name is not None and formula_asset_names is not None and source_name in formula_asset_names:
+        return "formula_image"
     normalized = asset_path.stem.lower()
     if any(marker in normalized for marker in ("formula", "equation", "math")):
         return "formula_image"
     return "figure"
+
+
+def _paragraph_drawing_asset_names(paragraph: Paragraph) -> tuple[str, ...]:
+    media_names: list[str] = []
+    seen_media_names: set[str] = set()
+    for run in paragraph.runs:
+        for child in run._r:
+            if not child.tag.endswith("}drawing"):
+                continue
+            for media_name in _drawing_asset_names(paragraph, child):
+                if media_name in seen_media_names:
+                    continue
+                seen_media_names.add(media_name)
+                media_names.append(media_name)
+    return tuple(media_names)
+
+
+def _drawing_asset_names(paragraph: Paragraph, drawing: Any) -> tuple[str, ...]:
+    media_names: list[str] = []
+    seen_rel_ids: set[str] = set()
+    for node in drawing.iter():
+        rel_id = node.attrib.get(f"{REL_NS}embed")
+        if rel_id is None or rel_id in seen_rel_ids:
+            continue
+        seen_rel_ids.add(rel_id)
+        media_name, _blob = _resolve_inline_drawing_asset(paragraph, rel_id)
+        if media_name is not None:
+            media_names.append(media_name)
+    return tuple(media_names)
+
+
+def _attach_formula_asset_ref(
+    unit: StructuralUnit,
+    *,
+    media_names: tuple[str, ...],
+    media_asset_refs: dict[str, str],
+) -> StructuralUnit:
+    if unit.type != "formula" or unit.asset_ref is not None or not media_names:
+        return unit
+
+    asset_refs = [media_asset_refs[name] for name in media_names if name in media_asset_refs]
+    unique_asset_refs = tuple(dict.fromkeys(asset_refs))
+    if len(unique_asset_refs) != 1:
+        return unit
+
+    return replace(unit, asset_ref=unique_asset_refs[0])
 
 
 def _iter_body_blocks(document: Any) -> list[tuple[str, Paragraph | Table, int]]:

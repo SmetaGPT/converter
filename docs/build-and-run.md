@@ -34,7 +34,7 @@ CLI, GUI и прямое создание `ConverterOptions()` автомати�
 
 - `LLM_PROVIDER=openrouter`
 - `OPENROUTER_MODEL=deepseek/deepseek-v4-pro`
-- `FORMULA_RECOGNITION_LOCAL_BACKEND=tesseract` для локального OCR backend без live provider; эту переменную можно включать отдельно или вместе с provider config
+- `FORMULA_RECOGNITION_LOCAL_BACKEND=tesseract|paddleocr` для локального OCR backend без live provider; `paddleocr` требует установленный `paddleocr` + `paddlepaddle`, а переменную можно включать отдельно или вместе с provider config
 - `FORMULA_MODEL=openai/gpt-4o` (опциональный override; если не задан и есть `OPENROUTER_API_KEY`, formula slice по умолчанию использует `openai/gpt-4o`)
 - `OPENROUTER_API_KEY=...`
 
@@ -43,7 +43,7 @@ CLI, GUI и прямое создание `ConverterOptions()` автомати�
 Если formula-recognition config заполнен, runner после базового extraction открывает `document.v1.json`, ищет `formula_image` units и запускает отдельный post-processing stage:
 
 - сначала используется локальная WMF/MathType hint extraction, если она даёт достаточную уверенность;
-- затем, если включён `FORMULA_RECOGNITION_LOCAL_BACKEND=tesseract`, выполняется локальный raster OCR fallback без сетевого вызова;
+- затем, если включён `FORMULA_RECOGNITION_LOCAL_BACKEND=tesseract|paddleocr`, выполняется локальный raster OCR fallback без сетевого вызова;
 - только после этого для оставшихся кандидатов вызывается OpenRouter vision model, если provider действительно настроен;
 - результаты пишутся в `formula-recognition.jsonl`, а успешные распознавания попадают в `unit.text`, `unit.formula` и `processing.formula_recognition` внутри `document.v1.json`; OpenRouter response запрашивается через strict `json_schema`, чтобы downstream formula block был стабильнее machine-readable.
 
@@ -115,13 +115,14 @@ Benchmark harness пишет артефакты в `runs\formula-benchmark\runs\
 .\.venv\Scripts\python.exe scripts\gui_entry.py
 ```
 
-GUI позволяет выбрать входную и выходную папки, OCR languages и запустить обработку.
+GUI позволяет выбрать входную и выходную папки, OCR languages, OCR-модель для формул и запустить обработку.
+По умолчанию выбран `PaddleOCR` как локальная модель распознавания формул; альтернативный переключатель `Mathpix` использует облачную OCR-модель и требует настроенные `MATHPIX_APP_ID` / `MATHPIX_APP_KEY`.
 После завершения run кнопка `HTML QC` пересобирает `human-readable-index.html` для последнего `run_dir` и открывает этот индекс в браузере, чтобы можно было сразу проверить качество конвертации на человекочитаемом HTML-представлении.
 
 Входная и выходная папки не должны совпадать и не могут быть вложены друг в друга.
 При выборе входной папки GUI автоматически предлагает sibling output вида `<input>_output`; если оператор уже указал свой отдельный output вручную, эта настройка не перетирается.
 
-Текущий GUI v0.2.0 показывает текущий файл, progress, summary counts, позволяет отменить обработку после текущего файла и открыть папку результата. Отдельная кнопка pause/resume не заявляется; вместо этого поддерживается безопасный повторный запуск с reuse предыдущего output для неизменённых файлов.
+Текущий GUI v0.2.0 показывает текущий файл, progress, summary counts, позволяет отменить обработку после текущего файла, открыть папку результата и явно переключать formula OCR contour между локальным `PaddleOCR` и облачным `Mathpix`. Отдельная кнопка pause/resume не заявляется; вместо этого поддерживается безопасный повторный запуск с reuse предыдущего output для неизменённых файлов.
 
 Базовый automated smoke для GUI:
 

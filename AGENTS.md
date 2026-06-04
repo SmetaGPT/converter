@@ -2,22 +2,24 @@
 
 ## Startup contract
 
-Для любой кросс-модульной, многошаговой или resume-задачи агент обязан начинать с чтения state layer в таком порядке:
+Принцип: читать минимум контекста. По умолчанию — fast path. Тяжёлые state-файлы (`current-status.md`, `release-status.md`, `agent-feature-spine.json`) читать НЕ целиком, а точечно через grep по нужной секции/feature_id. Целиком грузить файл только если grep явно недостаточно.
 
-1. docs/current-status.md
-2. docs/current-sprint.md
-3. docs/release-status.md
+Fast path (по умолчанию для любой задачи, включая bugfix, explanation, локальные правки):
 
-После этого агент читает:
+1. начинать с named file/symbol/test/error;
+2. НЕ читать state layer, repo-memory и telemetry, пока локальный routing не показал, что задача реально шире;
+3. расширять cold-start только при явных признаках cross-module / release / resume scope.
 
-1. relevant task checkpoint, если он есть;
-2. relevant repo-memory notes, если они уже заведены;
-3. только затем переходит к локальному поиску по затронутой области.
+Extended path (только для release / resume / подтверждённо кросс-модульной задачи):
+
+1. прочитать `docs/state-snapshot.md` (короткий, ~1k токенов) — это единственный обязательный state entry point;
+2. при необходимости — grep-точечно по `docs/current-status.md`, `docs/current-sprint.md`, `docs/release-status.md` (искать конкретную секцию/blocker, не читать файл целиком);
+3. relevant task checkpoint и repo-memory notes — только если они напрямую относятся к текущему scope.
 
 ## Execution discipline
 
 1. Перед первым substantive edit должна быть зафиксирована локальная гипотеза и validation target.
-2. Для нетривиальной задачи до первой substantive правки должны быть определены затронутые `feature_id` из `docs/agent-feature-spine.json`.
+2. Для нетривиальной cross-module/process/state задачи до первой substantive правки должны быть определены затронутые `feature_id` — искать их grep-точечно в `docs/agent-feature-spine.json`, не читая файл целиком.
 3. Сразу после первого substantive edit должна выполняться focused validation, если она доступна.
 4. После завершения задачи должны обновляться state files, telemetry и при необходимости `docs/agent-feature-spine.json`.
 5. Если выявлен новый validated learning, он должен попасть в repo-memory.

@@ -1,0 +1,49 @@
+{
+  "active_feature_ids": [
+    "release-v1",
+    "compact-working-state",
+    "state-layer",
+    "agent-preflight",
+    "context-token-estimator",
+    "machine-readable-telemetry"
+  ],
+  "blockers": [
+    "Главный blocker теперь не S9.x, а S10.1: time-based GA criteria (`4 недели telemetry`, `30` подряд package/smoke runs) нельзя честно выполн…",
+    "production-ready within declared scope. W9 hosted nightly + tag-driven release proof завершены. v1.0 GA остаётся blocked на S10.1 (time-bas…"
+  ],
+  "current_goal": "Compact working-state memory layer",
+  "current_status": "production-ready within declared scope. W9 hosted nightly + tag-driven release proof завершены. v1.0 GA остаётся blocked на S10.1 (time-bas…",
+  "done_latest": [
+    "Added docs/agent-working-state.v1.json as a compact generated hot-path memory layer for current goal, latest done item, blockers, next chec…"
+  ],
+  "last_updated": "2026-06-04",
+  "memory_tiers": {
+    "archive": "query telemetry/spine/memory by feature_id or task anchor",
+    "hot": "docs/agent-working-state.v1.json",
+    "snapshot": "docs/state-snapshot.md when scope widens",
+    "state": "grep exact section in current-status/current-sprint/release-status"
+  },
+  "next": [
+    ".\\.venv\\Scripts\\python.exe -m unittest tests.test_build_agent_working_state tests.test_agent_preflight tests.test_class…",
+    ".\\.venv\\Scripts\\python.exe scripts\\build_agent_working_state.py --check",
+    "Read raw state docs only when the task is release/resume/cross-module or the local route is ambiguous."
+  ],
+  "schema_version": "agent-working-state.v1",
+  "sources": [
+    "docs/state-snapshot.md",
+    "docs/agent-telemetry.v1.jsonl",
+    "docs/agent-feature-spine.json"
+  ],
+  "token_budget_policy": {
+    "cross_module": "hot+snapshot; grep feature_id before long docs",
+    "local_fast_path": "anchor-first; no state unless route widens",
+    "release_or_resume": "hot+snapshot+targeted full-state sections"
+  },
+  "validation_targets": [
+    ".\\.venv\\Scripts\\python.exe -m unittest tests.test_build_agent_working_state tests.test_agent_preflight tests.test_class…",
+    ".\\.venv\\Scripts\\python.exe scripts\\build_agent_working_state.py --check",
+    "1. `nightly-full-e2e` run `26707811922` на `main` завершён `success`.",
+    "2. `release` run `26707894247` на tag `v0.3.0` завершён `success` и опубликован GitHub Release с zip/checksum.",
+    "3. `.\\.venv\\Scripts\\python.exe -m unittest tests.test_build_agent_working_state tests.test_agent_preflight tests.test_c…"
+  ]
+}

@@ -147,6 +147,46 @@ def _low_confidence_formula_payload() -> dict[str, object]:
     return payload
 
 
+def _table_warning_payload() -> dict[str, object]:
+    payload = _sample_payload()
+    payload["units"] = [
+        {
+            "unit_id": "u_000001",
+            "type": "table",
+            "order": 0,
+            "source_ref": {"document_id": DOCUMENT_ID},
+            "quality": {"flags": ["semantic_structure_inferred", "table_structure_warning"], "warnings": []},
+        },
+        {
+            "unit_id": "u_000002",
+            "parent_id": "u_000001",
+            "type": "table_row",
+            "order": 1,
+            "source_ref": {"document_id": DOCUMENT_ID},
+            "quality": {"flags": [], "warnings": []},
+        },
+        {
+            "unit_id": "u_000003",
+            "parent_id": "u_000002",
+            "type": "table_cell",
+            "order": 2,
+            "text": "МИНИСТЕРСТВО СТРОИТЕЛЬСТВА",
+            "source_ref": {"document_id": DOCUMENT_ID},
+            "quality": {"flags": [], "warnings": []},
+        },
+        {
+            "unit_id": "u_000004",
+            "parent_id": "u_000002",
+            "type": "table_cell",
+            "order": 3,
+            "text": "РОССИЙСКОЙ ФЕДЕРАЦИИ",
+            "source_ref": {"document_id": DOCUMENT_ID},
+            "quality": {"flags": [], "warnings": []},
+        },
+    ]
+    return payload
+
+
 class HumanReadableExportTests(unittest.TestCase):
     def test_build_markdown_renders_formula_and_table(self) -> None:
         markdown = build_human_readable_markdown(_sample_payload())
@@ -166,6 +206,19 @@ class HumanReadableExportTests(unittest.TestCase):
         self.assertIn("C = A + B", html)
         self.assertIn("<table>", html)
         self.assertIn("Тестовый документ", html)
+
+    def test_build_markdown_renders_table_warning_as_plain_text(self) -> None:
+        markdown = build_human_readable_markdown(_table_warning_payload())
+
+        self.assertIn("МИНИСТЕРСТВО СТРОИТЕЛЬСТВА РОССИЙСКОЙ ФЕДЕРАЦИИ", markdown)
+        self.assertNotIn("| МИНИСТЕРСТВО СТРОИТЕЛЬСТВА |", markdown)
+
+    def test_build_html_renders_table_warning_as_plain_text_block(self) -> None:
+        html = build_human_readable_html(_table_warning_payload())
+
+        self.assertIn('class="table-wrap table-plain"', html)
+        self.assertIn("МИНИСТЕРСТВО СТРОИТЕЛЬСТВА РОССИЙСКОЙ ФЕДЕРАЦИИ", html)
+        self.assertNotIn("<table>", html)
 
     def test_build_html_renders_low_confidence_formula_as_plain_text(self) -> None:
         html = build_human_readable_html(_low_confidence_formula_payload())

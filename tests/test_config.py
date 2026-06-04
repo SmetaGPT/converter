@@ -151,6 +151,23 @@ class FormulaRecognitionConfigTests(unittest.TestCase):
             self.assertEqual(config.local_backend, "tesseract")
             self.assertTrue(config.is_configured())
 
+    def test_load_formula_recognition_paddleocr_local_backend_without_provider(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / ".env.local").write_text(
+                "FORMULA_RECOGNITION_LOCAL_BACKEND=PaddleOCR\n",
+                encoding="utf-8",
+            )
+
+            with patch("doc_converter.config.Path.cwd", return_value=root):
+                config = load_formula_recognition_config()
+
+            self.assertIsNone(config.provider)
+            self.assertIsNone(config.model)
+            self.assertIsNone(config.api_key)
+            self.assertEqual(config.local_backend, "paddleocr")
+            self.assertTrue(config.is_configured())
+
     def test_converter_options_treat_placeholder_api_key_as_unconfigured(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

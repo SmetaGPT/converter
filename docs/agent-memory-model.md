@@ -54,12 +54,13 @@ Memory layer нужен для трёх задач:
 
 ## 7. Где что искать при resume
 
-1. docs/current-status.md
-2. docs/current-sprint.md
-3. docs/release-status.md
-4. relevant task checkpoint
-5. /memories/repo/* по затронутой области
-6. /memories/session/* только если задача ещё активна
+1. docs/state-snapshot.md
+2. docs/current-status.md, если задача resume/release/cross-module или snapshot показывает релевантный blocker
+3. docs/current-sprint.md, если нужен active plan или validation target
+4. docs/release-status.md, если задача влияет на declared scope или release contour
+5. relevant task checkpoint
+6. /memories/repo/* по затронутой области
+7. /memories/session/* только если задача ещё активна
 
 ## 8. Текущее разбиение repo memory
 

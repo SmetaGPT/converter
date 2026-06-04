@@ -424,6 +424,9 @@ def _formula_recognition_candidate(unit: object, *, mode: str = "fallback") -> d
     if unit_type == "formula_image" and isinstance(asset_ref, str) and asset_ref and _formula_needs_provider_review(formula, mode=mode):
         return {"kind": "formula_image", "asset_ref": asset_ref, "source_text": text}
 
+    if unit_type == "formula" and isinstance(asset_ref, str) and asset_ref and _formula_needs_provider_review(formula, mode=mode):
+        return {"kind": "formula_image", "asset_ref": asset_ref, "source_text": text}
+
     if unit_type == "formula" and text and _formula_needs_provider_review(formula, mode=mode):
         return {"kind": "formula_text", "asset_ref": None, "source_text": text}
 

@@ -11,6 +11,7 @@ from doc_converter.formula_recognition import run_formula_recognition_postproces
 from doc_converter.formulas.providers import (
     FormulaProviderContext,
     FormulaRecognitionAsset,
+    LocalPaddleOCRProvider,
     LocalTesseractProvider,
     MathpixProvider,
     NullProvider,
@@ -409,6 +410,108 @@ class FormulaRecognitionPostprocessTests(unittest.TestCase):
             self.assertEqual(artifact_record["local_backend"], "tesseract")
             self.assertIn("review_required", updated_payload["quality"]["flags"])
 
+    def test_formula_recognition_uses_local_backend_for_formula_unit_with_asset_ref(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            document_dir = Path(temp_dir)
+            assets_dir = document_dir / "assets"
+            assets_dir.mkdir()
+            asset_path = assets_dir / "formula.png"
+            asset_path.write_bytes(b"png")
+
+            payload = _minimal_formula_text_document_payload(asset_ref="assets/formula.png")
+            (document_dir / "document.v1.json").write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            with patch(
+                "doc_converter.formulas.providers._recognize_formula_with_tesseract",
+                return_value={
+                    "source_format": "heuristic_latex",
+                    "linear_text": "C = A + B",
+                    "display_latex": r"C = A + B",
+                    "calc_expr": "C = A + B",
+                    "confidence": "low",
+                    "warnings": ["formula_local_backend_tesseract"],
+                },
+            ) as mocked_local_backend, patch(
+                "doc_converter.formulas.providers._request_openrouter_completion"
+            ) as mocked_provider:
+                result = run_formula_recognition_postprocess(
+                    document_dir,
+                    FormulaRecognitionConfig(local_backend="tesseract"),
+                )
+
+            mocked_local_backend.assert_called_once()
+            mocked_provider.assert_not_called()
+            self.assertEqual(result.attempted, 1)
+            self.assertEqual(result.recognized, 1)
+            self.assertEqual(result.provider_calls, 0)
+            artifact_record = json.loads((document_dir / "formula-recognition.jsonl").read_text(encoding="utf-8").splitlines()[0])
+            self.assertEqual(artifact_record["candidate_kind"], "formula_image")
+            self.assertEqual(artifact_record["asset_ref"], "assets/formula.png")
+            self.assertEqual(artifact_record["status"], "recognized_local_backend")
+
+    def test_formula_recognition_uses_paddleocr_local_backend_without_provider(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            document_dir = Path(temp_dir)
+            assets_dir = document_dir / "assets"
+            assets_dir.mkdir()
+            asset_path = assets_dir / "formula.png"
+            asset_path.write_bytes(b"png")
+
+            payload = _minimal_document_payload(asset_path)
+            (document_dir / "document.v1.json").write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            with patch(
+                "doc_converter.formulas.providers._recognize_formula_with_paddleocr",
+                return_value={
+                    "source_format": "heuristic_latex",
+                    "linear_text": "C = A + B",
+                    "display_latex": r"C = A + B",
+                    "calc_expr": "C = A + B",
+                    "confidence": "low",
+                    "warnings": ["formula_local_backend_paddleocr"],
+                },
+            ) as mocked_local_backend, patch(
+                "doc_converter.formulas.providers._request_openrouter_completion"
+            ) as mocked_provider:
+                result = run_formula_recognition_postprocess(
+                    document_dir,
+                    FormulaRecognitionConfig(local_backend="paddleocr"),
+                )
+
+            mocked_local_backend.assert_called_once()
+            mocked_provider.assert_not_called()
+            self.assertEqual(result.attempted, 1)
+            self.assertEqual(result.recognized, 1)
+            self.assertEqual(result.provider_calls, 0)
+            updated_payload = json.loads((document_dir / "document.v1.json").read_text(encoding="utf-8"))
+            formula_unit = updated_payload["units"][1]
+            self.assertEqual(formula_unit["formula"]["calc_expr"], "C = A + B")
+            self.assertIn("formula_recognition_local_backend_generated", formula_unit["quality"]["warnings"])
+            self.assertEqual(
+                updated_payload["processing"]["formula_recognition"],
+                {
+                    "attempted": 1,
+                    "recognized": 1,
+                    "provider_calls": 0,
+                    "cache_hits": 0,
+                    "estimated_cost_usd": 0.0,
+                    "review_required_units": 1,
+                    "prompt_version": "v1",
+                    "results_path": "formula-recognition.jsonl",
+                    "local_backend": "paddleocr",
+                },
+            )
+            artifact_record = json.loads((document_dir / "formula-recognition.jsonl").read_text(encoding="utf-8").splitlines()[0])
+            self.assertEqual(artifact_record["status"], "recognized_local_backend")
+            self.assertEqual(artifact_record["local_backend"], "paddleocr")
+            self.assertIn("review_required", updated_payload["quality"]["flags"])
+
     def test_formula_recognition_falls_back_to_provider_after_local_backend_miss(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             document_dir = Path(temp_dir)
@@ -617,6 +720,12 @@ class FormulaRecognitionPostprocessTests(unittest.TestCase):
 
         self.assertEqual([provider.provider_id for provider in providers], ["mathpix", "openrouter"])
 
+    def test_build_formula_provider_chain_uses_paddleocr_local_backend(self) -> None:
+        providers = build_formula_provider_chain(FormulaRecognitionConfig(local_backend="paddleocr"))
+
+        self.assertEqual(len(providers), 1)
+        self.assertIsInstance(providers[0], LocalPaddleOCRProvider)
+
     def test_local_tesseract_provider_returns_prediction(self) -> None:
         provider = LocalTesseractProvider(backend="tesseract")
         asset = FormulaRecognitionAsset(path=Path("formula.png"), blob=b"png")
@@ -629,6 +738,34 @@ class FormulaRecognitionPostprocessTests(unittest.TestCase):
 
         with patch(
             "doc_converter.formulas.providers._recognize_formula_with_tesseract",
+            return_value={
+                "source_format": "heuristic_latex",
+                "linear_text": "C = A + B",
+                "display_latex": r"C = A + B",
+                "calc_expr": "C = A + B",
+                "confidence": "high",
+                "warnings": [],
+            },
+        ) as mocked_backend:
+            prediction = provider.predict(asset, context)
+
+        mocked_backend.assert_called_once()
+        assert prediction is not None
+        self.assertEqual(prediction.origin, "local_backend")
+        self.assertEqual(prediction.formula["calc_expr"], "C = A + B")
+
+    def test_local_paddleocr_provider_returns_prediction(self) -> None:
+        provider = LocalPaddleOCRProvider(backend="paddleocr")
+        asset = FormulaRecognitionAsset(path=Path("formula.png"), blob=b"png")
+        context = FormulaProviderContext(
+            candidate_kind="formula_image",
+            asset_name="formula.png",
+            local_hint_text=None,
+            source_text=None,
+        )
+
+        with patch(
+            "doc_converter.formulas.providers._recognize_formula_with_paddleocr",
             return_value={
                 "source_format": "heuristic_latex",
                 "linear_text": "C = A + B",
@@ -840,6 +977,7 @@ def _minimal_formula_text_document_payload(
     confidence: str = "low",
     source_format: str = "docx_text_linearized",
     warnings: list[str] | None = None,
+    asset_ref: str | None = None,
 ) -> dict[str, object]:
     sha256 = "1" * 64
     document_id = f"sha256:{sha256}"
@@ -871,7 +1009,7 @@ def _minimal_formula_text_document_payload(
                 "type": "formula",
                 "order": 1,
                 "text": "З_ч = (ч. раб.мес.)",
-                "asset_ref": None,
+                "asset_ref": asset_ref,
                 "formula": {
                     "source_format": source_format,
                     "linear_text": "З_ч = (ч. раб.мес.)",

@@ -17,6 +17,8 @@ from doc_converter.tables import parse_table_block as _parse_table_block
 
 FORMULA_RE = re.compile(r"(^|\s)[A-Za-zА-Яа-я][\wА-Яа-я]*\s*=|[=∑√≤≥±×÷≈]|\b(sum|sqrt|frac)\b", re.IGNORECASE)
 FIGURE_CAPTION_RE = re.compile(r"^(рис\.?|рисунок|figure)\s*\d*", re.IGNORECASE)
+SECTION_NUMBER_RE = re.compile(r"(?<![\d.])(\d+(?:\.\d+){1,3})(?=[A-ZА-ЯЁ])")
+NUMBERED_BLOCK_RE = re.compile(r"^(?:\d+(?:\.\d+){1,4})(?:\s|[A-Za-zА-Яа-я])|^\d+[A-Za-zА-Яа-я]")
 
 
 @dataclass(frozen=True)
@@ -76,6 +78,7 @@ def convert_pdf_text(
         if not page_paragraphs:
             continue
         for paragraph_index, paragraph in enumerate(page_paragraphs):
+            normalized_paragraph = _normalize_pdf_text_block(paragraph)
             unit_type = "paragraph"
             if paragraph_index == 0 and paragraph in header_candidates:
                 unit_type = "header"
@@ -151,7 +154,7 @@ def convert_pdf_text(
                     parent_id=page_unit_id,
                     type=unit_type,
                     order=order,
-                    text=paragraph,
+                    text=normalized_paragraph,
                     source_ref=SourceRef(
                         document_id=doc_id,
                         page=page_index,
@@ -163,7 +166,7 @@ def convert_pdf_text(
                 )
             )
             if unit_type not in {"header", "footer"}:
-                search_parts.append(paragraph)
+                search_parts.append(normalized_paragraph)
             order += 1
 
     search_text = "\n\n".join(search_parts)
@@ -214,6 +217,10 @@ def _split_pdf_text(text: str) -> list[str]:
                 paragraphs.append("\n".join(current))
                 current = []
             continue
+        if current and _starts_new_numbered_block(stripped):
+            paragraphs.append("\n".join(current))
+            current = [stripped]
+            continue
         current.append(stripped)
     if current:
         paragraphs.append("\n".join(current))
@@ -226,6 +233,20 @@ def _quality_flags_for_pdf_unit(unit_type: str) -> list[str]:
     if unit_type in {"figure", "formula"}:
         return ["semantic_structure_inferred"]
     return []
+
+
+def _normalize_pdf_text_block(text: str) -> str:
+    collapsed = " ".join(part.strip() for part in text.splitlines() if part.strip())
+    collapsed = re.sub(r"\s+", " ", collapsed).strip()
+    collapsed = SECTION_NUMBER_RE.sub(r"\1 ", collapsed)
+    collapsed = re.sub(r"\s+([,.;:])", r"\1", collapsed)
+    collapsed = re.sub(r"\(\s+", "(", collapsed)
+    collapsed = re.sub(r"\s+\)", ")", collapsed)
+    return collapsed
+
+
+def _starts_new_numbered_block(text: str) -> bool:
+    return bool(NUMBERED_BLOCK_RE.match(text))
 
 
 def _is_formula_block(text: str) -> bool:

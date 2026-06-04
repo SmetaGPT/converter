@@ -164,6 +164,8 @@ def build_human_readable_html(payload: dict[str, Any]) -> str:
         "    .formula-plain-text { margin:0; font:17px/1.6 'Times New Roman',Georgia,serif; white-space:normal; overflow-wrap:anywhere; }\n"
         "    .formula-label { margin-top:10px; font-size:14px; color:#6b4a39; text-indent:0; }\n"
         "    .table-wrap { width:100%; overflow-x:auto; margin:1rem 0 1.35rem; border:1px solid var(--line); border-radius:6px; background:#fffaf1; }\n"
+        "    .table-wrap.table-plain { padding:14px 16px; overflow-x:visible; }\n"
+        "    .table-plain-row { margin:.45rem 0; text-indent:0; text-align:left; overflow-wrap:anywhere; }\n"
         "    table { width:100%; min-width:680px; border-collapse:collapse; font-size:14.5px; line-height:1.42; }\n"
         "    th,td { border-bottom:1px solid var(--line); border-right:1px solid var(--line); padding:8px 10px; vertical-align:top; }\n"
         "    th { background:var(--soft); color:#2d1d13; font-weight:700; text-align:left; }\n"
@@ -439,6 +441,10 @@ def _render_table_markdown(
     if not rows:
         return []
 
+    if _table_has_structure_warning(table_unit):
+        lines = _render_plain_table_lines(rows)
+        return lines + ([""] if lines else [])
+
     width = max(len(row) for row in rows)
     normalized_rows = [row + [""] * (width - len(row)) for row in rows]
     header = normalized_rows[0]
@@ -460,6 +466,12 @@ def _render_table_html(
     rows = _table_rows(table_id, units_by_parent, emitted_unit_ids)
     if not rows:
         return ""
+
+    if _table_has_structure_warning(table_unit):
+        row_blocks = "".join(
+            f'<div class="table-plain-row">{_html_with_breaks(line)}</div>' for line in _render_plain_table_lines(rows)
+        )
+        return f'<div class="table-wrap table-plain">{row_blocks}</div>' if row_blocks else ""
 
     width = max(len(row) for row in rows)
     normalized_rows = [row + [""] * (width - len(row)) for row in rows]
@@ -492,6 +504,23 @@ def _table_rows(
                     emitted_unit_ids.add(cell_id)
     emitted_unit_ids.add(table_id)
     return rows
+
+
+def _table_has_structure_warning(table_unit: dict[str, Any]) -> bool:
+    quality = table_unit.get("quality")
+    if not isinstance(quality, dict):
+        return False
+    flags = quality.get("flags")
+    return isinstance(flags, list) and any(_string_value(flag) == "table_structure_warning" for flag in flags)
+
+
+def _render_plain_table_lines(rows: list[list[str]]) -> list[str]:
+    lines: list[str] = []
+    for row in rows:
+        line = " ".join(cell.strip() for cell in row if cell and cell.strip()).strip()
+        if line:
+            lines.append(line)
+    return lines
 
 
 def _formula_number(text: str) -> str | None:

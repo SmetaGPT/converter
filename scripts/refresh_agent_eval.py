@@ -25,6 +25,13 @@ from build_agent_scorecard import (
     build_scorecard_markdown_section,
     build_scorecard_payload,
 )
+from build_agent_working_state import (
+    DEFAULT_OUTPUT as WORKING_STATE_JSON,
+)
+from build_agent_working_state import (
+    build_working_state_payload,
+    dump_working_state_json,
+)
 from build_agent_weekly_eval import (
     DEFAULT_MARKDOWN as WEEKLY_EVAL_MARKDOWN,
 )
@@ -83,6 +90,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.check_markdown and _assert_text_matches(WEEKLY_EVAL_MARKDOWN, weekly_eval_markdown, "weekly-eval-markdown") != 0:
         return 1
 
+    working_state_payload = build_working_state_payload(ROOT)
+    working_state_json = dump_working_state_json(working_state_payload)
+    if args.check:
+        if _assert_text_matches(WORKING_STATE_JSON, working_state_json, "working-state") != 0:
+            return 1
+    else:
+        WORKING_STATE_JSON.write_text(working_state_json, encoding="utf-8", newline="\n")
+
     print(
         json.dumps(
             {
@@ -92,6 +107,7 @@ def main(argv: list[str] | None = None) -> int:
                 "scorecard_markdown": str(SCORECARD_MARKDOWN),
                 "weekly_eval_json": str(WEEKLY_EVAL_JSON),
                 "weekly_eval_markdown": str(WEEKLY_EVAL_MARKDOWN),
+                "working_state_json": str(WORKING_STATE_JSON),
             },
             ensure_ascii=False,
         )

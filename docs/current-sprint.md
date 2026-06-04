@@ -1,9 +1,9 @@
 # Current Sprint
 
-Последнее обновление: 2026-05-31
+Последнее обновление: 2026-06-04
 Активный спринт: S10.1 — v1.0 gate + S11.3 provider-assisted formula GA evidence
 Статус: blocked_external_provider_credentials_and_time_gate; S11.1/S11.2a/S11.2b/S11.4 local hardening completed, S11.3 awaits live credentials
-feature_ids: `release-v1`, `formula-recognition-env-config`, `formula-recognition-postprocess`, `formula-benchmark-incremental`, `tests-negative-samples`, `tests-property-based`, `tests-docx-fixtures`
+feature_ids: `release-v1`, `formula-recognition-env-config`, `formula-recognition-postprocess`, `formula-benchmark-incremental`, `tests-negative-samples`, `tests-property-based`, `tests-docx-fixtures`, `compact-working-state`
 
 Предыдущий приоритетный tranche: S9.2/S9.3 — nightly full e2e и release automation
 Статус: completed with hosted proof
@@ -37,12 +37,14 @@ feature_ids: `release-v1`, `formula-recognition-env-config`, `formula-recognitio
 
 1. `nightly-full-e2e` run `26707811922` на `main` завершён `success`.
 2. `release` run `26707894247` на tag `v0.3.0` завершён `success` и опубликован GitHub Release с zip/checksum.
-3. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe scripts\refresh_agent_eval.py` пересобирает generated companions без drift.
-4. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe scripts\validate_harness_assets.py` возвращает `status: ok`.
-5. Focused S11.2b validation прошла: `.\.venv\Scripts\python.exe -m unittest tests.test_config tests.test_formula_recognition tests.test_contracts_stability tests.test_cli_smoke.CliSmokeTests.test_runner_invokes_formula_recognition_postprocess_when_configured tests.test_cli_smoke.CliSmokeTests.test_run_metadata_serializes_local_formula_backend_without_api_key -v` вернул `OK` (`32` tests), а focused `ruff` и `pyright` по touched files вернули `0` issues.
-6. S11.1 strict alignment validation прошла: full `.\.venv\Scripts\python.exe -m ruff check src tests scripts` и full `.\.venv\Scripts\python.exe -m pyright` вернули `0` issues.
-7. S11.3 preflight показал реальный внешний blocker: `MATHPIX_APP_ID`, `MATHPIX_APP_KEY`, `OPENROUTER_API_KEY` и `FORMULA_RECOGNITION_API_KEY` в текущем окружении отсутствуют; локальный benchmark hook есть, но live provider evidence без этих opt-in credentials не исполним.
-8. S11.4 local coverage closeout прошёл: `$env:PYTHONPATH='src'; .\.venv\Scripts\python.exe -m unittest tests.test_property_based tests.test_negative_sample_expectations -v` (`4` tests `OK`), coverage smoke, full `unittest discover` (`206` tests, `4` skipped), full `ruff`, full `pyright` (`0` errors) и `pip check` зелёные.
+3. `.\.venv\Scripts\python.exe -m unittest tests.test_build_agent_working_state tests.test_agent_preflight tests.test_classify_agent_scope tests.test_estimate_context_tokens -v` возвращает `OK`.
+4. `.\.venv\Scripts\python.exe scripts\build_agent_working_state.py --check` подтверждает compact working-state без drift.
+5. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe scripts\refresh_agent_eval.py` пересобирает generated companions без drift.
+6. `$env:PYTHONPATH = 'src'; .\.venv\Scripts\python.exe scripts\validate_harness_assets.py` возвращает `status: ok`.
+7. Focused S11.2b validation прошла: `.\.venv\Scripts\python.exe -m unittest tests.test_config tests.test_formula_recognition tests.test_contracts_stability tests.test_cli_smoke.CliSmokeTests.test_runner_invokes_formula_recognition_postprocess_when_configured tests.test_cli_smoke.CliSmokeTests.test_run_metadata_serializes_local_formula_backend_without_api_key -v` вернул `OK` (`32` tests), а focused `ruff` и `pyright` по touched files вернули `0` issues.
+8. S11.1 strict alignment validation прошла: full `.\.venv\Scripts\python.exe -m ruff check src tests scripts` и full `.\.venv\Scripts\python.exe -m pyright` вернули `0` issues.
+9. S11.3 preflight показал реальный внешний blocker: `MATHPIX_APP_ID`, `MATHPIX_APP_KEY`, `OPENROUTER_API_KEY` и `FORMULA_RECOGNITION_API_KEY` в текущем окружении отсутствуют; локальный benchmark hook есть, но live provider evidence без этих opt-in credentials не исполним.
+10. S11.4 local coverage closeout прошёл: `$env:PYTHONPATH='src'; .\.venv\Scripts\python.exe -m unittest tests.test_property_based tests.test_negative_sample_expectations -v` (`4` tests `OK`), coverage smoke, full `unittest discover` (`206` tests, `4` skipped), full `ruff`, full `pyright` (`0` errors) и `pip check` зелёные.
 
 ## 5. Риски и blocker
 
@@ -56,5 +58,5 @@ feature_ids: `release-v1`, `formula-recognition-env-config`, `formula-recognitio
 
 1. S9.2/S9.3 hosted closeout уже зафиксирован и смержен через PR #7 (`f778d0e`).
 2. Следующий исполнимый engineering work item — S11.3 provider-assisted formula GA evidence, но он ждёт opt-in credentials: live pilot на 10-20 документах, provider-assisted benchmark/report и review-load metrics.
-3. Локально доступный S11.4 closeout уже выполнен; следующий local-only backlog при отсутствии credentials — S11.5 harness consolidation или S11.6 oversize/perf proof, но они не снимают S10.1 time/provider blockers.
+3. Локально доступный S11.4 closeout уже выполнен; formula contour теперь также умеет `FORMULA_RECOGNITION_LOCAL_BACKEND=tesseract|paddleocr` как selective local OCR layer, а июньский extractor follow-up снял первоначальный surface blocker: `docx-native-route` теперь пробрасывает `asset_ref` на drawing-backed residual formulas, и `421/пр` даёт честный local-only OCR slice (`36 attempted`, `27 recognized`, `9 review_required`). После установки `ftfy` и повторного PaddleOCR rerun с cached model unit-level результат на этом anchor совпал с `tesseract` один в один, так что следующий честный OCR decision slice требует не просто asset-linked DOCX, а case, где shared WMF local hints уже недостаточны и backends действительно расходятся по quality. Полный full-pipeline compare на `SP_14.pdf` показал то же уже на большом `pdf_text` PDF (`38,858` units, `226` tables, `5` figures, `2` unresolved formulas): после нормализации `local_backend` и `source.original_path` оба `document.v1.json` и `search_text.txt` идентичны, так что следующий честный OCR decision slice нужен не просто на formula-rich PDF, а именно на asset-backed formula contour. Для operator QC этот stress-case теперь хотя бы читаем: human-readable exporter понижает `table_structure_warning` tables до plain-text blocks вместо wall-to-wall grid render. Это не снимает S10.1 time/provider blockers.
 4. Для v1.0 GA также заранее накопить 4-week telemetry window и 30-run package/smoke streak; без этого `v1.0.0` tag не должен публиковаться.

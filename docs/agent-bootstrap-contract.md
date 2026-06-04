@@ -9,14 +9,15 @@ Bootstrap contract нужен, чтобы новая или продолженн
 
 ## 2. Обязательный cold-start
 
-Для любой кросс-модульной, многошаговой или resume-задачи:
+Для любой release-, resume- или действительно кросс-модульной задачи:
 
-1. Прочитать `docs/current-status.md`.
-2. Прочитать `docs/current-sprint.md`.
-3. Прочитать `docs/release-status.md`.
-4. Прочитать `AGENTS.md` и проверить routing/validation expectations.
-5. Прочитать `docs/agent-feature-spine.json`, если задача затрагивает harness, state, process layer или ключевые product-capabilities конвертера.
-6. Прочитать relevant checkpoint и relevant repo-memory notes, если они есть.
+1. Прочитать `docs/state-snapshot.md`.
+2. Если задача меняет state/release/process layer, продолжает незавершённую работу или snapshot показывает релевантный blocker/gate, дочитать `docs/current-status.md`, `docs/current-sprint.md` и `docs/release-status.md`.
+3. Прочитать `AGENTS.md` и проверить routing/validation expectations.
+4. Прочитать `docs/agent-feature-spine.json`, если задача затрагивает harness, state, process layer или declared capability.
+5. Прочитать relevant checkpoint и relevant repo-memory notes, если они есть и нужны текущему scope.
+
+Для локальной однофайловой, narrow bugfix или short explanation задачи действует fast path: начинать с named file/symbol/test/error и не читать полный state layer, пока локальный маршрут не показал, что owning surface шире.
 
 ## 3. Runtime reacquire
 
@@ -34,7 +35,7 @@ Bootstrap contract нужен, чтобы новая или продолженн
 
 До первой substantive правки нужно зафиксировать:
 
-1. затронутые `feature_id` из `docs/agent-feature-spine.json`;
+1. затронутые `feature_id` из `docs/agent-feature-spine.json`, если задача действительно меняет capability/process/state contract;
 2. локальную гипотезу;
 3. cheap disconfirming check;
 4. focused validation target.

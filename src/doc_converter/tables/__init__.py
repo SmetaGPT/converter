@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 TABLE_SEPARATOR_RE = re.compile(r"\s{2,}|\t+|\s*\|\s*")
+TABLE_NUMERIC_SIGNAL_RE = re.compile(r"\d")
+TABLE_LIST_MARKER_RE = re.compile(r"^(?:\d+|[A-Za-zА-Яа-я])[.)]?$")
 
 
 @dataclass(frozen=True)
@@ -18,7 +20,14 @@ def is_table_block(text: str) -> bool:
     parsed = parse_table_block(text)
     if parsed.dominant_width < 2 or len(parsed.rows) < 2:
         return False
-    return sum(1 for row in parsed.rows if len(row) == parsed.dominant_width) >= 2
+    aligned_rows = [row for row in parsed.rows if len(row) == parsed.dominant_width]
+    if len(aligned_rows) < 2:
+        return False
+    if _looks_like_numbered_list(aligned_rows):
+        return False
+    if parsed.dominant_width == 2 and parsed.flags and not _has_numeric_signal(aligned_rows):
+        return False
+    return True
 
 
 def parse_table_rows(text: str) -> list[list[str]]:
@@ -72,6 +81,25 @@ def _dominant_table_width(rows: list[list[str]]) -> int:
     for width in widths:
         counts[width] = counts.get(width, 0) + 1
     return max(counts.items(), key=lambda item: (item[1], item[0]))[0]
+
+
+def _has_numeric_signal(rows: list[tuple[str, ...]]) -> bool:
+    return any(TABLE_NUMERIC_SIGNAL_RE.search(cell) for row in rows[1:] for cell in row[1:])
+
+
+def _looks_like_numbered_list(rows: list[tuple[str, ...]]) -> bool:
+    list_like_rows = 0
+    prose_value_rows = 0
+    numeric_value_rows = 0
+    for first_cell, *rest_cells in rows:
+        if not TABLE_LIST_MARKER_RE.fullmatch(first_cell.strip()):
+            continue
+        list_like_rows += 1
+        if any(len(cell.strip()) >= 20 for cell in rest_cells):
+            prose_value_rows += 1
+        if any(TABLE_NUMERIC_SIGNAL_RE.search(cell) for cell in rest_cells):
+            numeric_value_rows += 1
+    return list_like_rows >= 2 and prose_value_rows >= 2 and numeric_value_rows <= 1
 
 
 __all__ = ["ParsedTableBlock", "is_table_block", "parse_table_block", "parse_table_rows"]

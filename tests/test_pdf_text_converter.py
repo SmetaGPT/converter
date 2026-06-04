@@ -234,6 +234,201 @@ class PdfTextConverterTests(unittest.TestCase):
             self.assertIn("table_structure_warning", table_unit["quality"]["flags"])
             self.assertEqual([unit["text"] for unit in row_cells], ["A", "10", ""])
 
+    def test_pdf_text_does_not_infer_ragged_two_column_text_block_without_numeric_signal_as_table(self) -> None:
+        class FakeMediaBox:
+            left = 0
+            bottom = 0
+            right = 595
+            top = 842
+
+        class FakePage:
+            def __init__(self, layout_text: str) -> None:
+                self._layout_text = layout_text
+                self.mediabox = FakeMediaBox()
+                self.rotation = 0
+
+            def extract_text(self, *args: object, **kwargs: object) -> str:
+                if kwargs.get("extraction_mode") == "layout":
+                    return self._layout_text
+                return self._layout_text
+
+        fake_reader = type(
+            "FakeReader",
+            (),
+            {
+                "pages": [
+                    FakePage(
+                        "МИНИСТЕРСТВО СТРОИТЕЛЬСТВА\n"
+                        "И ЖИЛИЩНО-  КОММУНАЛЬНОГО ХОЗЯЙСТВА\n"
+                        "РОССИЙСКОЙ ФЕДЕРАЦИИ"
+                    )
+                ]
+            },
+        )()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_path = Path(temp_dir) / "two-column-text.pdf"
+            output_dir = Path(temp_dir) / "out"
+            source_path.write_bytes(b"%PDF-1.4\n%stub\n")
+
+            with patch("doc_converter.converters.pdf_text.PdfReader", return_value=fake_reader):
+                convert_pdf_text(source_path, output_dir, "6" * 64)
+
+            payload = json.loads((output_dir / "document.v1.json").read_text(encoding="utf-8"))
+            validate_payload(payload, "document.v1.schema.json")
+            unit_types = [unit["type"] for unit in payload["units"]]
+            paragraph_units = [unit for unit in payload["units"] if unit["type"] == "paragraph"]
+
+            self.assertNotIn("table", unit_types)
+            self.assertEqual(
+                paragraph_units[0]["text"],
+                "МИНИСТЕРСТВО СТРОИТЕЛЬСТВА И ЖИЛИЩНО- КОММУНАЛЬНОГО ХОЗЯЙСТВА РОССИЙСКОЙ ФЕДЕРАЦИИ",
+            )
+
+    def test_pdf_text_normalizes_numbered_paragraph_line_wraps(self) -> None:
+        class FakeMediaBox:
+            left = 0
+            bottom = 0
+            right = 595
+            top = 842
+
+        class FakePage:
+            def __init__(self, layout_text: str) -> None:
+                self._layout_text = layout_text
+                self.mediabox = FakeMediaBox()
+                self.rotation = 0
+
+            def extract_text(self, *args: object, **kwargs: object) -> str:
+                if kwargs.get("extraction_mode") == "layout":
+                    return self._layout_text
+                return self._layout_text
+
+        fake_reader = type(
+            "FakeReader",
+            (),
+            {
+                "pages": [
+                    FakePage(
+                        "Отделенное от каркаса.\n"
+                        "6.8.18Конструкции узлов\n"
+                        "примыканий элементов ненесущих стен\n\n"
+                        "Обычный абзац\nсо второй строкой"
+                    )
+                ]
+            },
+        )()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_path = Path(temp_dir) / "numbered-paragraph.pdf"
+            output_dir = Path(temp_dir) / "out"
+            source_path.write_bytes(b"%PDF-1.4\n%stub\n")
+
+            with patch("doc_converter.converters.pdf_text.PdfReader", return_value=fake_reader):
+                convert_pdf_text(source_path, output_dir, "7" * 64)
+
+            payload = json.loads((output_dir / "document.v1.json").read_text(encoding="utf-8"))
+            validate_payload(payload, "document.v1.schema.json")
+            paragraph_units = [unit for unit in payload["units"] if unit["type"] == "paragraph"]
+
+            self.assertEqual(
+                [unit["text"] for unit in paragraph_units],
+                [
+                    "Отделенное от каркаса.",
+                    "6.8.18 Конструкции узлов примыканий элементов ненесущих стен",
+                    "Обычный абзац со второй строкой",
+                ],
+            )
+
+    def test_pdf_text_keeps_ragged_two_column_value_block_as_table(self) -> None:
+        class FakeMediaBox:
+            left = 0
+            bottom = 0
+            right = 595
+            top = 842
+
+        class FakePage:
+            def __init__(self, layout_text: str) -> None:
+                self._layout_text = layout_text
+                self.mediabox = FakeMediaBox()
+                self.rotation = 0
+
+            def extract_text(self, *args: object, **kwargs: object) -> str:
+                if kwargs.get("extraction_mode") == "layout":
+                    return self._layout_text
+                return self._layout_text
+
+        fake_reader = type(
+            "FakeReader",
+            (),
+            {
+                "pages": [
+                    FakePage(
+                        "Параметр  Значение\n"
+                        "Дата введения  2018-11-25\n"
+                        "Примечание"
+                    )
+                ]
+            },
+        )()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_path = Path(temp_dir) / "ragged-two-column.pdf"
+            output_dir = Path(temp_dir) / "out"
+            source_path.write_bytes(b"%PDF-1.4\n%stub\n")
+
+            with patch("doc_converter.converters.pdf_text.PdfReader", return_value=fake_reader):
+                convert_pdf_text(source_path, output_dir, "8" * 64)
+
+            payload = json.loads((output_dir / "document.v1.json").read_text(encoding="utf-8"))
+            validate_payload(payload, "document.v1.schema.json")
+
+            self.assertIn("table", {unit["type"] for unit in payload["units"]})
+
+    def test_pdf_text_does_not_treat_numbered_list_block_as_table(self) -> None:
+        class FakeMediaBox:
+            left = 0
+            bottom = 0
+            right = 595
+            top = 842
+
+        class FakePage:
+            def __init__(self, layout_text: str) -> None:
+                self._layout_text = layout_text
+                self.mediabox = FakeMediaBox()
+                self.rotation = 0
+
+            def extract_text(self, *args: object, **kwargs: object) -> str:
+                if kwargs.get("extraction_mode") == "layout":
+                    return self._layout_text
+                return self._layout_text
+
+        fake_reader = type(
+            "FakeReader",
+            (),
+            {
+                "pages": [
+                    FakePage(
+                        "1  ИСПОЛНИТЕЛЬ  -  АО НИЦ Строительство\n"
+                        "2  ВНЕСЕН  Техническим комитетом  по стандартизации\n"
+                        "3  УТВЕРЖДЕН  приказом  Минстроя России"
+                    )
+                ]
+            },
+        )()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_path = Path(temp_dir) / "numbered-list.pdf"
+            output_dir = Path(temp_dir) / "out"
+            source_path.write_bytes(b"%PDF-1.4\n%stub\n")
+
+            with patch("doc_converter.converters.pdf_text.PdfReader", return_value=fake_reader):
+                convert_pdf_text(source_path, output_dir, "9" * 64)
+
+            payload = json.loads((output_dir / "document.v1.json").read_text(encoding="utf-8"))
+            validate_payload(payload, "document.v1.schema.json")
+
+            self.assertNotIn("table", {unit["type"] for unit in payload["units"]})
+
     def test_runner_converts_real_pdf_text_sample_when_available(self) -> None:
         source_root = Path(r"D:\ФСНБ\Документы\Загрузка НПА\SP")
         sample = source_root / "SP_481.pdf"

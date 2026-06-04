@@ -142,7 +142,9 @@ def load_formula_recognition_config(
             _GENERAL_API_KEY_ENV_KEY,
         )
     )
-    local_backend = _normalize_env_value(_first_resolved_value(resolved, _FORMULA_RECOGNITION_ENV_KEYS["local_backend"]))
+    local_backend = _normalize_local_formula_backend(
+        _normalize_env_value(_first_resolved_value(resolved, _FORMULA_RECOGNITION_ENV_KEYS["local_backend"]))
+    )
     mode = _normalize_formula_recognition_mode(
         _normalize_env_value(_first_resolved_value(resolved, _FORMULA_RECOGNITION_ENV_KEYS["mode"]))
     )
@@ -307,6 +309,13 @@ def _normalize_formula_recognition_prompt_version(value: str | None) -> str:
         return _DEFAULT_FORMULA_PROMPT_VERSION
     normalized = value.strip()
     return normalized or _DEFAULT_FORMULA_PROMPT_VERSION
+
+
+def _normalize_local_formula_backend(value: str | None) -> str | None:
+    normalized = _normalize_env_value(value)
+    if normalized is None:
+        return None
+    return normalized.strip().lower()
 
 
 def _normalize_nonnegative_int(value: str | None) -> int | None:

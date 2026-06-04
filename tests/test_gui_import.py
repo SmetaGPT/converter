@@ -31,6 +31,54 @@ class GuiImportTests(unittest.TestCase):
             self.assertTrue(app.open_output_button.winfo_exists())
             self.assertTrue(app.open_html_qc_button.winfo_exists())
             self.assertTrue(app.progress_bar.winfo_exists())
+            self.assertEqual(app.formula_ocr_model_var.get(), "paddleocr")
+        finally:
+            app.destroy()
+
+    def test_default_formula_model_uses_local_paddleocr(self) -> None:
+        import doc_converter.gui as gui
+
+        try:
+            app = gui.ConverterApp()
+        except tk.TclError as exc:
+            self.skipTest(f"Tk is not available: {exc}")
+
+        try:
+            with patch.object(
+                gui,
+                "load_formula_recognition_config",
+                return_value=gui.FormulaRecognitionConfig(local_backend="tesseract", mathpix_app_id="app-id", mathpix_app_key="app-key"),
+            ):
+                config = app._build_formula_recognition_config(Path("D:/input"))
+
+            self.assertEqual(config.local_backend, "paddleocr")
+            self.assertIsNone(config.mathpix_app_id)
+            self.assertIsNone(config.mathpix_app_key)
+            self.assertEqual(config.mode, "fallback")
+        finally:
+            app.destroy()
+
+    def test_mathpix_formula_model_disables_local_backend(self) -> None:
+        import doc_converter.gui as gui
+
+        try:
+            app = gui.ConverterApp()
+        except tk.TclError as exc:
+            self.skipTest(f"Tk is not available: {exc}")
+
+        try:
+            app.formula_ocr_model_var.set("mathpix")
+            with patch.object(
+                gui,
+                "load_formula_recognition_config",
+                return_value=gui.FormulaRecognitionConfig(local_backend="tesseract", mathpix_app_id="app-id", mathpix_app_key="app-key"),
+            ):
+                config = app._build_formula_recognition_config(Path("D:/input"))
+
+            self.assertIsNone(config.local_backend)
+            self.assertEqual(config.mathpix_app_id, "app-id")
+            self.assertEqual(config.mathpix_app_key, "app-key")
+            self.assertEqual(config.mode, "fallback")
         finally:
             app.destroy()
 

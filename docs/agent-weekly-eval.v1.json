@@ -1,10 +1,10 @@
 {
   "schema_version": "agent-weekly-eval.v1",
-  "as_of_date": "2026-05-31",
+  "as_of_date": "2026-06-04",
   "window": {
     "days": 7,
-    "start_date": "2026-05-25",
-    "end_date": "2026-05-31"
+    "start_date": "2026-05-29",
+    "end_date": "2026-06-04"
   },
   "overall_status": "needs-attention",
   "sources": {
@@ -16,15 +16,15 @@
     "eval_instructions": "docs/agent-evals.md"
   },
   "telemetry_window_summary": {
-    "total_entries": 67,
+    "total_entries": 54,
     "validation_results": {
-      "passed": 47,
-      "passed_after_repair": 18,
+      "passed": 37,
+      "passed_after_repair": 14,
       "failed": 0,
-      "blocked": 2
+      "blocked": 3
     },
-    "state_updates": 67,
-    "feature_traceable_entries": 67,
+    "state_updates": 54,
+    "feature_traceable_entries": 54,
     "task_types": {
       "ci/docs": 3,
       "ci/release/docs": 1,
@@ -32,26 +32,28 @@
       "code/ci/docs/tests": 1,
       "code/ci/release/docs": 1,
       "code/ci/tests/docs": 1,
-      "code/docs/tests/schema": 1,
-      "code/runtime/docs": 2,
       "code/runtime/release/tests/docs": 1,
       "code/runtime/tests/docs": 4,
       "code/security/tests/docs": 1,
       "code/tests/ci/docs": 1,
-      "code/tests/data/docs": 1,
       "code/tests/docs": 20,
-      "code/tests/docs/state": 1,
-      "code/tests/runtime/docs": 19,
-      "docs/process/product": 2,
+      "code/tests/observability": 4,
+      "code/tests/observability/state": 1,
+      "code/tests/process": 2,
+      "code/tests/runtime/docs": 4,
+      "docs/process/observability": 1,
       "docs/release": 4,
-      "prompt/docs": 1
+      "docs/runtime": 1,
+      "runtime/docs": 1
     }
   },
   "scorecard_snapshot": {
-    "scorecard_as_of_date": "2026-05-31",
-    "validated_features": 56,
-    "referenced_features": 57,
+    "scorecard_as_of_date": "2026-06-04",
+    "validated_features": 60,
+    "referenced_features": 61,
     "referenced_feature_ids": [
+      "agent-handoff-summary",
+      "agent-preflight",
       "arch-converter-protocol",
       "arch-docx-split",
       "arch-runner-split",
@@ -64,6 +66,8 @@
       "ci-pr-gates",
       "ci-release-automation",
       "clean-exit-checklist",
+      "compact-working-state",
+      "context-token-estimator",
       "contracts-stable-v1",
       "determinism-font-bundle",
       "determinism-ordering",
@@ -117,28 +121,28 @@
         "title": "Validation discipline",
         "score": 5,
         "scale_max": 5,
-        "basis": "103/105 telemetry entries have pass-like validation results."
+        "basis": "116/119 telemetry entries have pass-like validation results."
       },
       {
         "signal_id": "state-hygiene",
         "title": "State hygiene",
         "score": 5,
         "scale_max": 5,
-        "basis": "105/105 telemetry entries report state_update=true."
+        "basis": "119/119 telemetry entries report state_update=true."
       },
       {
         "signal_id": "feature-traceability",
         "title": "Feature traceability",
         "score": 5,
         "scale_max": 5,
-        "basis": "105/105 telemetry entries reference at least one feature_id."
+        "basis": "119/119 telemetry entries reference at least one feature_id."
       },
       {
         "signal_id": "feature-coverage",
         "title": "Feature coverage in telemetry",
         "score": 5,
         "scale_max": 5,
-        "basis": "57/56 validated features are referenced by structured telemetry."
+        "basis": "61/60 validated features are referenced by structured telemetry."
       }
     ]
   },
