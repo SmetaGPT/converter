@@ -11,11 +11,12 @@ Bootstrap contract нужен, чтобы новая или продолженн
 
 Для любой release-, resume- или действительно кросс-модульной задачи:
 
-1. Прочитать `docs/state-snapshot.md`.
-2. Если задача меняет state/release/process layer, продолжает незавершённую работу или snapshot показывает релевантный blocker/gate, дочитать `docs/current-status.md`, `docs/current-sprint.md` и `docs/release-status.md`.
-3. Прочитать `AGENTS.md` и проверить routing/validation expectations.
-4. Прочитать `docs/agent-feature-spine.json`, если задача затрагивает harness, state, process layer или declared capability.
-5. Прочитать relevant checkpoint и relevant repo-memory notes, если они есть и нужны текущему scope.
+1. Прочитать `docs/agent-working-state.v1.json`.
+2. Прочитать `docs/state-snapshot.md`.
+3. Если задача меняет state/release/process layer, продолжает незавершённую работу или snapshot показывает релевантный blocker/gate, дочитать только нужные секции в `docs/current-status.md`, `docs/current-sprint.md` и `docs/release-status.md`.
+4. Прочитать `AGENTS.md` и проверить routing/validation expectations.
+5. Прочитать `docs/agent-feature-spine.json`, если задача затрагивает harness, state, process layer или declared capability.
+6. Прочитать relevant checkpoint и relevant repo-memory notes, если они есть и нужны текущему scope.
 
 Для локальной однофайловой, narrow bugfix или short explanation задачи действует fast path: начинать с named file/symbol/test/error и не читать полный state layer, пока локальный маршрут не показал, что owning surface шире.
 
@@ -42,14 +43,6 @@ Bootstrap contract нужен, чтобы новая или продолженн
 
 Если задача меняет capability, declared scope или verification evidence, это должно быть отражено в `docs/agent-feature-spine.json` при closeout.
 
-## 5. Выбор validation target
-
-До первой substantive правки нужно зафиксировать:
-
-1. локальную гипотезу;
-2. cheap disconfirming check;
-3. focused validation target.
-
 Предпочтительный порядок проверки:
 
 1. узкий поведенческий check;
@@ -57,7 +50,7 @@ Bootstrap contract нужен, чтобы новая или продолженн
 3. узкий compile/lint/typecheck;
 4. только если это docs/process task без исполнимого check — structured validator или diff sanity check.
 
-## 6. Выход cold-start
+## 5. Выход cold-start
 
 Cold-start считается завершённым, когда понятно:
 

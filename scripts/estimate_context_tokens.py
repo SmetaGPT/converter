@@ -13,6 +13,8 @@ TOKEN_RE = re.compile(r"[0-9A-Za-zА-Яа-яЁё_]+|[^\s]")
 DEFAULT_STARTUP_FILES = [
     "docs/agent-working-state.v1.json",
     "docs/state-snapshot.md",
+]
+FULL_STATE_EXTRA_FILES = [
     "docs/current-status.md",
     "docs/current-sprint.md",
     "docs/release-status.md",
@@ -66,7 +68,8 @@ def build_report(
     if include_startup_bundles:
         startup_items = [_estimate_file(root, relative_path, excerpt_lines=excerpt_lines) for relative_path in DEFAULT_STARTUP_FILES]
         items.extend(startup_items)
-        bundles.extend(_startup_bundles(startup_items, excerpt_lines=excerpt_lines))
+        full_state_extra_items = [_estimate_file(root, relative_path, excerpt_lines=excerpt_lines) for relative_path in FULL_STATE_EXTRA_FILES]
+        bundles.extend(_startup_bundles(startup_items, full_state_extra_items, excerpt_lines=excerpt_lines))
 
     for path_spec in path_specs:
         items.append(_estimate_file(root, path_spec, excerpt_lines=excerpt_lines))
@@ -194,21 +197,20 @@ def _estimate_inline_text(label: str, text: str) -> dict[str, Any]:
     }
 
 
-def _startup_bundles(startup_items: list[dict[str, Any]], *, excerpt_lines: int) -> list[dict[str, Any]]:
+def _startup_bundles(
+    startup_items: list[dict[str, Any]],
+    full_state_extra_items: list[dict[str, Any]],
+    *,
+    excerpt_lines: int,
+) -> list[dict[str, Any]]:
     hot_state = [item for item in startup_items if item["source"] == "docs/agent-working-state.v1.json"]
     snapshot_only = [item for item in startup_items if item["source"] == "docs/state-snapshot.md"]
-    full_state = [
+    default_startup = [
         item
         for item in startup_items
-        if item["source"]
-        in {
-            "docs/agent-working-state.v1.json",
-            "docs/state-snapshot.md",
-            "docs/current-status.md",
-            "docs/current-sprint.md",
-            "docs/release-status.md",
-        }
+        if item["source"] in {"docs/agent-working-state.v1.json", "docs/state-snapshot.md"}
     ]
+    full_state = [*default_startup, *full_state_extra_items]
     mode = f"excerpt:first_{excerpt_lines}_lines" if excerpt_lines > 0 else "full"
     return [
         {
@@ -221,6 +223,12 @@ def _startup_bundles(startup_items: list[dict[str, Any]], *, excerpt_lines: int)
             "label": "snapshot-only startup",
             "sources": [item["source"] for item in snapshot_only],
             "estimated_tokens": sum(int(item["estimated_tokens"]) for item in snapshot_only),
+            "mode": mode,
+        },
+        {
+            "label": "hot+snapshot startup",
+            "sources": [item["source"] for item in default_startup],
+            "estimated_tokens": sum(int(item["estimated_tokens"]) for item in default_startup),
             "mode": mode,
         },
         {

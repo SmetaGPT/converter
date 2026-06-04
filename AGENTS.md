@@ -12,7 +12,7 @@ Fast path (по умолчанию для любой задачи, включа�
 
 Extended path (только для release / resume / подтверждённо кросс-модульной задачи):
 
-1. прочитать `docs/state-snapshot.md` (короткий, ~1k токенов) — это единственный обязательный state entry point;
+1. прочитать `docs/agent-working-state.v1.json` и `docs/state-snapshot.md` — это default state entry bundle;
 2. при необходимости — grep-точечно по `docs/current-status.md`, `docs/current-sprint.md`, `docs/release-status.md` (искать конкретную секцию/blocker, не читать файл целиком);
 3. relevant task checkpoint и repo-memory notes — только если они напрямую относятся к текущему scope.
 
@@ -53,6 +53,7 @@ Extended path (только для release / resume / подтверждённо
 - Главный operational status: docs/current-status.md
 - Активный спринт: docs/current-sprint.md
 - Release status: docs/release-status.md
+- Hot working state: docs/agent-working-state.v1.json
 - Harness feature spine: docs/agent-feature-spine.json
 - Quality scorecard: docs/agent-quality-scorecard.md, docs/agent-quality-scorecard.v1.json
 - Telemetry: docs/agent-telemetry-log.md, docs/agent-telemetry.v1.jsonl

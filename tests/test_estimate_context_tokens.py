@@ -40,12 +40,14 @@ class EstimateContextTokensTests(unittest.TestCase):
 
             payload = module.build_report(root, path_specs=[], inline_texts=[], include_startup_bundles=True, excerpt_lines=0)
 
-        self.assertEqual(payload["summary"]["items"], 5)
-        self.assertEqual(payload["summary"]["bundles"], 3)
+        self.assertEqual(payload["summary"]["items"], 2)
+        self.assertEqual(payload["summary"]["bundles"], 4)
         bundle_map = {bundle["label"]: bundle for bundle in payload["bundles"]}
         self.assertIn("hot-state startup", bundle_map)
         self.assertIn("snapshot-only startup", bundle_map)
+        self.assertIn("hot+snapshot startup", bundle_map)
         self.assertIn("full-state startup", bundle_map)
+        self.assertGreater(bundle_map["hot+snapshot startup"]["estimated_tokens"], bundle_map["snapshot-only startup"]["estimated_tokens"])
         self.assertGreater(bundle_map["full-state startup"]["estimated_tokens"], bundle_map["snapshot-only startup"]["estimated_tokens"])
 
     def test_build_report_excerpt_mode_uses_first_n_lines_only(self) -> None:

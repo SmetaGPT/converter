@@ -8,11 +8,10 @@
     "machine-readable-telemetry"
   ],
   "blockers": [
-    "Главный blocker теперь не S9.x, а S10.1: time-based GA criteria (`4 недели telemetry`, `30` подряд package/smoke runs) нельзя честно выполн…",
-    "production-ready within declared scope. W9 hosted nightly + tag-driven release proof завершены. v1.0 GA остаётся blocked на S10.1 (time-bas…"
+    "Главный blocker: S10.1/S11.3 blocked на external time gate и opt-in provider credentials; без 4 недель telemetry, 30 подряд package/smoke r…"
   ],
   "current_goal": "Compact working-state memory layer",
-  "current_status": "production-ready within declared scope. W9 hosted nightly + tag-driven release proof завершены. v1.0 GA остаётся blocked на S10.1 (time-bas…",
+  "current_status": "production-ready within declared scope; v1.0 GA blocked на S10.1 external time gate и S11.3 live provider evidence/credentials",
   "done_latest": [
     "Added docs/agent-working-state.v1.json as a compact generated hot-path memory layer for current goal, latest done item, blockers, next chec…"
   ],
@@ -42,8 +41,8 @@
   "validation_targets": [
     ".\\.venv\\Scripts\\python.exe -m unittest tests.test_build_agent_working_state tests.test_agent_preflight tests.test_class…",
     ".\\.venv\\Scripts\\python.exe scripts\\build_agent_working_state.py --check",
-    "1. `nightly-full-e2e` run `26707811922` на `main` завершён `success`.",
-    "2. `release` run `26707894247` на tag `v0.3.0` завершён `success` и опубликован GitHub Release с zip/checksum.",
-    "3. `.\\.venv\\Scripts\\python.exe -m unittest tests.test_build_agent_working_state tests.test_agent_preflight tests.test_c…"
+    "1. Hosted proofs зелёные: `nightly-full-e2e` на `main`, `release` на tag `v0.3.0`.",
+    "2. Harness checks зелёные: narrow unittest bundle, `build_agent_working_state.py --check`, `refresh_agent_eval.py`, `va…",
+    "3. S11.3 preflight подтвердил внешний blocker: provider credentials в текущем env отсутствуют."
   ]
 }

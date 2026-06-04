@@ -80,6 +80,13 @@ class BuildStateSnapshotTests(unittest.TestCase):
         self.assertEqual(payload["last_updated"], "2026-06-03")
         self.assertEqual(payload["active_gate"], "S10.1 — v1.0 gate")
         self.assertEqual(payload["current_blocker"], "Главный blocker теперь time-based GA criteria.")
+        self.assertEqual(
+            payload["important_context"],
+            [
+                "Cold-start begins with docs/state-snapshot.md first",
+                "A new session can reacquire release scope and next validation path",
+            ],
+        )
         self.assertEqual(payload["validation_anchors"], [
             "1. validate_harness_assets",
             "2. refresh_agent_eval",

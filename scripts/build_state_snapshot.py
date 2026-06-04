@@ -90,8 +90,6 @@ def build_state_snapshot_payload(root: Path) -> dict[str, Any]:
     )
 
     important_context = [
-        _strip_trailing_punctuation(cast(str, current_status_meta.get("Статус контура") or "")),
-        _strip_trailing_punctuation(release_status),
         _strip_trailing_punctuation(cast(str, feature_map["state-layer"]["behavior"])),
         _strip_trailing_punctuation(cast(str, feature_map["bootstrap-contract"]["behavior"])),
     ]
@@ -116,7 +114,7 @@ def build_state_snapshot_payload(root: Path) -> dict[str, Any]:
         ],
         "full_state_docs": FULL_STATE_DOCS,
         "escalation_rules": FAST_PATH_ESCALATION_RULES,
-        "validation_anchors": validation_anchors[:5],
+        "validation_anchors": validation_anchors[:3],
     }
 
 

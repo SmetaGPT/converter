@@ -12,6 +12,7 @@ FULL_STATE_DOCS = [
     "docs/current-sprint.md",
     "docs/release-status.md",
 ]
+DEFAULT_STATE_ENTRY_DOCS = [WORKING_STATE, STATE_SNAPSHOT]
 FAST_PATH_ESCALATION_RULES = [
     "задача продолжает незавершённую работу или явно просит resume/handoff",
     "задача меняет state/release/process docs или harness assets",
@@ -187,14 +188,18 @@ def _state_strategy(scope: str) -> dict[str, object]:
             "read_working_state_first": True,
             "read_snapshot_first": True,
             "read_full_state": False,
-            "entry_docs": [WORKING_STATE, STATE_SNAPSHOT],
+            "entry_docs": [*DEFAULT_STATE_ENTRY_DOCS],
+            "full_state_docs": [],
+            "escalate_to_full_state": False,
         }
     return {
-        "mode": "hot-state-then-full-state",
+        "mode": "hot-state-then-snapshot-then-targeted-full-state",
         "read_working_state_first": True,
         "read_snapshot_first": True,
-        "read_full_state": True,
-        "entry_docs": [WORKING_STATE, STATE_SNAPSHOT, *FULL_STATE_DOCS],
+        "read_full_state": False,
+        "entry_docs": [*DEFAULT_STATE_ENTRY_DOCS],
+        "full_state_docs": [*FULL_STATE_DOCS],
+        "escalate_to_full_state": True,
     }
 
 
@@ -202,10 +207,7 @@ def _first_reads(scope: str, anchors: list[str]) -> list[str]:
     reads: list[str] = []
     if scope == "local-fast-path":
         return anchors[:2]
-    reads.append(WORKING_STATE)
-    reads.append(STATE_SNAPSHOT)
-    if scope in {"resume", "release"}:
-        reads.extend(FULL_STATE_DOCS)
+    reads.extend(DEFAULT_STATE_ENTRY_DOCS)
     reads.extend(anchor for anchor in anchors[:2] if anchor not in reads)
     return reads
 

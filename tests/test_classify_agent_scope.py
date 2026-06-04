@@ -34,7 +34,7 @@ class ClassifyAgentScopeTests(unittest.TestCase):
         )
         self.assertFalse(payload["feature_id_required"])
 
-    def test_release_scope_reads_full_state(self) -> None:
+    def test_release_scope_starts_hot_snapshot_then_escalates(self) -> None:
         module = _load_module()
 
         payload = module.classify_scope(
@@ -43,9 +43,15 @@ class ClassifyAgentScopeTests(unittest.TestCase):
         )
 
         self.assertEqual(payload["scope"], "release")
-        self.assertTrue(payload["state_strategy"]["read_full_state"])
+        self.assertFalse(payload["state_strategy"]["read_full_state"])
+        self.assertTrue(payload["state_strategy"]["escalate_to_full_state"])
+        self.assertEqual(
+            payload["state_strategy"]["full_state_docs"],
+            ["docs/current-status.md", "docs/current-sprint.md", "docs/release-status.md"],
+        )
         self.assertIn("docs/agent-working-state.v1.json", payload["first_reads"])
         self.assertIn("docs/state-snapshot.md", payload["first_reads"])
+        self.assertNotIn("docs/current-status.md", payload["first_reads"])
         self.assertTrue(payload["feature_id_required"])
 
     def test_resume_scope_detects_resume_keywords(self) -> None:
@@ -57,9 +63,10 @@ class ClassifyAgentScopeTests(unittest.TestCase):
         )
 
         self.assertEqual(payload["scope"], "resume")
-        self.assertTrue(payload["state_strategy"]["read_full_state"])
+        self.assertFalse(payload["state_strategy"]["read_full_state"])
+        self.assertTrue(payload["state_strategy"]["escalate_to_full_state"])
         self.assertIn("docs/agent-working-state.v1.json", payload["first_reads"])
-        self.assertIn("docs/current-status.md", payload["first_reads"])
+        self.assertNotIn("docs/current-status.md", payload["first_reads"])
 
     def test_cross_module_scope_detects_process_anchor(self) -> None:
         module = _load_module()

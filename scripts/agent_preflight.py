@@ -182,7 +182,9 @@ def _reference_bundles(root: Path, estimator_module: Any, excerpt_lines: int, *,
     if scope == "local-fast-path":
         return []
     default_startup_files = cast(list[str], estimator_module.DEFAULT_STARTUP_FILES)
-    if not all((root / relative_path).exists() for relative_path in default_startup_files):
+    full_state_extra_files = cast(list[str], estimator_module.FULL_STATE_EXTRA_FILES)
+    required_files = [*default_startup_files, *full_state_extra_files]
+    if not all((root / relative_path).exists() for relative_path in required_files):
         return []
     payload = cast(
         dict[str, Any],

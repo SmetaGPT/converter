@@ -142,7 +142,7 @@ def _snapshot_blockers(snapshot: dict[str, Any]) -> list[str]:
     release_status = _cast_str(snapshot.get("release_status"), default="")
     if blocker and blocker != "unknown":
         blockers.append(_compact(blocker, MAX_TEXT_CHARS))
-    if "blocked" in release_status.lower():
+    if not blockers and "blocked" in release_status.lower():
         blockers.append(_compact(release_status, MAX_TEXT_CHARS))
     return blockers
 

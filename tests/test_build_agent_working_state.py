@@ -77,7 +77,7 @@ class BuildAgentWorkingStateTests(unittest.TestCase):
         self.assertEqual(payload["current_goal"], "Compact working state")
         self.assertIn("release-v1", payload["active_feature_ids"])
         self.assertIn("compact-working-state", payload["active_feature_ids"])
-        self.assertIn("external time window", payload["blockers"])
+        self.assertEqual(payload["blockers"], ["external time window"])
         self.assertIn("unit tests", payload["validation_targets"])
         self.assertIn("hot", payload["memory_tiers"])
 
